@@ -1,7 +1,7 @@
 # ConEvents - Campus Events & Ticketing Web App
 
 - Ahmed Gara Ali - 40310578 - garaali.ahmed@gmail.com - Lekerj
--
+- Mike Kouka - 40299971 - matrixmike.89@gmail.com - Mike
 -
 -
 -
