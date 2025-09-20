@@ -5,7 +5,7 @@
 - Luca Nasrallah - 40316548 - lucanasrallah8@gmail.com - LucaDNasrallah
 - Mike Kouka - 40299971 - matrixmike.89@gmail.com - mickeyblue89
 - Jotnivaas Gill - 40260752 - jot_Gill@hotmail.com - Jotnivaas
--
+- Abdeljalil Sennaoui - 40117162- abdeljalilsennaoui@gmail.com - abdeljalilsennaoui
 -
 -
 
@@ -50,18 +50,19 @@ One feature will be proposed and validated with the TA (TBD...)
 ## Languages & Techniques  
 
 ### Frontend
-- React (UI framework)  
+- Javascript 
 - CSS framework: TBD
 ### Backend
 - Node.js  
 - Express.js  
 
 ### Database
-- TBD -> options: MongoDB or PostgreSQL  
+- TBD -> options: local cache and txt file
 
 ### Other Techniques
 - QR Code generation & scanning (library TBD)  
-- Authentication (Logins) (TBD...)  
+- Authentication (Logins) (TBD...)
+- Hashing functions
 
 ---
 
