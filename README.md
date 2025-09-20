@@ -51,13 +51,13 @@ One feature will be proposed and validated with the TA (TBD...)
 
 ### Frontend
 - Javascript 
-- CSS framework: TBD
+- CSS
 ### Backend
 - Node.js  
 - Express.js  
 
 ### Database
-- TBD -> options: local cache and txt file
+-  Local cache and txt file (of server)
 
 ### Other Techniques
 - QR Code generation & scanning (library TBD)  
