@@ -1,6 +1,6 @@
 # ConEvents - Campus Events & Ticketing Web App
 
-- Ahmed Gara Ali - 40310578 - garaali.ahmed@gmail.com -Lekerj
+- Ahmed Gara Ali - 40310578 - garaali.ahmed@gmail.com - Lekerj
 - Salia pona - 40262708 - ponasalia@gmail.com - godlight1
 - Luca Nasrallah - 40316548 - lucanasrallah8@gmail.com - LucaDNasrallah
 - Mike Kouka - 40299971 - matrixmike.89@gmail.com - mickeyblue89
