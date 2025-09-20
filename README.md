@@ -2,7 +2,7 @@
 
 - Ahmed Gara Ali - 40310578 - garaali.ahmed@gmail.com - Lekerj
 - Salia pona - 40262708 - ponasalia@gmail.com - godlight1
--
+- Luca Nasrallah - 40316548 - lucanasrallah8@gmail.com - </LNasa_54>
 -
 -
 -
