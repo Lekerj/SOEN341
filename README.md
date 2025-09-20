@@ -4,7 +4,7 @@
 - Salia pona - 40262708 - ponasalia@gmail.com - godlight1
 - Luca Nasrallah - 40316548 - lucanasrallah8@gmail.com - </LNasa_54>
 - Mike Kouka - 40299971 - matrixmike.89@gmail.com - MickeyBlue89
--
+- Jotnivaas Gill - 40260752 - jot_Gill@hotmail.com - jotnivaas
 -
 -
 -
