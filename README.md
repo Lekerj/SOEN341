@@ -7,7 +7,7 @@
 - Jotnivaas Gill - 40260752 - jot_Gill@hotmail.com - Jotnivaas
 - Abdeljalil Sennaoui - 40117162- abdeljalilsennaoui@gmail.com - abdeljalilsennaoui
 - Subaanky Krishnapillai - 40128716 - subaankyk@hotmail.com - Subaanky
--
+- Adriana Atijas - 40317966 - atijasadriana@gmail.com - adrianaatijas
 
 ---
 
