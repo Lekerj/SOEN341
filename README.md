@@ -18,7 +18,7 @@ ConEvents is a Web Application of Campus Events and Ticketing that integrates th
 ---
 
 ## Objective
-The objective of ConEvents is to simplify how events are discovered, managed, and attended on campus by providing students with easy access to activities, giving organizers efficient tools to plan and monitor events, and enabling administrators to maintain oversight and gather insights into student engagement, ultimately fostering a stronger and more connected campus community.
+The objective of ConEvents is to simplify how events are discovered, managed, and attended on campus by providing students with easy access to activities, giving organizers efficient tools to plan and monitor events, and enabling administrators to maintain oversight and gather insights into student engagement, ultimately fostering a stronger and more connected campus community. This project aims to create a seamless, all-in-one platform that enhances student involvement while improving communication between students, organizers, and campus administrators.
 
 ---
 
