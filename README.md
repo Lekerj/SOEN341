@@ -50,6 +50,7 @@ One feature will be proposed and validated with the TA (TBD...)
 ## Languages & Techniques  
 
 ### Frontend
+- HTML
 - Javascript 
 - CSS
 ### Backend
