@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="auth.css" />
+  <title>Create Account • ConEvents</title>
+</head>
+<body>
+
+  <header class="main-header">
+    <div class="header-content">
+      <a href="/" class="logo">ConEvent</a>
+      <nav class="top-nav">
+        <a href="#">Concerts</a>
+        <a href="#">Sports</a>
+        <a href="#">Arts, Theatre and Comedy</a>
+        <a href="#">Family</a>
+        <a href="#">Cities</a>
+      </nav>
+      <a href="register.html" class="login">Create account</a>
+    </div>
+  </header>
+
+  <main class="auth-wrapper">
+    <section class="auth-card">
+      <h1>Create your account</h1>
+
+      <div id="banner" class="banner" hidden></div>
+
+      <form id="registerForm" novalidate>
+        <div class="form-row">
+          <label for="name">Full name</label>
+          <input type="text" id="name" name="name" placeholder="Alex Johnson" required />
+          <small data-error-for="name" class="error-text" hidden>Enter your full name (at least 2 characters).</small>
+        </div>
+
+        <div class="form-row">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" required />
+          <small data-error-for="email" class="error-text" hidden>Enter a valid email address.</small>
+        </div>
+
+        <div class="form-row">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="At least 8 characters" minlength="8" required />
+          <small data-error-for="password" class="error-text" hidden>Password must be at least 8 characters and include a number.</small>
+        </div>
+
+        <button type="submit" class="primary-btn">Create account</button>
+        <p class="alt-link">Already have an account? <a href="#" aria-label="Log in">Log in</a></p>
+      </form>
+    </section>
+  </main>
+
+  <script>
+// Form validation and submission handling
+    document.getElementById('registerForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const name = document.getElementById('name');
+      const email = document.getElementById('email');
+      const password = document.getElementById('password');
+      let ok = true;
+
+    //  Helper to set error state
+      function setError(input, cond) {
+        const el = document.querySelector(`[data-error-for="${input.id}"]`);
+        if (cond) {
+          el.hidden = true;
+          input.classList.remove('invalid');
+        } else {
+          el.hidden = false;
+          input.classList.add('invalid');
+          ok = false;
+        }
+      }
+// Validate fields
+      setError(name, name.value.trim().length >= 2);
+      setError(email, /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value));
+      setError(password, password.value.length >= 8 && /\d/.test(password.value));
+
+      const banner = document.getElementById('banner');
+      if (ok) {
+        banner.textContent = 'Account created successfully! Redirecting to the home page…';
+        banner.className = 'banner success';
+        banner.hidden = false;
+        // Fake redirect after a moment
+        setTimeout(() => window.location.href = 'index.html', 1200);
+      } else {
+        banner.textContent = 'Please fix the highlighted fields.';
+        banner.className = 'banner error';
+        banner.hidden = false;
+      }
+    });
+  </script>
+</body>
+</html>
