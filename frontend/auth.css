@@ -1,0 +1,139 @@
+/* Auth / Register page additions */
+:root {
+  --surface: #ffffff;
+  --ink: #0d1b2a;
+  --muted: #6b7280;
+  --primary: #007bff;
+  --danger: #b00020;
+  --success: #0f9d58;
+  --ring: rgba(0, 123, 255, 0.35);
+}
+
+body {
+  background: #f5f7fb;
+}
+
+.auth-wrapper {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.auth-card {
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: 0 10px 20px rgba(0,0,0,.06);
+  padding: 2rem 1.5rem;
+}
+
+.auth-card h1 {
+  margin: 0 0 1rem 0;
+  color: #fff;
+  background: linear-gradient(135deg, #0d47a1, #1e88e5);
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  font-size: 1.35rem;
+}
+
+.form-row {
+  display: grid;
+  gap: .35rem;
+  margin: 1rem 0;
+}
+
+.form-row label {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.form-row input[type="text"],
+.form-row input[type="email"],
+.form-row input[type="password"] {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: .75rem .9rem;
+  font-size: 1rem;
+  outline: none;
+  background: #fff;
+  transition: box-shadow .15s, border-color .15s;
+}
+
+.form-row input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+.role-badges {
+  display: flex;
+  gap: .5rem;
+  margin-top: .25rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  border: 1px solid #e5e7eb;
+  padding: .4rem .65rem;
+  border-radius: 999px;
+  font-size: .9rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background .15s, border-color .15s;
+  color: #111827;
+  background: #fff;
+}
+
+.badge.active {
+  background: #e3f2fd;
+  border-color: #90caf9;
+}
+
+.error-text {
+  color: var(--danger);
+  font-size: .85rem;
+}
+
+.invalid {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 4px rgba(176, 0, 32, .15) !important;
+}
+
+.primary-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: .75rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: .25rem;
+}
+
+.primary-btn:hover {
+  filter: brightness(.95);
+}
+
+.alt-link {
+  margin-top: .5rem;
+  color: var(--muted);
+}
+
+.alt-link a { text-decoration: underline; }
+
+.banner {
+  border-radius: 10px;
+  padding: .75rem 1rem;
+  margin-bottom: .75rem;
+  font-weight: 600;
+}
+
+.banner.success {
+  background: #e6f4ea;
+  color: #137333;
+  border: 1px solid #ccebd7;
+}
+
+.banner.error {
+  background: #fce8e6;
+  color: #c5221f;
+  border: 1px solid #f7c5c1;
+}
