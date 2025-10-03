@@ -4,11 +4,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel = "stylesheet" href = "style.css" > 
     <title>ConEvents</title>
 </head>
 
-<body>
-    <h1>Welcome to ConEvents</h1>
+<body>    
+<header class="main-header">
+    <div class="header-content">
+        <a href="/" class="logo">ConEvent</a>
+        <nav class="top-nav">
+            <a href="#">Concerts</a>
+            <a href="#">Sports</a>
+            <a href="#">Arts, Theatre and Comedy</a>
+            <a href="#">Family</a>
+            <a href="#">Cities</a>
+        </nav>
+        <a href="#" class="login">Log in / Creat...</a>
+    </div>
+
+    <form class="search-bar">
+        <div class="search-field">
+            <label for="location" class="field-icon">📍</label>
+            <input type="text" id="location" placeholder="H7C">
+        </div>
+        <div class="search-field">
+            <label for="dates" class="field-icon">🗓️</label>
+            <select id="dates">
+                <option value="all">All dates</option>
+            </select>
+        </div>
+        <div class="search-field research-field">
+            <input type="text" id="research" placeholder="Artist, Event or Venue">
+        </div>
+        <button type="submit" class="search-button">
+            Search
+        </button>
+    </form>
+</header>
 </body>
 
 </html>
