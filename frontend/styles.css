@@ -1186,3 +1186,22 @@ select.form-control {
 .pulse {
   animation: pulse 2s ease-in-out infinite;
 }
+
+/* === Focus highlight (ADD) === */
+.form-group:focus-within .form-label {
+  color: var(--primary-maroon);
+}
+
+.form-control:focus-visible,
+.form-group:focus-within .form-control {
+  outline: 3px solid transparent;            /* reserve space for accessibility */
+  box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.25); /* maroon-ish glow */
+  border-color: var(--primary-maroon);
+}
+
+/* For users who prefer reduced motion, keep it snappy */
+@media (prefers-reduced-motion: no-preference) {
+  .form-control {
+    transition: box-shadow 120ms ease, border-color 120ms ease;
+  }
+}

@@ -1,26 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login - ConEvents</title>
-  <link rel="stylesheet" href="styles.css"/>
+  <link rel="stylesheet" href="styles.css" />
   <style>
     /* Page-specific styles */
     .page-wrapper {
-      min-height: 100vh; display:flex; justify-content:center; align-items:center; padding:20px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
     }
-    .auth-container {
-      background:white; padding:40px; border-radius:var(--radius-lg); box-shadow:var(--shadow-lg);
-      width:100%; max-width:450px;
-    }
-    .auth-header { text-align:center; margin-bottom:var(--spacing-xl); }
-    .auth-title { color:var(--primary-maroon); font-size:var(--font-size-3xl); margin-bottom:var(--spacing-sm); }
-    .auth-subtitle { color:var(--medium-gray); font-size:var(--font-size-base); }
 
-    .auth-links { text-align:center; margin-top:var(--spacing-lg); color:var(--medium-gray); }
-    .auth-links a { color:var(--primary-maroon); text-decoration:none; font-weight:600; }
-    .auth-links a:hover { text-decoration:underline; }
+    .auth-container {
+      background: white;
+      padding: 40px;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 450px;
+    }
+
+    .auth-header {
+      text-align: center;
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .auth-title {
+      color: var(--primary-maroon);
+      font-size: var(--font-size-3xl);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .auth-subtitle {
+      color: var(--medium-gray);
+      font-size: var(--font-size-base);
+    }
+
+    .auth-links {
+      text-align: center;
+      margin-top: var(--spacing-lg);
+      color: var(--medium-gray);
+    }
+
+    .auth-links a {
+      color: var(--primary-maroon);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .auth-links a:hover {
+      text-decoration: underline;
+    }
 
     /* Banner (top messages) */
     .alert {
@@ -28,31 +63,75 @@
       padding: 12px 14px;
       margin-bottom: var(--spacing-md);
       font-size: var(--font-size-sm);
-      display: flex; align-items: start; gap: 8px;
+      display: flex;
+      align-items: start;
+      gap: 8px;
     }
-    .alert-success { background: #ecfdf5; color:#065f46; border:1px solid #10b98133; }
-    .alert-error   { background: #fef2f2; color:#991b1b; border:1px solid #ef444433; }
-    .alert-info    { background: #eff6ff; color:#1e40af; border:1px solid #3b82f633; }
+
+    .alert-success {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #10b98133;
+    }
+
+    .alert-error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #ef444433;
+    }
+
+    .alert-info {
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1px solid #3b82f633;
+    }
+
     .alert .close {
-      margin-left:auto; cursor:pointer; border:none; background:transparent; font-size:16px; line-height:1;
-      color:inherit; padding:0 4px;
+      margin-left: auto;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-size: 16px;
+      line-height: 1;
+      color: inherit;
+      padding: 0 4px;
     }
 
     /* Field errors */
     .field-error {
-      color:#991b1b; font-size: var(--font-size-sm);
+      color: #991b1b;
+      font-size: var(--font-size-sm);
       margin-top: 6px;
     }
-    .is-invalid { border-color:#ef4444 !important; outline-color:#ef4444 !important; }
+
+    .is-invalid {
+      border-color: #ef4444 !important;
+      outline-color: #ef4444 !important;
+    }
 
     /* Button loading state */
-    .btn[disabled] { opacity: 0.75; cursor: not-allowed; }
-    .spinner {
-      width: 16px; height:16px; border:2px solid currentColor; border-top-color: transparent;
-      border-radius:50%; display:inline-block; vertical-align:middle; animation: spin 0.8s linear infinite;
-      margin-right:8px;
+    .btn[disabled] {
+      opacity: 0.75;
+      cursor: not-allowed;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      display: inline-block;
+      vertical-align: middle;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
   </style>
 </head>
 
@@ -73,22 +152,27 @@
       <form id="loginForm" novalidate>
         <div class="form-group">
           <label class="form-label" for="email">Email Address</label>
-          <input
-            type="email" id="email" name="email" class="form-control"
-            placeholder="Enter your email" autocomplete="username"
-            aria-describedby="emailError" aria-invalid="false" required
-          />
+          <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email"
+            autocomplete="username" aria-describedby="emailError" aria-invalid="false" required />
           <div id="emailError" class="field-error" aria-live="polite"></div>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="password">Password</label>
-          <input
-            type="password" id="password" name="password" class="form-control"
-            placeholder="Enter your password" autocomplete="current-password"
-            aria-describedby="passwordError" aria-invalid="false" required
-          />
+          <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password"
+            autocomplete="current-password" aria-describedby="passwordError" aria-invalid="false" required />
           <div id="passwordError" class="field-error" aria-live="polite"></div>
+        </div>
+
+        <!-- Password reset panel (hidden until 3 failed attempts)  (ADD) -->
+        <div id="resetPanel" style="display:none; margin-top: 8px;">
+          <p class="auth-subtitle" style="margin: 0 0 8px 0; font-size: var(--font-size-sm);">
+            Having trouble signing in?
+          </p>
+          <button id="resetBtn" type="button" class="btn btn-secondary btn-sm">
+            Send password reset link
+          </button>
+          <div id="resetHint" class="field-error" aria-live="polite" style="margin-top:6px;"></div>
         </div>
 
         <button id="submitBtn" type="submit" class="btn btn-primary btn-block btn-lg">
@@ -105,20 +189,44 @@
   </div>
 
   <script>
-    const form       = document.getElementById('loginForm');
-    const emailEl    = document.getElementById('email');
-    const passEl     = document.getElementById('password');
+    const form = document.getElementById('loginForm');
+    const emailEl = document.getElementById('email');
+    const passEl = document.getElementById('password');
 
-    const emailErr   = document.getElementById('emailError');
-    const passErr    = document.getElementById('passwordError');
+    const emailErr = document.getElementById('emailError');
+    const passErr = document.getElementById('passwordError');
 
-    const banner     = document.getElementById('banner');
+    const banner = document.getElementById('banner');
     const bannerText = document.getElementById('bannerText');
-    const bannerClose= document.getElementById('bannerClose');
+    const bannerClose = document.getElementById('bannerClose');
 
-    const submitBtn  = document.getElementById('submitBtn');
+    const submitBtn = document.getElementById('submitBtn');
     const btnSpinner = document.getElementById('btnSpinner');
-    const btnText    = document.getElementById('btnText');
+    const btnText = document.getElementById('btnText');
+
+    // === Reset controls (ADD) ===
+    const resetPanel = document.getElementById('resetPanel');
+    const resetBtn = document.getElementById('resetBtn');
+    const resetHint = document.getElementById('resetHint');
+
+
+    // Track failed attempts in localStorage (per browser)
+    const FAILED_KEY = 'login_failed_attempts';
+    function getFailures() { return Number(localStorage.getItem(FAILED_KEY) || '0'); }
+    function setFailures(n) { localStorage.setItem(FAILED_KEY, String(n)); }
+    function bumpFailures() {
+      const n = getFailures() + 1;
+      setFailures(n);
+      maybeShowResetPanel();
+      return n;
+    }
+    function resetFailures() { setFailures(0); }
+    function maybeShowResetPanel() {
+      if (!resetPanel) return;
+      resetPanel.style.display = getFailures() >= 3 ? 'block' : 'none';
+    }
+    // Show panel on load if prior failures exist
+    maybeShowResetPanel();
 
     // --- Helpers ---
     function showBanner(message, type = 'info') {
@@ -144,7 +252,7 @@
 
     function clearAllFieldErrors() {
       setFieldError(emailEl, emailErr, '');
-      setFieldError(passEl,  passErr,  '');
+      setFieldError(passEl, passErr, '');
     }
 
     function setLoading(isLoading, loadingText = 'Signing in…') {
@@ -167,7 +275,7 @@
     function validateForm() {
       let ok = true;
       const emailVal = emailEl.value.trim();
-      const passVal  = passEl.value;
+      const passVal = passEl.value;
 
       // Email
       if (!emailVal) {
@@ -227,13 +335,14 @@
 
         // Attempt to parse JSON regardless of status
         let data = {};
-        try { data = await res.json(); } catch (_) {}
+        try { data = await res.json(); } catch (_) { }
 
         if (res.ok) {
           // Expected shape: { user: {...}, message?: string }
           if (data && data.user) {
             localStorage.setItem('user', JSON.stringify(data.user));
           }
+          resetFailures();
           showBanner(data?.message || 'Login successful! Redirecting…', 'success');
 
           // small delay to let user read the success state
@@ -246,7 +355,7 @@
           // Possible validation-style payload: { errors: { email: "...", password: "..." }, error?: "..." }
           const fieldErrors = data?.errors || {};
           if (fieldErrors.email) setFieldError(emailEl, emailErr, fieldErrors.email);
-          if (fieldErrors.password) setFieldError(passEl,  passErr,  fieldErrors.password);
+          if (fieldErrors.password) setFieldError(passEl, passErr, fieldErrors.password);
 
           const topMsg = data?.error || 'Please correct the highlighted fields.';
           showBanner(topMsg, 'error');
@@ -254,6 +363,8 @@
           // Invalid credentials
           setFieldError(passEl, passErr, 'Invalid email or password.');
           showBanner(data?.error || 'Invalid credentials.', 'error');
+          bumpFailures(); // ADD: increment failed attempts (shows reset panel at 3+)
+
         } else {
           // 403/404/409/5xx fallback
           showBanner(data?.error || 'Something went wrong. Please try again.', 'error');
@@ -265,10 +376,57 @@
       }
     });
 
+    // === Request password reset (ADD) ===
+    const RESET_ENDPOINT = 'http://localhost:3000/api/auth/password-reset/request';
+
+    async function sendPasswordReset(email) {
+      resetHint.textContent = '';
+      if (!email || !isEmailValid(email)) {
+        resetHint.textContent = 'Please enter a valid email above first.';
+        emailEl.focus();
+        return;
+      }
+
+      setLoading(true, 'Sending reset link…');
+
+      try {
+        const resp = await fetch(RESET_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        let data = {};
+        try { data = await resp.json(); } catch (_) { }
+
+        if (resp.ok) {
+          showBanner(data?.message || 'If an account exists for that email, a reset link has been sent.', 'success');
+          resetHint.textContent = '';
+          resetPanel.style.display = 'block';
+          return;
+        }
+
+        if (resp.status === 400 || resp.status === 422) {
+          resetHint.textContent = data?.error || 'Please enter a valid email.';
+        } else {
+          resetHint.textContent = data?.error || 'Could not send reset link. Please try again.';
+        }
+      } catch (e) {
+        resetHint.textContent = 'Network error. Please try again.';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    resetBtn?.addEventListener('click', () => {
+      sendPasswordReset(emailEl.value.trim());
+    });
+
     // Optional: prevent double submit via Enter on button
     submitBtn.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && submitBtn.disabled) e.preventDefault();
     });
   </script>
 </body>
+
 </html>
