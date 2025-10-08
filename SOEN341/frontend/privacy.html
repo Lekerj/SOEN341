@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy - ConEvents</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<script>
+  window.addEventListener('DOMContentLoaded', async () => {
+    const user = localStorage.getItem('user');
+    if (user) {
+      try {
+        const resp = await fetch('http://localhost:3000/api/auth/profile', { credentials: 'include' });
+        if (resp.ok) {
+          const u = JSON.parse(user);
+          document.getElementById('authLinks').style.display = 'none';
+          const ul = document.getElementById('userLinks');
+          ul.style.display = 'flex'; ul.style.gap = '1rem'; ul.style.alignItems = 'center';
+          document.getElementById('welcomeMessage').textContent = `Welcome, ${u.name}!`;
+        } else {
+          localStorage.removeItem('user');
+        }
+      } catch {
+        localStorage.removeItem('user');
+      }
+    }
+  });
+
+  async function logout() {
+    try {
+      const r = await fetch('http://localhost:3000/api/auth/logout', { method: 'POST', credentials: 'include' });
+      if (r.ok) { localStorage.removeItem('user'); location.href = 'index.html'; }
+      else { alert('Logout failed. Please try again.'); }
+    } catch {
+      localStorage.removeItem('user'); location.href = 'index.html';
+    }
+  }
+</script>
+
+<body>
+ <!-- Header / Navbar (matches homepage) -->
+<nav class="navbar">
+  <div class="navbar-container">
+    <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+    <ul class="navbar-menu">
+      <!-- These take you back to the homepage and its sections -->
+      <li><a href="index.html">Home</a></li>
+      <li><a href="index.html#events">Events</a></li>
+
+      <!-- Go to the About page -->
+      <li><a href="about.html">About</a></li>
+
+      <!-- Auth buttons (same look as home) -->
+      <li id="authLinks">
+        <a href="login.html" class="btn btn-outline">Login</a>
+        <a href="register.html" class="btn btn-primary">Sign Up</a>
+      </li>
+
+      <!-- Logged-in state -->
+      <li id="userLinks" style="display:none;">
+        <span id="welcomeMessage" class="text-muted"></span>
+        <button onclick="logout()" class="btn btn-outline">Logout</button>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="container container-md">
+      <div class="card">
+        <div class="card-header text-center">
+          <h1 class="card-title">Privacy Policy</h1>
+          <p class="card-subtitle">Last updated: October 8, 2025</p>
+        </div>
+
+        <div class="card-body">
+          <section class="mb-3" id="data">
+            <h2 class="text-left mb-2">1. Data Collected</h2>
+            <p class="mb-2">
+              We collect the minimum personal information necessary to operate ConEvents, including your name,
+              email address, hashed password, role (student, organizer, or administrator), and when relevant
+              organization details. We also process event interactions such as views/saves, tickets claimed,
+              QR code identifiers, and check-ins.
+            </p>
+            <p class="mb-2">
+              Technical logs may include request timestamps, approximate device/browser metadata, and error
+              diagnostics that help with security, reliability, and troubleshooting.
+            </p>
+          </section>
+
+          <section class="mb-3" id="usage">
+            <h2 class="text-left mb-2">2. Usage</h2>
+            <p class="mb-2">
+              We use your data to authenticate accounts, enable ticketing and QR code validation, power organizer
+              dashboards (tickets issued, attendance, remaining capacity), and support CSV exports for event
+              management. Data is also used to maintain integrity, prevent abuse, and improve usability.
+            </p>
+            <p class="mb-2">
+              We do not sell personal information. Limited sharing may occur with essential service providers
+              strictly to deliver platform functionality.
+            </p>
+          </section>
+
+          <section class="mb-3" id="cookies">
+            <h2 class="text-left mb-2">3. Cookies</h2>
+            <p class="mb-2">
+              ConEvents uses essential session/auth cookies (or tokens) and preference storage to keep you logged
+              in and remember basic settings. We do not use advertising trackers. You can block cookies in your
+              browser; however, core features like login and ticketing may not function correctly.
+            </p>
+          </section>
+
+          <section class="mb-3" id="retention">
+            <h2 class="text-left mb-2">4. Data Retention</h2>
+            <p class="mb-2">
+              We retain information while your account is active and for a short period afterward for security,
+              auditability, or administrative reasons. Ticket and attendance records may be preserved as reasonably
+              necessary for event administration.
+            </p>
+          </section>
+
+          <section class="mb-3" id="contact">
+            <h2 class="text-left mb-2">5. Contact</h2>
+            <p class="mb-2">
+              Questions or requests can be sent to
+              <a href="mailto:privacy@conevents.example">privacy@conevents.example</a>.
+            </p>
+          </section>
+
+          <div class="text-center mt-3">
+            <button class="btn btn-secondary" onclick="goBack()">← Go Back</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer (shared across pages) -->
+ <!-- Footer -->
+<footer class="footer">
+  <div class="footer-links">
+    <a href="about.html">About Us</a>
+    <a href="index.html#events">Events</a>
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="contact.html">Contact</a>
+  </div>
+  <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+</footer>
+
+  <!-- Shared page helpers -->
+  <script>
+    function goBack() {
+      if (history.length > 1) history.back();
+      else window.location.href = "index.html";
+    }
+    async function logout() {
+      // If you have a backend endpoint, uncomment fetch line below:
+      // try { await fetch("http://localhost:3000/api/auth/logout", { method: "POST", credentials: "include" }); } catch(e) {}
+      localStorage.removeItem("user");
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>

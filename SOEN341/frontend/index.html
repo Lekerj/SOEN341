@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConEvents - Concordia Event Ticketing Platform</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                🎫 ConEvents
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="#events">Events</a></li>
+                <li><a href="#about">About</a></li>
+                <li id="authLinks">
+                    <a href="login.html" class="btn btn-secondary btn-sm">Login</a>
+                    <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+                </li>
+                <li id="userLinks" style="display: none;">
+                    <span id="welcomeMessage" class="text-muted"></span>
+                    <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="main-content">
+        <div class="container">
+            <div class="hero">
+                <h1 class="hero-title">Welcome to ConEvents</h1>
+                <p class="hero-subtitle">Your Concordia University Event Ticketing Platform</p>
+                <p style="font-size: 1.1rem; margin-bottom: 2rem; opacity: 0.9;">
+                    Discover, book, and attend amazing campus events. From academic conferences to student socials,
+                    find it all here!
+                </p>
+                <div class="hero-buttons">
+                    <a href="#events" class="btn btn-accent btn-lg">Browse Events</a>
+                    <a href="register.html" class="btn btn-secondary btn-lg">Create Account</a>
+                </div>
+            </div>
+
+            <!-- Events Section -->
+            <section id="events">
+                <div class="section-header">
+                    <h2 class="section-title">Upcoming Events</h2>
+                    <p class="section-subtitle">Don't miss out on these exciting campus events</p>
+                </div>
+
+                <div class="grid grid-3" id="eventsGrid">
+                    <!-- Event Card 1 -->
+                    <div class="event-card">
+                        <div class="event-image"
+                            style="background: linear-gradient(135deg, #912338 0%, #6B2C91 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">
+                            🎓
+                        </div>
+                        <div class="event-content">
+                            <span class="event-date">📅 Oct 15, 2025</span>
+                            <h3 class="event-title">Tech Innovation Summit</h3>
+                            <p class="event-description">
+                                Join industry leaders and students for a day of innovation, networking, and insights
+                                into the future of technology.
+                            </p>
+                            <div class="event-meta">
+                                <span class="event-meta-item">📍 Hall Building</span>
+                                <span class="event-meta-item">⏰ 9:00 AM</span>
+                                <span class="event-meta-item">👥 150 spots</span>
+                            </div>
+                            <div class="card-footer">
+                                <span class="event-price">$15.00</span>
+                                <button class="btn btn-primary" onclick="purchaseTicket('Tech Innovation Summit', 15)">
+                                    Get Tickets
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Event Card 2 -->
+                    <div class="event-card">
+                        <div class="event-image"
+                            style="background: linear-gradient(135deg, #0072CE 0%, #6B2C91 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">
+                            🎨
+                        </div>
+                        <div class="event-content">
+                            <span class="event-date">📅 Oct 20, 2025</span>
+                            <h3 class="event-title">Art & Design Showcase</h3>
+                            <p class="event-description">
+                                Experience the creative talents of Concordia students. An evening of art, design, and
+                                inspiration.
+                            </p>
+                            <div class="event-meta">
+                                <span class="event-meta-item">📍 VA Building</span>
+                                <span class="event-meta-item">⏰ 6:00 PM</span>
+                                <span class="event-meta-item">👥 200 spots</span>
+                            </div>
+                            <div class="card-footer">
+                                <span class="event-price">FREE</span>
+                                <button class="btn btn-primary" onclick="purchaseTicket('Art & Design Showcase', 0)">
+                                    Reserve Spot
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Event Card 3 -->
+                    <div class="event-card">
+                        <div class="event-image"
+                            style="background: linear-gradient(135deg, #FFD700 0%, #FF6B6B 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">
+                            🎵
+                        </div>
+                        <div class="event-content">
+                            <span class="event-date">📅 Oct 25, 2025</span>
+                            <h3 class="event-title">Fall Music Festival</h3>
+                            <p class="event-description">
+                                Live performances from student bands and local artists. Food, drinks, and great vibes!
+                            </p>
+                            <div class="event-meta">
+                                <span class="event-meta-item">📍 Loyola Campus</span>
+                                <span class="event-meta-item">⏰ 7:00 PM</span>
+                                <span class="event-meta-item">👥 300 spots</span>
+                            </div>
+                            <div class="card-footer">
+                                <span class="event-price">$10.00</span>
+                                <button class="btn btn-primary" onclick="purchaseTicket('Fall Music Festival', 10)">
+                                    Get Tickets
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Event Card 4 -->
+                    <div class="event-card">
+                        <div class="event-image"
+                            style="background: linear-gradient(135deg, #28A745 0%, #20C997 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">
+                            🏃
+                        </div>
+                        <div class="event-content">
+                            <span class="event-date">📅 Nov 1, 2025</span>
+                            <h3 class="event-title">Charity Run for Education</h3>
+                            <p class="event-description">
+                                Run for a cause! All proceeds support student scholarships and educational programs.
+                            </p>
+                            <div class="event-meta">
+                                <span class="event-meta-item">📍 SGW Campus</span>
+                                <span class="event-meta-item">⏰ 8:00 AM</span>
+                                <span class="event-meta-item">👥 500 spots</span>
+                            </div>
+                            <div class="card-footer">
+                                <span class="event-price">$20.00</span>
+                                <button class="btn btn-primary"
+                                    onclick="purchaseTicket('Charity Run for Education', 20)">
+                                    Register Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Event Card 5 -->
+                    <div class="event-card">
+                        <div class="event-image"
+                            style="background: linear-gradient(135deg, #6B2C91 0%, #912338 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">
+                            💼
+                        </div>
+                        <div class="event-content">
+                            <span class="event-date">📅 Nov 5, 2025</span>
+                            <h3 class="event-title">Career Fair 2025</h3>
+                            <p class="event-description">
+                                Meet top employers, explore career opportunities, and network with industry
+                                professionals.
+                            </p>
+                            <div class="event-meta">
+                                <span class="event-meta-item">📍 Hall Building</span>
+                                <span class="event-meta-item">⏰ 10:00 AM</span>
+                                <span class="event-meta-item">👥 400 spots</span>
+                            </div>
+                            <div class="card-footer">
+                                <span class="event-price">FREE</span>
+                                <button class="btn btn-primary" onclick="purchaseTicket('Career Fair 2025', 0)">
+                                    Reserve Spot
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Event Card 6 -->
+                    <div class="event-card">
+                        <div class="event-image"
+                            style="background: linear-gradient(135deg, #FF6B6B 0%, #FFA500 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">
+                            🎃
+                        </div>
+                        <div class="event-content">
+                            <span class="event-date">📅 Oct 31, 2025</span>
+                            <h3 class="event-title">Halloween Bash</h3>
+                            <p class="event-description">
+                                Costume contest, DJ, prizes, and more! The biggest Halloween party on campus.
+                            </p>
+                            <div class="event-meta">
+                                <span class="event-meta-item">📍 Student Center</span>
+                                <span class="event-meta-item">⏰ 8:00 PM</span>
+                                <span class="event-meta-item">👥 250 spots</span>
+                            </div>
+                            <div class="card-footer">
+                                <span class="event-price">$12.00</span>
+                                <button class="btn btn-primary" onclick="purchaseTicket('Halloween Bash', 12)">
+                                    Get Tickets
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- About Section -->
+            <section id="about" style="margin-top: 4rem;">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <h2 class="card-title">About ConEvents</h2>
+                        <p class="card-subtitle">Making Campus Events Accessible to Everyone</p>
+                    </div>
+                    <div class="card-body">
+                        <p
+                            style="text-align: center; color: var(--medium-gray); line-height: 1.8; max-width: 800px; margin: 0 auto;">
+                            ConEvents is Concordia University's premier event management and ticketing platform.
+                            We connect students, faculty, and the community with exciting campus events.
+                            Whether you're looking to attend a lecture, join a workshop, or party with friends,
+                            ConEvents makes it easy to discover and book tickets for all campus happenings.
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Footer -->
+<!-- In index.html footer -->
+<footer class="footer">
+  <div class="footer-links">
+    <a href="about.html">About Us</a>
+    <a href="index.html#events">Events</a>
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="contact.html">Contact</a>
+  </div>
+  <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+</footer>
+
+
+    <script>
+        // Check authentication status
+        window.addEventListener('DOMContentLoaded', async () => {
+            const user = localStorage.getItem('user');
+
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+
+                    // Verify session is still valid
+                    const response = await fetch('http://localhost:3000/api/auth/profile', {
+                        credentials: 'include'
+                    });
+
+                    if (response.ok) {
+                        // User is logged in
+                        document.getElementById('authLinks').style.display = 'none';
+                        document.getElementById('userLinks').style.display = 'flex';
+                        document.getElementById('userLinks').style.gap = '1rem';
+                        document.getElementById('userLinks').style.alignItems = 'center';
+                        document.getElementById('welcomeMessage').textContent = `Welcome, ${userData.name}!`;
+                    } else {
+                        // Session expired
+                        localStorage.removeItem('user');
+                    }
+                } catch (error) {
+                    console.error('Error checking session:', error);
+                    localStorage.removeItem('user');
+                }
+            }
+        });
+
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    localStorage.removeItem('user');
+                    window.location.reload();
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('An error occurred during logout.');
+            }
+        }
+
+        // Purchase ticket function
+        function purchaseTicket(eventName, price) {
+            const user = localStorage.getItem('user');
+
+            if (!user) {
+                alert('Please login to purchase tickets!');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Simulate ticket purchase (you'll implement this properly later)
+            const confirmPurchase = confirm(
+                `Purchase ticket for:\n\nEvent: ${eventName}\nPrice: $${price.toFixed(2)}\n\nProceed with purchase?`
+            );
+
+            if (confirmPurchase) {
+                alert(`✅ Ticket purchased successfully!\n\nEvent: ${eventName}\nPrice: $${price.toFixed(2)}\n\nCheck your email for confirmation.`);
+                // TODO: Implement actual ticket purchase API call
+            }
+        }
+    </script>
+</body>
+
+</html>
