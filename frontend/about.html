@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About - ConEvents</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<script>
+  window.addEventListener('DOMContentLoaded', async () => {
+    const user = localStorage.getItem('user');
+    if (user) {
+      try {
+        const resp = await fetch('http://localhost:3000/api/auth/profile', { credentials: 'include' });
+        if (resp.ok) {
+          const u = JSON.parse(user);
+          document.getElementById('authLinks').style.display = 'none';
+          const ul = document.getElementById('userLinks');
+          ul.style.display = 'flex'; ul.style.gap = '1rem'; ul.style.alignItems = 'center';
+          document.getElementById('welcomeMessage').textContent = `Welcome, ${u.name}!`;
+        } else {
+          localStorage.removeItem('user');
+        }
+      } catch {
+        localStorage.removeItem('user');
+      }
+    }
+  });
+
+  async function logout() {
+    try {
+      const r = await fetch('http://localhost:3000/api/auth/logout', { method: 'POST', credentials: 'include' });
+      if (r.ok) { localStorage.removeItem('user'); location.href = 'index.html'; }
+      else { alert('Logout failed. Please try again.'); }
+    } catch {
+      localStorage.removeItem('user'); location.href = 'index.html';
+    }
+  }
+</script>
+
+<body>
+  <!-- Header / Navbar (matches homepage) -->
+<nav class="navbar">
+  <div class="navbar-container">
+    <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+    <ul class="navbar-menu">
+      <!-- These take you back to the homepage and its sections -->
+      <li><a href="index.html">Home</a></li>
+      <li><a href="index.html#events">Events</a></li>
+
+      <!-- Current page -->
+      <li><a href="about.html" aria-current="page">About</a></li>
+
+      <!-- Auth buttons (same look as home) -->
+      <li id="authLinks">
+        <a href="login.html" class="btn btn-outline">Login</a>
+        <a href="register.html" class="btn btn-primary">Sign Up</a>
+      </li>
+
+      <!-- Logged-in state -->
+      <li id="userLinks" style="display:none;">
+        <span id="welcomeMessage" class="text-muted"></span>
+        <button onclick="logout()" class="btn btn-outline">Logout</button>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="container container-md">
+      <div class="card">
+        <div class="card-header text-center">
+          <h1 class="card-title">About ConEvents</h1>
+          <p class="card-subtitle">Making campus events accessible to everyone</p>
+        </div>
+
+        <div class="card-body">
+          <section class="mb-3">
+            <h2 class="text-left mb-2">What is ConEvents?</h2>
+            <p class="mb-2">
+              <strong>ConEvents</strong> is a web application that simplifies how campus events are discovered,
+              managed, and attended. It brings together event discovery, event management, ticketing, and
+              participation so that students, organizers, and administrators all operate on one streamlined platform.
+            </p>
+            <p class="mb-2">
+              Students can browse/search events with filters such as date, category, and organization, save events
+              to a personal calendar, claim tickets, and check in using digital QR codes. The experience is designed 
+              to be fast, consistent, and mobile-friendly.
+            </p>
+          </section>
+
+          <section class="mb-3">
+            <h2 class="text-left mb-2">Who It Serves</h2>
+            <ul class="mt-1" style="list-style: disc; margin-left: 1.5rem;">
+              <li class="mb-1">
+                <strong>Students:</strong> Discover, save, and attend campus events. Claim digital tickets quickly
+                and check in using QR codes at the door for a seamless experience.
+              </li>
+              <li class="mb-1">
+                <strong>Organizers:</strong> Create and manage event listings (title, description, date/time,
+                location, ticket type, capacity), monitor tickets issued and attendance, view remaining capacity,
+                and export attendee lists (CSV). A built-in QR validation flow supports check-in.
+              </li>
+              <li class="mb-1">
+                <strong>Administrators:</strong> Approve organizer accounts, moderate event listings, manage
+                organizations and roles, and access global participation statistics to understand campus engagement.
+              </li>
+            </ul>
+          </section>
+
+          <section class="mb-3">
+            <h2 class="text-left mb-2">Why It Matters</h2>
+            <p class="mb-2">
+              ConEvents strengthens campus life by connecting the community. Students get a clear overview of what’s
+              happening; organizers get the tools they need to plan effectively; administrators maintain oversight
+              and gather insights into participation trends. The outcome is a more engaged, informed, and active
+              student body.
+            </p>
+          </section>
+
+          <div class="text-center mt-3">
+            <button class="btn btn-secondary" onclick="goBack()">← Go Back</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer (shared across pages) -->
+  <!-- Footer -->
+<footer class="footer">
+  <div class="footer-links">
+    <a href="about.html">About Us</a>
+    <a href="index.html#events">Events</a>
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="terms.html">Terms of Service</a>
+    <a href="contact.html">Contact</a>
+  </div>
+  <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+</footer>
+
+
+  <!-- Shared page helpers -->
+  <script>
+    function goBack() {
+      if (history.length > 1) history.back();
+      else window.location.href = "index.html";
+    }
+    async function logout() {
+      // If you have a backend endpoint, uncomment fetch line below:
+      // try { await fetch("http://localhost:3000/api/auth/logout", { method: "POST", credentials: "include" }); } catch(e) {}
+      localStorage.removeItem("user");
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>
