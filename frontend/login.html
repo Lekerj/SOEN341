@@ -381,6 +381,7 @@
 
     async function sendPasswordReset(email) {
       resetHint.textContent = '';
+
       if (!email || !isEmailValid(email)) {
         resetHint.textContent = 'Please enter a valid email above first.';
         emailEl.focus();
@@ -418,15 +419,14 @@
       }
     }
 
-    resetBtn?.addEventListener('click', () => {
-      sendPasswordReset(emailEl.value.trim());
-    });
+  resetBtn?.addEventListener('click', () => {
+    sendPasswordReset(emailEl.value.trim());
+  });
 
-    // Optional: prevent double submit via Enter on button
-    submitBtn.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && submitBtn.disabled) e.preventDefault();
-    });
-  </script>
+  submitBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && submitBtn.disabled) e.preventDefault();
+  });
+</script>
 </body>
 
 </html>
