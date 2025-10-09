@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConEvents - Concordia Event Filter UI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <section class="filter-section container">
+
+        <h2 class="section-title text-center">Search Events</h2>
+        
+        <div class="form-group">
+            <label class="form-label" for="date-from">From Date</label>
+            <input type="date" id="date-from" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="date-to">To Date</label>
+            <input type="date" id="date-to" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="category">Category</label>
+            <select id="category" class="form-control">
+                <option value="">Select Category</option>
+                <option value="academic">Academic</option>
+                <option value="social">Social</option>
+                <option value="sports">Sports</option>
+                <option value="club">Club</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="organization">Organization / Club</label>
+            <input type="text" id="organization" class="form-control" placeholder="Search organization or club">
+        </div>
+
+        <button id="clear-filters" class="btn btn-secondary">Clear Filters</button>
+    </section>
+</body>
+
+</html>
