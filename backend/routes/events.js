@@ -25,7 +25,6 @@ router.get('/', (req, res) => {
         params.push(`%${search}%`) 
     }
     
-    // FIX 6: Deleted stray 'É' character after if (category)
     if(category){
         sql += `\n AND category = ?`;
         params.push(category)
