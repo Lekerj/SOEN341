@@ -381,49 +381,20 @@
 
     async function sendPasswordReset(email) {
       resetHint.textContent = '';
+
       if (!email || !isEmailValid(email)) {
         resetHint.textContent = 'Please enter a valid email above first.';
         emailEl.focus();
         return;
       }
 
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+      setLoading(true, 'Sending reset link…');
 
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            try {
-                const response = await fetch('http://localhost:3000/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({ email, password })
-                });
-
-                let data = {};
-                try {
-                    data = await response.json();
-                } catch (parseError) {
-                    console.warn('Failed to parse login response JSON:', parseError);
-                }
-
-                if (response.ok) {
-                    showMessage('Login successful! Redirecting...', 'success');
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 1500);
-                } else {
-                    const errorMessage = data.error || `Login failed (status ${response.status}).`;
-                    showMessage(errorMessage, 'error');
-                }
-            } catch (error) {
-                console.error('Login fetch failed:', error);
-                showMessage('Network error (possibly CORS). Check your connection and try again.', 'error');
-            }
+      try {
+        const resp = await fetch(RESET_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
         });
 
         let data = {};
@@ -448,15 +419,14 @@
       }
     }
 
-    resetBtn?.addEventListener('click', () => {
-      sendPasswordReset(emailEl.value.trim());
-    });
+  resetBtn?.addEventListener('click', () => {
+    sendPasswordReset(emailEl.value.trim());
+  });
 
-    // Optional: prevent double submit via Enter on button
-    submitBtn.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && submitBtn.disabled) e.preventDefault();
-    });
-  </script>
+  submitBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && submitBtn.disabled) e.preventDefault();
+  });
+</script>
 </body>
 
 </html>
