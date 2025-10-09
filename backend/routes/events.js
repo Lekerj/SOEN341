@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
-const { param } = require('./auth');
+// const { param } = require('./auth');
 
-//Full implementation of the Event Search API
+// Full implementation of the Event Search API
 router.get('/', (req, res) => {
-    //1. Extract Filters
+    // 1. Extract Filters
     const{
-        search,category, organization, price_max, date_start
+        search, category, organization, price_max, date_start
     } = req.query;
 
     let sql =`
@@ -21,31 +21,37 @@ router.get('/', (req, res) => {
 
     // 2. Dynamically Build the SQL Query
     if(search){
-        sql += `AND title LIKE ?`;
-        param.push(`%${search}%`)
+        sql += `\n AND title LIKE ?`;
+        params.push(`%${search}%`) 
     }
-    if(category){É
-        sql += `AND category = ?`;
-        param.push(`%${category}%`)
+    
+    // FIX 6: Deleted stray 'É' character after if (category)
+    if(category){
+        sql += `\n AND category = ?`;
+        params.push(category)
     }
+    
     if(organization){
-        sql += `AND organization = ?`;
-        param.push(`%${organization}%`)
+        sql += `\n AND organization = ?`;
+        params.push(organization)
     }
-    if(price_max !== undefined){
-        sql += `AND price <= ?`;
-        param.push(`%${price_max}%`)
+    
+    if(price_max !== undefined && price_max !== ''){
+        sql += `\n AND price <= ?`;
+        const maxPriceNum = parseFloat(price_max);
+        params.push(maxPriceNum)
     }
+    
     if(date_start){
-        sql += `AND event_date >= ?`;
-        param.push(`%${date_start}%`)
+        sql += `\n AND event_date >= ?`;
+        params.push(date_start)
     }
 
     // 3. Final Ordering 
     sql += `ORDER BY event_date ASC, event_time ASC;`;
 
-    //4. Execute the Query (using the callback pattern)
-     db.query(sql, params, (err, results) => {
+    // 4. Execute the Query (using the callback pattern)
+    db.query(sql, params, (err, results) => {
         if (err) {
             console.error('Database Query Error:', err);
             return res.status(500).json({ message: 'Internal Server Error fetching events.' });
