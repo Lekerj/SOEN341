@@ -7,6 +7,7 @@ CREATE TABLE users (
   role VARCHAR(50) DEFAULT 'student',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+;
 
 -- To use: Run this script in MySQL Workbench or your SQL client.

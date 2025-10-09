@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ConEvents Team & Project Information</title>
+    <link rel="stylesheet" href="styles.css" />
+    
+    <style>
+        /* Styles for the team member table for presentation */
+        .team-table {
+            /* Ensures the table can maintain its width without being forced to shrink */
+            width: 100%; 
+            min-width: 600px; /* Setting a minimum width prevents the table data from scrunching up completely and forces the wrapper to scroll */
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden; 
+        }
+        .team-table th, .team-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .team-table th {
+            background-color: #f8f9fa; 
+            font-weight: 600;
+            color: #333;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+        .team-table tr:hover {
+            background-color: #f1f1f1; 
+        }
+        .team-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* NEW: Responsive wrapper for horizontal scrolling on small screens */
+        .table-responsive {
+            overflow-x: auto; /* Adds a horizontal scrollbar if content is wider than its container */
+            -webkit-overflow-scrolling: touch; /* Improves scrolling performance on iOS devices */
+        }
+    </style>
+    </head>
+
+<script>
+    // Event listener to run code after the page loads
+    window.addEventListener('DOMContentLoaded', async () => {
+        const user = localStorage.getItem('user');
+        
+        // Check if a user token exists in localStorage
+        if (user) {
+            try {
+                // Attempt to fetch user profile to validate the session/token
+                const resp = await fetch('http://localhost:3000/api/auth/profile', { credentials: 'include' });
+                
+                if (resp.ok) {
+                    const u = JSON.parse(user);
+                    
+                    // Hide Login/Sign Up links (authLinks)
+                    document.getElementById('authLinks').style.display = 'none';
+                    
+                    // Show User-specific links (userLinks) and set Welcome message
+                    const ul = document.getElementById('userLinks');
+                    ul.style.display = 'flex'; ul.style.gap = '1rem'; ul.style.alignItems = 'center';
+                    document.getElementById('welcomeMessage').textContent = `Welcome, ${u.name}!`;
+                } else {
+                    // If validation fails, remove the invalid token
+                    localStorage.removeItem('user');
+                }
+            } catch {
+                // Handle fetch errors by clearing the token
+                localStorage.removeItem('user');
+            }
+        }
+    });
+
+    // Logout function
+    async function logout() {
+        try {
+            // Send request to backend to destroy the server session
+            const r = await fetch('http://localhost:3000/api/auth/logout', { method: 'POST', credentials: 'include' });
+            
+            // On success, clear local storage and redirect to homepage
+            if (r.ok) { localStorage.removeItem('user'); location.href = 'index.html'; }
+            else { alert('Logout failed. Please try again.'); }
+        } catch {
+            // If fetch fails (e.g., server down), still clear local storage and redirect
+            localStorage.removeItem('user'); location.href = 'index.html';
+        }
+    }
+</script>
+<body>
+    
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+            
+            <ul class="navbar-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#events">Events</a></li>
+                <li><a href="team.html">Team</a></li>
+
+                <li id="authLinks">
+                    <a href="login.html" class="btn btn-outline">Login</a>
+                    <a href="register.html" class="btn btn-primary">Sign Up</a>
+                </li>
+
+                <li id="userLinks" style="display:none;">
+                    <span id="welcomeMessage" class="text-muted"></span>
+                    <button onclick="logout()" class="btn btn-outline">Logout</button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="main-content">
+        <div class="container container-md">
+            <div class="card">
+                
+                <div class="card-header text-center">
+                    <h1 class="card-title">ConEvents Team </h1>
+                    <p class="card-subtitle">
+                        Campus Events & Ticketing Web App Development Team
+                    </p>
+                </div>
+
+                <div class="card-body">
+                    <section class="mb-4">
+                        <p class="mb-4 text-center">
+                            This project was developed by a dedicated team of students. 
+                            Here are the contact and identification details for all contributors:
+                        </p>
+
+                        <div class="table-responsive">
+                            <table class="team-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Student ID</th>
+                                        <th>Email</th>
+                                        <th>Username</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr title="Ahmed Gara Ali">
+                                        <td>Ahmed Gara Ali</td> <td>40310578</td> <td><a href="mailto:garaali.ahmed@gmail.com">garaali.ahmed@gmail.com</a></td> <td>Lekerj</td> </tr>
+                                    <tr title="Salia pona">
+                                        <td>Salia pona</td> <td>40262708</td> <td><a href="mailto:ponasalia@gmail.com">ponasalia@gmail.com</a></td> <td>godlight1</td> </tr>
+                                    <tr title="Luca Nasrallah">
+                                        <td>Luca Nasrallah</td> <td>40316548</td> <td><a href="mailto:lucanasrallah8@gmail.com">lucanasrallah8@gmail.com</a></td> <td>LucaDNasrallah</td> </tr>
+                                    <tr title="Mike Kouka">
+                                        <td>Mike Kouka</td> <td>40299971</td> <td><a href="mailto:matrixmike.89@gmail.com">matrixmike.89@gmail.com</a></td> <td>mickeyblue89</td> </tr>
+                                    <tr title="Jotnivaas Gill">
+                                        <td>Jotnivaas Gill</td> <td>40260752</td> <td><a href="mailto:jot_Gill@hotmail.com">jot_Gill@hotmail.com</a></td> <td>Jotnivaas</td> </tr>
+                                    <tr title="Abdeljalil Sennaoui">
+                                        <td>Abdeljalil Sennaoui</td> <td>40117162</td> <td><a href="mailto:abdeljalilsennaoui@gmail.com">abdeljalilsennaoui@gmail.com</a></td> <td>abdeljalilsennaoui</td> </tr>
+                                    <tr title="Subaanky Krishnapillai">
+                                        <td>Subaanky Krishnapillai</td> <td>40128716</td> <td><a href="mailto:subaankyk@hotmail.com">subaankyk@hotmail.com</a></td> <td>Subaanky</td> </tr>
+                                    <tr title="Adriana Atijas">
+                                        <td>Adriana Atijas</td> <td>40317966</td> <td><a href="mailto:atijasadriana@gmail.com">atijasadriana@gmail.com</a></td> <td>adrianaatijas</td> </tr>
+                                </tbody>
+                            </table>
+                            </div>
+                        </section>
+                    
+                    <div class="text-center mt-4">
+                        <button class="btn btn-secondary" onclick="goBack()">← Go Back</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="about.html">About Us</a>
+            <a href="index.html#events">Events</a>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms.html">Terms of Service</a>
+            <a href="team.html" class="active-link">Team</a> 
+        </div>
+        <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+    </footer>
+    <script>
+        // Function to navigate back in browser history or to homepage
+        function goBack() {
+            if (history.length > 1) history.back();
+            else window.location.href = "index.html";
+        }
+        
+        // Simplified logout for non-backend pages
+        async function logout() {
+            // Note: The original, more robust logout is in the head script block.
+            localStorage.removeItem("user");
+            window.location.href = "index.html";
+        }
+    </script>
+    </body>
+</html>
