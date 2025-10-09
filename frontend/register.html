@@ -13,21 +13,32 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 12px;
         }
 
         .auth-container {
             background: white;
-            padding: 40px;
+            padding: 28px;
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-lg);
             width: 100%;
-            max-width: 450px;
+            max-width: 420px;
+            max-height: calc(100vh - 24px);
+            overflow-y: auto;
+        }
+
+        .auth-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .auth-container::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.15);
+            border-radius: 999px;
         }
 
         .auth-header {
             text-align: center;
-            margin-bottom: var(--spacing-xl);
+            margin-bottom: var(--spacing-lg, 24px);
         }
 
         .auth-title {
@@ -39,6 +50,76 @@
         .auth-subtitle {
             color: var(--medium-gray);
             font-size: var(--font-size-base);
+        }
+
+        .password-field {
+            position: relative;
+        }
+
+        .password-field input {
+            width: 100%;
+            padding-right: 48px;
+        }
+
+        .form-error {
+            color: var(--error-red, #dc2626);
+            font-size: var(--font-size-sm, 0.875rem);
+            margin-top: 6px;
+            display: none;
+        }
+
+        .terms-text {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: var(--font-size-sm, 0.875rem);
+            color: var(--medium-gray);
+        }
+
+        .terms-text a {
+            color: var(--primary-maroon);
+            text-decoration: underline;
+        }
+
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--primary-maroon);
+            font-size: var(--font-size-sm, 0.875rem);
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .password-toggle:focus {
+            outline: none;
+        }
+
+        .password-toggle .toggle-icon {
+            font-size: 1.1em;
+        }
+
+        .button-spinner {
+            margin-left: 8px;
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-md, 18px);
+        }
+
+        .form-group:last-of-type {
+            margin-bottom: var(--spacing-md, 18px);
+        }
+
+        .btn.btn-disabled {
+            opacity: 0.65;
+            box-shadow: none;
         }
 
         .auth-links {
@@ -56,6 +137,37 @@
         .auth-links a:hover {
             text-decoration: underline;
         }
+
+        @keyframes shake {
+            0% {
+                transform: translateX(0);
+            }
+
+            20% {
+                transform: translateX(-8px);
+            }
+
+            40% {
+                transform: translateX(8px);
+            }
+
+            60% {
+                transform: translateX(-6px);
+            }
+
+            80% {
+                transform: translateX(6px);
+            }
+
+            100% {
+                transform: translateX(0);
+            }
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
     </style>
 </head>
 
@@ -74,31 +186,67 @@
                     <label class="form-label" for="name">Full Name</label>
                     <input type="text" id="name" name="name" class="form-control" placeholder="Enter your full name"
                         required>
+                    <div class="form-error" id="nameError"></div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="email">Email Address</label>
                     <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email"
                         required>
+                    <div class="form-error" id="emailError"></div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="password">Password</label>
-                    <input type="password" id="password" name="password" class="form-control"
-                        placeholder="Create a password" minlength="6" required>
-                    <small class="form-text">Minimum 6 characters</small>
+                    <div class="password-field">
+                        <input type="password" id="password" name="password" class="form-control"
+                            placeholder="Create a password" minlength="8" required>
+                        <button type="button" class="password-toggle" data-target="password" aria-label="Show password">
+                            <span class="toggle-icon" aria-hidden="true">👁</span>
+                            <span class="toggle-label">Show</span>
+                        </button>
+                    </div>
+                    <small class="form-text">Minimum 8 characters</small>
+                    <div class="form-error" id="passwordError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="confirmPassword">Confirm Password</label>
+                    <div class="password-field">
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control"
+                            placeholder="Re-enter your password" minlength="8" required>
+                        <button type="button" class="password-toggle" data-target="confirmPassword"
+                            aria-label="Show confirm password">
+                            <span class="toggle-icon" aria-hidden="true">👁</span>
+                            <span class="toggle-label">Show</span>
+                        </button>
+                    </div>
+                    <div class="form-error" id="confirmPasswordError"></div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="role">I am a:</label>
                     <select id="role" name="role" class="form-control" required>
-                        <option value="student">Student</option>
-                        <option value="organizer">Event Organizer</option>
-                        <option value="admin">Administrator</option>
+                        <option value="Student">Student</option>
+                        <option value="Organizer">Event Organizer</option>
+                        <option value="Admin">Administrator</option>
                     </select>
+                    <div class="form-error" id="roleError"></div>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-block btn-lg">Create Account</button>
+                <div class="form-group">
+                    <label class="terms-text">
+                        <input type="checkbox" id="terms" name="terms" style="margin-top: 3px;" required>
+                        <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a>
+                            and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+                    </label>
+                    <div class="form-error" id="termsError"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block btn-lg" id="submitButton">
+                    <span class="button-label">Create Account</span>
+                    <span class="button-spinner" aria-hidden="true" style="display: none;">⏳</span>
+                </button>
             </form>
 
             <div class="auth-links">
@@ -111,20 +259,387 @@
     <script>
         const registerForm = document.getElementById('registerForm');
         const messageDiv = document.getElementById('message');
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const roleSelect = document.getElementById('role');
+        const termsCheckbox = document.getElementById('terms');
+        const submitButton = document.getElementById('submitButton');
+        const buttonSpinner = submitButton.querySelector('.button-spinner');
+        const buttonLabel = submitButton.querySelector('.button-label');
+        const passwordToggles = document.querySelectorAll('.password-toggle');
+        const authContainer = document.querySelector('.auth-container');
+        const pageWrapper = document.querySelector('.page-wrapper');
+
+        const errors = {
+            name: document.getElementById('nameError'),
+            email: document.getElementById('emailError'),
+            password: document.getElementById('passwordError'),
+            confirmPassword: document.getElementById('confirmPasswordError'),
+            role: document.getElementById('roleError'),
+            terms: document.getElementById('termsError')
+        };
+
+        const fieldTouched = {
+            name: false,
+            email: false,
+            password: false,
+            confirmPassword: false,
+            role: false,
+            terms: false
+        };
+
+        let isSubmitting = false;
+        let serverEmailError = '';
 
         function showMessage(text, type) {
-            messageDiv.textContent = text;
-            messageDiv.className = `alert alert-${type}`;
-            messageDiv.style.display = 'block';
+            if (text) {
+                messageDiv.textContent = text;
+                messageDiv.className = type ? `alert alert-${type}` : 'alert';
+                messageDiv.style.display = 'block';
+            } else {
+                messageDiv.textContent = '';
+                messageDiv.className = 'alert';
+                messageDiv.style.display = 'none';
+            }
         }
+
+        function setFieldError(field, message) {
+            const errorElement = errors[field];
+            if (!errorElement) return;
+
+            if (message) {
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+            } else {
+                errorElement.textContent = '';
+                errorElement.style.display = 'none';
+            }
+        }
+
+        function validateName(showError = false) {
+            const value = nameInput.value.trim();
+            if (!value) {
+                if (showError || fieldTouched.name) {
+                    setFieldError('name', 'Full name is required.');
+                }
+                return false;
+            }
+            setFieldError('name');
+            return true;
+        }
+
+        function validateEmail(showError = false) {
+            const value = emailInput.value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!value) {
+                if (showError || fieldTouched.email) {
+                    setFieldError('email', 'Email is required.');
+                }
+                return false;
+            }
+            if (!emailRegex.test(value)) {
+                if (showError || fieldTouched.email) {
+                    setFieldError('email', 'Please enter a valid email address.');
+                }
+                return false;
+            }
+            if (serverEmailError) {
+                setFieldError('email', serverEmailError);
+                return false;
+            }
+            setFieldError('email');
+            return true;
+        }
+
+        function validatePassword(showError = false) {
+            const value = passwordInput.value;
+
+            if (!value) {
+                if (showError || fieldTouched.password) {
+                    setFieldError('password', 'Password is required.');
+                }
+                return false;
+            }
+
+            if (value.length < 8) {
+                if (showError || fieldTouched.password) {
+                    setFieldError('password', 'Password must be at least 8 characters long.');
+                }
+                return false;
+            }
+
+            setFieldError('password');
+            return true;
+        }
+
+        function validateConfirmPassword(showError = false) {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            if (!confirmPassword) {
+                if (showError || fieldTouched.confirmPassword) {
+                    setFieldError('confirmPassword', 'Please confirm your password.');
+                }
+                return false;
+            }
+
+            if (password !== confirmPassword) {
+                if (showError || fieldTouched.confirmPassword) {
+                    setFieldError('confirmPassword', 'Passwords do not match.');
+                }
+                return false;
+            }
+
+            setFieldError('confirmPassword');
+            return true;
+        }
+
+        function validateRole(showError = false) {
+            const value = roleSelect.value;
+            if (!value) {
+                if (showError || fieldTouched.role) {
+                    setFieldError('role', 'Please select a role.');
+                }
+                return false;
+            }
+
+            setFieldError('role');
+            return true;
+        }
+
+        function validateTerms(showError = false) {
+            const checked = termsCheckbox.checked;
+            if (!checked) {
+                if (showError || fieldTouched.terms) {
+                    setFieldError('terms', 'You must agree to the Terms and Privacy Policy.');
+                }
+                return false;
+            }
+
+            setFieldError('terms');
+            return true;
+        }
+
+        function isFormValid() {
+            return validateName() &&
+                validateEmail() &&
+                validatePassword() &&
+                validateConfirmPassword() &&
+                validateRole() &&
+                validateTerms();
+        }
+
+        function updateSubmitState() {
+            const valid = isFormValid();
+            if (!isSubmitting) {
+                submitButton.disabled = false;
+            }
+            submitButton.classList.toggle('btn-disabled', !valid && !isSubmitting);
+            submitButton.setAttribute('aria-disabled', (!valid).toString());
+        }
+
+        function setLoadingState(isLoading) {
+            isSubmitting = isLoading;
+            submitButton.disabled = isLoading;
+            if (isLoading) {
+                submitButton.classList.remove('btn-disabled');
+                submitButton.setAttribute('aria-disabled', 'false');
+                buttonSpinner.style.display = 'inline-block';
+                buttonLabel.textContent = 'Creating...';
+            } else {
+                buttonSpinner.style.display = 'none';
+                buttonLabel.textContent = 'Create Account';
+            }
+        }
+
+        function resetPasswordToggles() {
+            passwordToggles.forEach((button) => {
+                const targetId = button.dataset.target;
+                const input = document.getElementById(targetId);
+                if (!input) return;
+
+                input.type = 'password';
+                const toggleLabel = button.querySelector('.toggle-label');
+                const toggleIcon = button.querySelector('.toggle-icon');
+                if (toggleLabel) {
+                    toggleLabel.textContent = 'Show';
+                }
+                if (toggleIcon) {
+                    toggleIcon.textContent = '👁';
+                }
+                button.setAttribute('aria-label', `Show ${targetId === 'password' ? 'password' : 'confirm password'}`);
+            });
+        }
+
+        function resetFormState() {
+            registerForm.reset();
+            showMessage('', '');
+            Object.keys(fieldTouched).forEach((key) => {
+                fieldTouched[key] = false;
+            });
+            serverEmailError = '';
+            Object.keys(errors).forEach((field) => {
+                setFieldError(field);
+            });
+            isSubmitting = false;
+            buttonSpinner.style.display = 'none';
+            buttonLabel.textContent = 'Create Account';
+            resetPasswordToggles();
+            submitButton.disabled = false;
+            submitButton.classList.add('btn-disabled');
+            submitButton.setAttribute('aria-disabled', 'true');
+            [authContainer, pageWrapper].forEach((element) => {
+                if (element) {
+                    element.classList.remove('shake');
+                }
+            });
+            updateSubmitState();
+        }
+
+        passwordToggles.forEach((button) => {
+            button.addEventListener('click', () => {
+                const targetId = button.dataset.target;
+                const input = document.getElementById(targetId);
+
+                if (!input) {
+                    return;
+                }
+
+                const isHidden = input.type === 'password';
+                input.type = isHidden ? 'text' : 'password';
+
+                const toggleLabel = button.querySelector('.toggle-label');
+                const toggleIcon = button.querySelector('.toggle-icon');
+
+                if (toggleLabel) {
+                    toggleLabel.textContent = isHidden ? 'Hide' : 'Show';
+                }
+
+                if (toggleIcon) {
+                    toggleIcon.textContent = isHidden ? '🙈' : '👁';
+                }
+
+                const readableName = targetId === 'password' ? 'password' : 'confirm password';
+                button.setAttribute('aria-label', `${isHidden ? 'Hide' : 'Show'} ${readableName}`);
+            });
+        });
+
+        nameInput.addEventListener('input', () => {
+            validateName(fieldTouched.name);
+            updateSubmitState();
+        });
+        nameInput.addEventListener('blur', () => {
+            fieldTouched.name = true;
+            validateName(true);
+            updateSubmitState();
+        });
+
+        emailInput.addEventListener('input', () => {
+            if (serverEmailError) {
+                serverEmailError = '';
+            }
+            validateEmail(fieldTouched.email);
+            updateSubmitState();
+        });
+        emailInput.addEventListener('blur', () => {
+            fieldTouched.email = true;
+            validateEmail(true);
+            updateSubmitState();
+        });
+
+        passwordInput.addEventListener('input', () => {
+            fieldTouched.password = true;
+            validatePassword(true);
+            validateConfirmPassword(fieldTouched.confirmPassword);
+            updateSubmitState();
+        });
+        passwordInput.addEventListener('blur', () => {
+            fieldTouched.password = true;
+            validatePassword(true);
+            updateSubmitState();
+        });
+
+        confirmPasswordInput.addEventListener('input', () => {
+            fieldTouched.confirmPassword = true;
+            validateConfirmPassword(true);
+            updateSubmitState();
+        });
+        confirmPasswordInput.addEventListener('blur', () => {
+            fieldTouched.confirmPassword = true;
+            validateConfirmPassword(true);
+            updateSubmitState();
+        });
+
+        roleSelect.addEventListener('change', () => {
+            fieldTouched.role = true;
+            validateRole(true);
+            updateSubmitState();
+        });
+
+        termsCheckbox.addEventListener('change', () => {
+            fieldTouched.terms = true;
+            validateTerms(true);
+            updateSubmitState();
+        });
+
+        resetFormState();
+
+        window.addEventListener('pageshow', (event) => {
+            const navigationEntries = (performance.getEntriesByType && performance.getEntriesByType('navigation')) || [];
+            const navEntry = navigationEntries[0];
+            if (event.persisted || (navEntry && navEntry.type === 'back_forward')) {
+                resetFormState();
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            resetFormState();
+        });
 
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const role = document.getElementById('role').value;
+            fieldTouched.name = fieldTouched.email = fieldTouched.password = true;
+            fieldTouched.confirmPassword = fieldTouched.role = fieldTouched.terms = true;
+
+            const validationResults = [
+                validateName(true),
+                validateEmail(true),
+                validatePassword(true),
+                validateConfirmPassword(true),
+                validateRole(true),
+                validateTerms(true)
+            ];
+
+            const valid = validationResults.every(Boolean);
+
+            if (!valid) {
+                showMessage('Please fix the highlighted errors before continuing.', 'error');
+                const shakeElement = pageWrapper || authContainer;
+                if (shakeElement) {
+                    shakeElement.classList.remove('shake');
+                    void shakeElement.offsetWidth;
+                    shakeElement.classList.add('shake');
+                    setTimeout(() => shakeElement.classList.remove('shake'), 600);
+                }
+                setTimeout(() => {
+                    alert('Please fill out all required fields to create your account.');
+                }, 120);
+                updateSubmitState();
+                return;
+            }
+
+            showMessage('', '');
+            setLoadingState(true);
+
+            const payload = {
+                name: nameInput.value.trim(),
+                email: emailInput.value.trim(),
+                password: passwordInput.value,
+                role: roleSelect.value
+            };
 
             try {
                 const response = await fetch('http://localhost:3000/api/auth/register', {
@@ -132,22 +647,55 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ name, email, password, role })
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
                 });
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    showMessage('Registration successful! Redirecting to login...', 'success');
-                    registerForm.reset();
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
-                } else {
-                    showMessage(data.error || 'Registration failed', 'error');
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    console.warn('Failed to parse register response JSON:', parseError);
                 }
+
+                if (response.status === 409) {
+                    const conflictMessage = data.error || 'Email already exists.';
+                    serverEmailError = conflictMessage;
+                    setFieldError('email', conflictMessage);
+                    showMessage(conflictMessage, 'error');
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errorMessage = data.error || `Registration failed (status ${response.status}).`;
+                    showMessage(errorMessage, 'error');
+                    return;
+                }
+
+                showMessage('Registration successful! Redirecting to login...', 'success');
+                registerForm.reset();
+                Object.keys(fieldTouched).forEach((key) => {
+                    fieldTouched[key] = false;
+                });
+                serverEmailError = '';
+                setFieldError('name');
+                setFieldError('email');
+                setFieldError('password');
+                setFieldError('confirmPassword');
+                setFieldError('role');
+                setFieldError('terms');
+                resetPasswordToggles();
+                submitButton.classList.add('btn-disabled');
+                submitButton.setAttribute('aria-disabled', 'true');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
             } catch (error) {
-                showMessage('Network error. Please try again.', 'error');
+                console.error('Registration fetch failed:', error);
+                showMessage('Network error (possibly CORS). Check your connection and try again.', 'error');
+            } finally {
+                setLoadingState(false);
+                updateSubmitState();
             }
         });
     </script>

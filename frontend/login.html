@@ -2,138 +2,431 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - ConEvents</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Page-specific styles */
-        .page-wrapper {
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - ConEvents</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* Page-specific styles */
+    .page-wrapper {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
 
-        .auth-container {
-            background: white;
-            padding: 40px;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg);
-            width: 100%;
-            max-width: 450px;
-        }
+    .auth-container {
+      background: white;
+      padding: 40px;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 450px;
+    }
 
-        .auth-header {
-            text-align: center;
-            margin-bottom: var(--spacing-xl);
-        }
+    .auth-header {
+      text-align: center;
+      margin-bottom: var(--spacing-xl);
+    }
 
-        .auth-title {
-            color: var(--primary-maroon);
-            font-size: var(--font-size-3xl);
-            margin-bottom: var(--spacing-sm);
-        }
+    .auth-title {
+      color: var(--primary-maroon);
+      font-size: var(--font-size-3xl);
+      margin-bottom: var(--spacing-sm);
+    }
 
-        .auth-subtitle {
-            color: var(--medium-gray);
-            font-size: var(--font-size-base);
-        }
+    .auth-subtitle {
+      color: var(--medium-gray);
+      font-size: var(--font-size-base);
+    }
 
-        .auth-links {
-            text-align: center;
-            margin-top: var(--spacing-lg);
-            color: var(--medium-gray);
-        }
+    .auth-links {
+      text-align: center;
+      margin-top: var(--spacing-lg);
+      color: var(--medium-gray);
+    }
 
-        .auth-links a {
-            color: var(--primary-maroon);
-            text-decoration: none;
-            font-weight: 600;
-        }
+    .auth-links a {
+      color: var(--primary-maroon);
+      text-decoration: none;
+      font-weight: 600;
+    }
 
-        .auth-links a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    .auth-links a:hover {
+      text-decoration: underline;
+    }
+
+    /* Banner (top messages) */
+    .alert {
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: var(--spacing-md);
+      font-size: var(--font-size-sm);
+      display: flex;
+      align-items: start;
+      gap: 8px;
+    }
+
+    .alert-success {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #10b98133;
+    }
+
+    .alert-error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #ef444433;
+    }
+
+    .alert-info {
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1px solid #3b82f633;
+    }
+
+    .alert .close {
+      margin-left: auto;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-size: 16px;
+      line-height: 1;
+      color: inherit;
+      padding: 0 4px;
+    }
+
+    /* Field errors */
+    .field-error {
+      color: #991b1b;
+      font-size: var(--font-size-sm);
+      margin-top: 6px;
+    }
+
+    .is-invalid {
+      border-color: #ef4444 !important;
+      outline-color: #ef4444 !important;
+    }
+
+    /* Button loading state */
+    .btn[disabled] {
+      opacity: 0.75;
+      cursor: not-allowed;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      display: inline-block;
+      vertical-align: middle;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
 </head>
 
 <body>
-    <div class="page-wrapper">
-        <div class="auth-container">
-            <div class="auth-header">
-                <h1 class="auth-title">🎫 ConEvents</h1>
-                <p class="auth-subtitle">Login to your account</p>
-            </div>
+  <div class="page-wrapper">
+    <div class="auth-container">
+      <div class="auth-header">
+        <h1 class="auth-title">🎫 ConEvents</h1>
+        <p class="auth-subtitle">Login to your account</p>
+      </div>
 
-            <div id="message" class="alert" style="display: none;"></div>
+      <!-- Top banner for server/network/success messages -->
+      <div id="banner" class="alert" role="alert" style="display:none;">
+        <span id="bannerText"></span>
+        <button id="bannerClose" class="close" aria-label="Dismiss">&times;</button>
+      </div>
 
-            <form id="loginForm">
-                <div class="form-group">
-                    <label class="form-label" for="email">Email Address</label>
-                    <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email"
-                        required>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="password">Password</label>
-                    <input type="password" id="password" name="password" class="form-control"
-                        placeholder="Enter your password" required>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-block btn-lg">Login</button>
-            </form>
-
-            <div class="auth-links">
-                <p>Don't have an account? <a href="register.html">Register here</a></p>
-                <p style="margin-top: 8px;"><a href="index.html">← Back to Home</a></p>
-            </div>
+      <form id="loginForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email"
+            autocomplete="username" aria-describedby="emailError" aria-invalid="false" required />
+          <div id="emailError" class="field-error" aria-live="polite"></div>
         </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password"
+            autocomplete="current-password" aria-describedby="passwordError" aria-invalid="false" required />
+          <div id="passwordError" class="field-error" aria-live="polite"></div>
+        </div>
+
+        <!-- Password reset panel (hidden until 3 failed attempts)  (ADD) -->
+        <div id="resetPanel" style="display:none; margin-top: 8px;">
+          <p class="auth-subtitle" style="margin: 0 0 8px 0; font-size: var(--font-size-sm);">
+            Having trouble signing in?
+          </p>
+          <button id="resetBtn" type="button" class="btn btn-secondary btn-sm">
+            Send password reset link
+          </button>
+          <div id="resetHint" class="field-error" aria-live="polite" style="margin-top:6px;"></div>
+        </div>
+
+        <button id="submitBtn" type="submit" class="btn btn-primary btn-block btn-lg">
+          <span id="btnSpinner" class="spinner" style="display:none;"></span>
+          <span id="btnText">Login</span>
+        </button>
+      </form>
+
+      <div class="auth-links">
+        <p>Don't have an account? <a href="register.html">Register here</a></p>
+        <p style="margin-top: 8px;"><a href="index.html">← Back to Home</a></p>
+      </div>
     </div>
+  </div>
 
-    <script>
-        const loginForm = document.getElementById('loginForm');
-        const messageDiv = document.getElementById('message');
+  <script>
+    const form = document.getElementById('loginForm');
+    const emailEl = document.getElementById('email');
+    const passEl = document.getElementById('password');
 
-        function showMessage(text, type) {
-            messageDiv.textContent = text;
-            messageDiv.className = `alert alert-${type}`;
-            messageDiv.style.display = 'block';
+    const emailErr = document.getElementById('emailError');
+    const passErr = document.getElementById('passwordError');
+
+    const banner = document.getElementById('banner');
+    const bannerText = document.getElementById('bannerText');
+    const bannerClose = document.getElementById('bannerClose');
+
+    const submitBtn = document.getElementById('submitBtn');
+    const btnSpinner = document.getElementById('btnSpinner');
+    const btnText = document.getElementById('btnText');
+
+    // === Reset controls (ADD) ===
+    const resetPanel = document.getElementById('resetPanel');
+    const resetBtn = document.getElementById('resetBtn');
+    const resetHint = document.getElementById('resetHint');
+
+
+    // Track failed attempts in localStorage (per browser)
+    const FAILED_KEY = 'login_failed_attempts';
+    function getFailures() { return Number(localStorage.getItem(FAILED_KEY) || '0'); }
+    function setFailures(n) { localStorage.setItem(FAILED_KEY, String(n)); }
+    function bumpFailures() {
+      const n = getFailures() + 1;
+      setFailures(n);
+      maybeShowResetPanel();
+      return n;
+    }
+    function resetFailures() { setFailures(0); }
+    function maybeShowResetPanel() {
+      if (!resetPanel) return;
+      resetPanel.style.display = getFailures() >= 3 ? 'block' : 'none';
+    }
+    // Show panel on load if prior failures exist
+    maybeShowResetPanel();
+
+    // --- Helpers ---
+    function showBanner(message, type = 'info') {
+      banner.className = `alert alert-${type}`;
+      bannerText.textContent = message;
+      banner.style.display = 'flex';
+    }
+    function hideBanner() { banner.style.display = 'none'; }
+
+    bannerClose.addEventListener('click', hideBanner);
+
+    function setFieldError(inputEl, errEl, message) {
+      if (message) {
+        inputEl.classList.add('is-invalid');
+        inputEl.setAttribute('aria-invalid', 'true');
+        errEl.textContent = message;
+      } else {
+        inputEl.classList.remove('is-invalid');
+        inputEl.setAttribute('aria-invalid', 'false');
+        errEl.textContent = '';
+      }
+    }
+
+    function clearAllFieldErrors() {
+      setFieldError(emailEl, emailErr, '');
+      setFieldError(passEl, passErr, '');
+    }
+
+    function setLoading(isLoading, loadingText = 'Signing in…') {
+      if (isLoading) {
+        submitBtn.setAttribute('disabled', 'true');
+        btnSpinner.style.display = 'inline-block';
+        btnText.textContent = loadingText;
+      } else {
+        submitBtn.removeAttribute('disabled');
+        btnSpinner.style.display = 'none';
+        btnText.textContent = 'Login';
+      }
+    }
+
+    function isEmailValid(value) {
+      // light RFC5322-ish test
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    }
+
+    function validateForm() {
+      let ok = true;
+      const emailVal = emailEl.value.trim();
+      const passVal = passEl.value;
+
+      // Email
+      if (!emailVal) {
+        setFieldError(emailEl, emailErr, 'Email is required.');
+        ok = false;
+      } else if (!isEmailValid(emailVal)) {
+        setFieldError(emailEl, emailErr, 'Please enter a valid email address.');
+        ok = false;
+      } else {
+        setFieldError(emailEl, emailErr, '');
+      }
+
+      // Password
+      if (!passVal) {
+        setFieldError(passEl, passErr, 'Password is required.');
+        ok = false;
+      } else {
+        setFieldError(passEl, passErr, '');
+      }
+
+      return ok;
+    }
+
+    // Real-time field validation UX
+    emailEl.addEventListener('blur', () => {
+      if (!emailEl.value.trim()) setFieldError(emailEl, emailErr, 'Email is required.');
+      else if (!isEmailValid(emailEl.value.trim())) setFieldError(emailEl, emailErr, 'Please enter a valid email address.');
+      else setFieldError(emailEl, emailErr, '');
+    });
+    passEl.addEventListener('blur', () => {
+      if (!passEl.value) setFieldError(passEl, passErr, 'Password is required.');
+      else setFieldError(passEl, passErr, '');
+    });
+
+    // Submit
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideBanner();
+      clearAllFieldErrors();
+
+      if (!validateForm()) return;
+
+      setLoading(true, 'Signing in…');
+
+      const payload = {
+        email: emailEl.value.trim(),
+        password: passEl.value
+      };
+
+      try {
+        const res = await fetch('http://localhost:3000/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+
+        // Attempt to parse JSON regardless of status
+        let data = {};
+        try { data = await res.json(); } catch (_) { }
+
+        if (res.ok) {
+          // Expected shape: { user: {...}, message?: string }
+          if (data && data.user) {
+            localStorage.setItem('user', JSON.stringify(data.user));
+          }
+          resetFailures();
+          showBanner(data?.message || 'Login successful! Redirecting…', 'success');
+
+          // small delay to let user read the success state
+          setTimeout(() => { window.location.href = 'index.html'; }, 900);
+          return;
         }
 
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Handle common error classes
+        if (res.status === 400 || res.status === 422) {
+          // Possible validation-style payload: { errors: { email: "...", password: "..." }, error?: "..." }
+          const fieldErrors = data?.errors || {};
+          if (fieldErrors.email) setFieldError(emailEl, emailErr, fieldErrors.email);
+          if (fieldErrors.password) setFieldError(passEl, passErr, fieldErrors.password);
 
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+          const topMsg = data?.error || 'Please correct the highlighted fields.';
+          showBanner(topMsg, 'error');
+        } else if (res.status === 401) {
+          // Invalid credentials
+          setFieldError(passEl, passErr, 'Invalid email or password.');
+          showBanner(data?.error || 'Invalid credentials.', 'error');
+          bumpFailures(); // ADD: increment failed attempts (shows reset panel at 3+)
 
-            try {
-                const response = await fetch('http://localhost:3000/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({ email, password })
-                });
+        } else {
+          // 403/404/409/5xx fallback
+          showBanner(data?.error || 'Something went wrong. Please try again.', 'error');
+        }
+      } catch (err) {
+        showBanner('Network error. Please check your connection and try again.', 'error');
+      } finally {
+        setLoading(false);
+      }
+    });
 
-                const data = await response.json();
+    // === Request password reset (ADD) ===
+    const RESET_ENDPOINT = 'http://localhost:3000/api/auth/password-reset/request';
 
-                if (response.ok) {
-                    showMessage('Login successful! Redirecting...', 'success');
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 1500);
-                } else {
-                    showMessage(data.error || 'Login failed', 'error');
-                }
-            } catch (error) {
-                showMessage('Network error. Please try again.', 'error');
-            }
+    async function sendPasswordReset(email) {
+      resetHint.textContent = '';
+
+      if (!email || !isEmailValid(email)) {
+        resetHint.textContent = 'Please enter a valid email above first.';
+        emailEl.focus();
+        return;
+      }
+
+      setLoading(true, 'Sending reset link…');
+
+      try {
+        const resp = await fetch(RESET_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
         });
-    </script>
+
+        let data = {};
+        try { data = await resp.json(); } catch (_) { }
+
+        if (resp.ok) {
+          showBanner(data?.message || 'If an account exists for that email, a reset link has been sent.', 'success');
+          resetHint.textContent = '';
+          resetPanel.style.display = 'block';
+          return;
+        }
+
+        if (resp.status === 400 || resp.status === 422) {
+          resetHint.textContent = data?.error || 'Please enter a valid email.';
+        } else {
+          resetHint.textContent = data?.error || 'Could not send reset link. Please try again.';
+        }
+      } catch (e) {
+        resetHint.textContent = 'Network error. Please try again.';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+  resetBtn?.addEventListener('click', () => {
+    sendPasswordReset(emailEl.value.trim());
+  });
+
+  submitBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && submitBtn.disabled) e.preventDefault();
+  });
+</script>
 </body>
 
 </html>
