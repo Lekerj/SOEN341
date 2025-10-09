@@ -3,6 +3,11 @@ const session = require("express-session");
 const cors = require("cors");
 const authRoutes = require("./routes/auth");
 
+//Adding this: Import the new events route file
+const eventRoutes = require("./routes/events");
+//Adding this: Import the database connection
+const db = require("./config/db");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -38,6 +43,9 @@ app.use(
 
 // Routes
 app.use("/api/auth", authRoutes);
+
+//Adding this: 
+app.use("/api/events",eventRoutes);
 
 app.get("/api/test", (req, res) => {
   res.json({ message: "API is working!" });
