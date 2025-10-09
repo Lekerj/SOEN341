@@ -118,7 +118,12 @@
                     body: JSON.stringify({ email, password })
                 });
 
-                const data = await response.json();
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    console.warn('Failed to parse login response JSON:', parseError);
+                }
 
                 if (response.ok) {
                     showMessage('Login successful! Redirecting...', 'success');
@@ -127,10 +132,12 @@
                         window.location.href = 'index.html';
                     }, 1500);
                 } else {
-                    showMessage(data.error || 'Login failed', 'error');
+                    const errorMessage = data.error || `Login failed (status ${response.status}).`;
+                    showMessage(errorMessage, 'error');
                 }
             } catch (error) {
-                showMessage('Network error. Please try again.', 'error');
+                console.error('Login fetch failed:', error);
+                showMessage('Network error (possibly CORS). Check your connection and try again.', 'error');
             }
         });
     </script>

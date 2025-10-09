@@ -43,7 +43,8 @@
                 </p>
                 <div class="hero-buttons">
                     <a href="#events" class="btn btn-accent btn-lg">Browse Events</a>
-                    <a href="register.html" class="btn btn-secondary btn-lg">Create Account</a>
+                    <a href="register.html" class="btn btn-secondary btn-lg" id="createAccountButton"
+                        style="display: inline-block;">Create Account</a>
                 </div>
             </div>
 
@@ -254,6 +255,7 @@
         // Check authentication status
         window.addEventListener('DOMContentLoaded', async () => {
             const user = localStorage.getItem('user');
+            const createAccountButton = document.getElementById('createAccountButton');
 
             if (user) {
                 try {
@@ -271,19 +273,35 @@
                         document.getElementById('userLinks').style.gap = '1rem';
                         document.getElementById('userLinks').style.alignItems = 'center';
                         document.getElementById('welcomeMessage').textContent = `Welcome, ${userData.name}!`;
+                        if (createAccountButton) {
+                            createAccountButton.style.display = 'none';
+                        }
                     } else {
                         // Session expired
                         localStorage.removeItem('user');
+                        if (createAccountButton) {
+                            createAccountButton.style.display = 'inline-block';
+                        }
                     }
                 } catch (error) {
                     console.error('Error checking session:', error);
                     localStorage.removeItem('user');
+                    if (createAccountButton) {
+                        createAccountButton.style.display = 'inline-block';
+                    }
                 }
+            } else if (createAccountButton) {
+                createAccountButton.style.display = 'inline-block';
             }
         });
 
         // Logout function
         async function logout() {
+            const confirmLogout = confirm('Are you sure you want to log out?');
+            if (!confirmLogout) {
+                return;
+            }
+
             try {
                 const response = await fetch('http://localhost:3000/api/auth/logout', {
                     method: 'POST',

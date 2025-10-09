@@ -9,13 +9,29 @@ const PORT = process.env.PORT || 3000;
 // CORS configuration - allow frontend to access backend
 app.use(
   cors({
-    origin: [
-      "http://localhost:5500", // Live Server default port
-      "http://127.0.0.1:5500",
-      "http://localhost:8080",
-      "http://127.0.0.1:8080",
-      "null", // For file:// protocol (opening HTML directly)
-    ],
+    origin(origin, callback) {
+      if (!origin || origin === "null") {
+        return callback(null, true);
+      }
+
+      try {
+        const parsed = new URL(origin);
+        const allowedHosts = new Set(["localhost", "127.0.0.1", "[::1]",'http://[::]:8080']);
+
+        if (allowedHosts.has(parsed.hostname)) {
+          if (process.env.NODE_ENV !== "production") {
+            console.log(`CORS: allowing origin ${origin}`);
+          }
+          return callback(null, true);
+        }
+      } catch (error) {
+        console.error("Invalid origin provided to CORS middleware:", origin, error);
+        return callback(new Error(`Invalid origin: ${origin}`));
+      }
+
+      console.warn(`CORS: blocked origin ${origin}`);
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
     credentials: true, // Allow cookies/sessions to be sent
   })
 );
@@ -31,6 +47,7 @@ app.use(
     cookie: {
       secure: false, // Set to true if using HTTPS
       httpOnly: true,
+      sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
   })
