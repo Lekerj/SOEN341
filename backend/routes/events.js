@@ -47,7 +47,7 @@ router.get('/', (req, res) => {
     }
 
     // 3. Final Ordering 
-    sql += `ORDER BY event_date ASC, event_time ASC;`;
+    sql += `\nORDER BY event_date ASC, event_time ASC;`;
 
     // 4. Execute the Query (using the callback pattern)
     db.query(sql, params, (err, results) => {
