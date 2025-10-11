@@ -58,6 +58,10 @@
                 <div class="grid grid-3" id="eventsGrid">
                     <p class="text-muted" style="grid-column: 1 / -1;">Loading events...</p>
                 </div>
+                
+                <div class="text-center mt-3">
+                <a href="browse.html" class="btn btn-secondary btn-lg">Browse All Events</a>
+                </div>
             </section>
 
             <!-- About Section -->
@@ -150,7 +154,7 @@
             eventsGrid.innerHTML = '<p class="text-muted" style="grid-column: 1 / -1;">Loading events...</p>';
 
             try {
-                const response = await fetch('http://localhost:3000/api/events');
+                const response = await fetch('http://localhost:3000/api/events/preview');
                 if (!response.ok) {
                     throw new Error(`Request failed with status ${response.status}`);
                 }

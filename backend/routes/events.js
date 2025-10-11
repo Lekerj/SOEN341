@@ -3,6 +3,25 @@ const router = express.Router();
 const db = require('../config/db');
 const { validateSearchFilters, sanitizeSearchFilters } = require('../utils/validation');
 
+// Homepage preview: return 3 random events
+router.get('/preview', (req, res) => {
+    db.query(
+        `SELECT id, title, description, event_date, event_time, location, price, category, organization, tickets_available, capacity, image_url
+         FROM events
+         WHERE tickets_available > 0
+         ORDER BY RAND()
+         LIMIT 3`,
+        [],
+        (err, results) => {
+            if (err) {
+                console.error('Database Query Error:', err);
+                return res.status(500).json({ message: 'Internal Server Error' });
+            }
+            res.json(results);
+        }
+    );
+});
+
 // Enhanced Event Search API with comprehensive filtering
 router.get('/', (req, res) => {
     // 1. Validate input parameters
