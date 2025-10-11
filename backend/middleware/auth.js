@@ -13,7 +13,7 @@ function requireRole(role) {
       return res.status(401).json({ error: "Unauthorized - Please log in" });
     }
     // You would need to fetch user from DB to check role
-    // For now, this is a placeholror
+    // For now, this is a placeholder
     next();
   };
 }
