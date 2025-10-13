@@ -326,6 +326,8 @@ body::before {
   align-items: center;
   padding-top: var(--spacing-md);
   border-top: 1px solid var(--light-gray);
+  margin-top: auto;                   
+  gap: var(--spacing-md);
 }
 
 /* === Event Cards === */
@@ -337,6 +339,9 @@ body::before {
   transition: all var(--transition-base);
   position: relative;
   border: 2px solid transparent;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .event-card::before {
@@ -396,6 +401,9 @@ body::before {
   padding: var(--spacing-lg);
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
 }
 
 .event-date {
@@ -423,6 +431,14 @@ body::before {
   font-weight: 700;
   font-family: var(--font-family-heading);
   transition: color var(--transition-base);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;  
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(1.3em * 2);
+  margin-bottom: var(--spacing-sm);
 }
 
 .event-card:hover .event-title {
@@ -432,8 +448,14 @@ body::before {
 .event-description {
   color: var(--medium-gray);
   margin-bottom: var(--spacing-md);
-  line-height: 1.6;
+  line-height: 1.4;
   font-size: var(--font-size-sm);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(1.4em * 2);   
 }
 
 .event-meta {
@@ -443,6 +465,7 @@ body::before {
   font-size: var(--font-size-sm);
   color: var(--medium-gray);
   flex-wrap: wrap;
+  min-height: 84px;
 }
 
 .event-meta-item {
@@ -468,7 +491,11 @@ body::before {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: priceGlow 3s ease-in-out infinite;
+  white-space: nowrap; 
+  flex-shrink: 0;
 }
+
+.card-footer .btn { flex-shrink: 0; }
 
 @keyframes priceGlow {
   0%,
