@@ -8,6 +8,7 @@ const db = mysql.createConnection({
   user: process.env.DB_USER || "341",
   password: process.env.DB_PASSWORD || "Pass341!",
   database: process.env.DB_NAME || "convenevents",
+  dateStrings: true // Ensures DATE and TIME columns are returned as strings
 });
 
 db.connect((err) => {

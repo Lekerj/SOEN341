@@ -56,7 +56,7 @@ router.get('/', (req, res) => {
         e.id, e.title, e.description, e.event_date, e.event_time, 
         e.location, e.price, e.category, e.organization, 
         e.capacity, e.tickets_available, e.image_url,
-        u.username as organizer_name
+        u.name as organizer_name
     FROM 
         events e
     LEFT JOIN 
@@ -67,7 +67,7 @@ router.get('/', (req, res) => {
 
     // 2. Search functionality - search in title OR organizer name
     if (search && search.trim() !== '') {
-        sql += `\n AND (e.title LIKE ? OR u.username LIKE ? OR e.organization LIKE ?)`;
+        sql += `\n AND (e.title LIKE ? OR u.name LIKE ? OR e.organization LIKE ?)`;
         const searchTerm = `%${search.trim()}%`;
         params.push(searchTerm, searchTerm, searchTerm);
     }
@@ -229,7 +229,7 @@ router.get('/:id', (req, res) => {
     const sql = `
         SELECT 
             e.*, 
-            u.username as organizer_name,
+            u.name as organizer_name,
             u.email as organizer_email
         FROM 
             events e
