@@ -216,6 +216,21 @@ body::before {
   align-items: center;
 }
 
+.navbar-menu #authLinks {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.navbar-menu #authLinks .btn {
+  padding: 12px 32px;
+  border-radius: var(--radius-lg);
+}
+
+.navbar-menu #authLinks a::before {
+  content: none;
+}
+
 .navbar-menu a {
   text-decoration: none;
   color: var(--dark-gray);
@@ -571,7 +586,7 @@ body::before {
 }
 
 .btn-sm {
-  padding: 8px 16px;
+  padding: 10px 22px;
   font-size: var(--font-size-sm);
 }
 
