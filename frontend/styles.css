@@ -1205,15 +1205,3 @@ select.form-control {
     transition: box-shadow 120ms ease, border-color 120ms ease;
   }
 }
-
-.filter-section .section-title {
-  font-size: var(--font-size-4xl);
-  color: var(--white);
-  margin-bottom: var(--spacing-lg);
-  font-weight: 800;
-  text-align: center;
-  font-family: var(--font-family-heading);
-  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
-  display: block;
-  width: 100%;
-}

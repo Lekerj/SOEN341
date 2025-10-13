@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browse Events - ConEvents</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .browse-header {
+      background: var(--gradient-primary);
+      color: var(--white);
+      padding: var(--spacing-2xl) var(--spacing-lg);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page-title {
+      font-size: var(--font-size-4xl);
+      font-weight: 800;
+      margin-bottom: var(--spacing-sm);
+      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .page-subtitle {
+      font-size: var(--font-size-xl);
+      opacity: 0.95;
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .search-container {
+      max-width: 600px;
+      margin: 0 auto;
+      display: flex;
+      gap: var(--spacing-sm);
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 16px 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-lg);
+      background: rgba(255,255,255,0.15);
+      color: var(--white);
+      backdrop-filter: blur(10px);
+    }
+
+    .search-input::placeholder {
+      color: rgba(255,255,255,0.8);
+    }
+
+    .search-input:focus {
+      border-color: var(--primary-gold);
+      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
+    }
+
+    .search-button {
+      padding: 16px 24px;
+      background: var(--gradient-gold);
+      border: none;
+      border-radius: var(--radius-full);
+      color: var(--dark-gray);
+      font-size: var(--font-size-lg);
+      cursor: pointer;
+      transition: all var(--transition-base);
+    }
+
+    /* Filters Section */
+    .filters-section {
+      background: var(--white);
+      box-shadow: var(--shadow-md);
+      margin-bottom: var(--spacing-xl);
+      padding: var(--spacing-lg);
+    }
+
+    .quick-filters {
+      display: flex;
+      gap: var(--spacing-sm);
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .filter-chip {
+      padding: 8px 16px;
+      border: 2px solid var(--light-gray);
+      border-radius: var(--radius-full);
+      background: var(--white);
+      color: var(--dark-gray);
+      cursor: pointer;
+      transition: all var(--transition-base);
+    }
+
+    .filter-chip.active,
+    .filter-chip:hover {
+      background: var(--gradient-primary);
+      color: var(--white);
+      border-color: var(--primary-maroon);
+    }
+
+    .advanced-filters {
+      border-top: 1px solid var(--light-gray);
+      padding-top: var(--spacing-md);
+    }
+
+    /* Updated Style for Advanced Filters Button */
+    .toggle-filters {
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      border: 2px solid var(--light-gray);
+      background: var(--white);
+      color: var(--dark-gray);
+      cursor: pointer;
+      font-size: var(--font-size-base);
+      transition: all var(--transition-base);
+    }
+
+    .toggle-filters:hover,
+    .toggle-filters:focus {
+      background: var(--gradient-primary);
+      color: var(--white);
+      border-color: var(--primary-maroon);
+    }
+
+    .filters-panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .filters-panel.open {
+      max-height: 400px;
+    }
+
+    .filters-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+
+    /* Same style as quick filters for input fields and select boxes */
+    .filter-input,
+    .filter-select {
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      border: 2px solid var(--light-gray);
+      background: var(--white);
+      color: var(--dark-gray);
+      font-size: var(--font-size-base);
+      transition: all var(--transition-base);
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+      border-color: var(--primary-maroon);
+      box-shadow: 0 0 0 3px rgba(145, 35, 56, 0.1);
+    }
+
+    .price-slider-container {
+      position: relative;
+      height: 40px;
+      width: 100%;
+    }
+
+    .price-slider {
+      position: absolute;
+      width: 100%;
+      height: 6px;
+      background: var(--light-gray);
+      border-radius: var(--radius-full);
+      appearance: none;
+      z-index: 1;
+    }
+
+    .price-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--gradient-primary);
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    .price-display {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: var(--dark-gray);
+      z-index: 3;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--spacing-md);
+      background: var(--light-gray);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .results-count {
+      color: var(--dark-gray);
+      font-weight: 600;
+    }
+
+    .sort-select {
+      padding: 8px 12px;
+      border: 2px solid var(--medium-gray);
+      border-radius: var(--radius-md);
+      background: var(--white);
+    }
+
+    /* Events Grid */
+    .events-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      padding: 2rem 1rem;
+    }
+
+    .event-card {
+      background: #fff;
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .event-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+    }
+    .event-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+    .event-card-content {
+      padding: 1rem;
+    }
+    .event-card-content h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.2rem;
+      color: #912338;
+    }
+    .event-card-content p {
+      margin: 0.25rem 0;
+      color: #555;
+      font-size: 0.9rem;
+    }
+
+    /* Load More Button (Fixed) */
+    .load-more-section {
+      text-align: center;
+      margin-top: var(--spacing-lg);
+    }
+
+    .load-more-btn {
+      padding: 16px 36px;
+      background: var(--primary-maroon);
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: var(--font-size-lg);
+      transition: all var(--transition-base);
+      visibility: visible; /* Button always visible */
+    }
+
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .filters-section {
+        padding: var(--spacing-md);
+      }
+
+      .search-container {
+        flex-direction: column;
+        gap: var(--spacing-md);
+      }
+
+      .results-header {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .events-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .load-more-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar (reuse homepage navbar) -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">
+        🎫 ConEvents
+      </a>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="browse.html">Browse</a></li>
+        <li><a href="#about">About</a></li>
+        <li id="authLinks">
+          <a href="login.html" class="btn btn-secondary btn-sm">Login</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </li>
+        <li id="userLinks" style="display: none;">
+          <span id="welcomeMessage" class="text-muted"></span>
+          <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Page Header with Search -->
+  <div class="browse-header">
+    <div class="container">
+      <h1 class="page-title">Browse Events</h1>
+      <p class="page-subtitle">Discover amazing campus events</p>
+      <div class="search-container">
+        <input type="text" class="search-input" placeholder="Search events, organizers, or organizations...">
+        <button class="search-button">🔍</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-section">
+    <div class="filters-grid">
+      <div class="quick-filters">
+        <span class="filter-label">Quick Filters:</span>
+        <button class="filter-chip active">All Events</button>
+        <button class="filter-chip">Free Events</button>
+        <button class="filter-chip">This Week</button>
+        <button class="filter-chip">Sports</button>
+        <button class="filter-chip">Social</button>
+      </div>
+      <div class="advanced-filters">
+        <button class="toggle-filters">Advanced Filters ⚙️</button>
+        <div class="filters-panel" id="filtersPanel">
+          <div class="filters-row">
+            <div class="filter-group">
+              <label>Category</label>
+              <select class="filter-input filter-select">
+                <option value="">All Categories</option>
+                <option value="sports">Sports</option>
+                <option value="academic">Academic</option>
+                <option value="social">Social</option>
+                <option value="club">Club</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Location</label>
+              <input type="text" class="filter-input" placeholder="Enter location...">
+            </div>
+            <div class="filter-group">
+              <label>Organization</label>
+              <input type="text" class="filter-input" placeholder="Enter organization...">
+            </div>
+          </div>
+          <div class="filters-row">
+            <div class="filter-group price-range">
+              <label>Price Range</label>
+              <div class="price-slider-container">
+                <!-- Single Max Price Slider -->
+                <input type="range" class="price-slider" id="priceMax" min="0" max="100" value="100" step="1">
+
+                <!-- Price Display -->
+                <div class="price-display">
+                  <span>$0</span> <!-- Minimum price is fixed -->
+                  <span>-</span>
+                  <span>$<span id="maxPrice">100</span></span> <!-- Max price updates dynamically -->
+                </div>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label>Date Range</label>
+              <div class="date-inputs">
+                <input type="date" class="filter-input" id="dateStart">
+                <span>to</span>
+                <input type="date" class="filter-input" id="dateEnd">
+              </div>
+            </div>
+            <div class="filter-group">
+              <label>Tickets Needed</label>
+              <select class="filter-input filter-select">
+                <option value="">Any Amount</option>
+                <option value="1">1 ticket</option>
+                <option value="2">2+ tickets</option>
+                <option value="5">5+ tickets</option>
+                <option value="10">10+ tickets</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn btn-primary apply-filters">Apply Filters</button>
+            <button class="btn btn-secondary clear-filters">Clear All</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Events Grid Section -->
+  <div class="events-section">
+    <div class="container">
+      <div class="results-header">
+        <div class="results-info">
+          <span class="results-count">Showing <strong>3</strong> events</span>
+          <span class="results-filters" id="activeFilters"></span>
+        </div>
+        <div class="sort-options">
+          <label>Sort by:</label>
+          <select class="sort-select">
+            <option value="date">Event Date</option>
+            <option value="price">Price</option>
+            <option value="title">Title</option>
+            <option value="popularity">Most Popular</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Events Grid -->
+      <div class="events-grid" id="eventsGrid">
+        <div class="event-card" data-title="AI Workshop" data-organizer="CS Club" data-category="workshop" data-location="Hall A" data-date="2025-10-15">
+          <div class="event-card-content">
+            <h3>AI Workshop</h3>
+            <p>Organizer: CS Club</p>
+            <p>Date: 15 Oct 2025</p>
+            <p>Location: Hall A</p>
+          </div>
+        </div>
+        <div class="event-card" data-title="Music Social" data-organizer="Music Club" data-category="social" data-location="Auditorium" data-date="2025-10-20">
+          <div class="event-card-content">
+            <h3>Music Social</h3>
+            <p>Organizer: Music Club</p>
+            <p>Date: 20 Oct 2025</p>
+            <p>Location: Auditorium</p>
+          </div>
+        </div>
+        <div class="event-card" data-title="Seminar on Sustainability" data-organizer="Eco Club" data-category="seminar" data-location="Room 101" data-date="2025-10-25">
+          <div class="event-card-content">
+            <h3>Seminar on Sustainability</h3>
+            <p>Organizer: Eco Club</p>
+            <p>Date: 25 Oct 2025</p>
+            <p>Location: Room 101</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Load More Button -->
+      <div class="load-more-section">
+        <button class="load-more-btn">Load More Events</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="about.html">About Us</a>
+      <a href="index.html#events">Events</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // Toggle Advanced Filters
+    const toggleFiltersBtn = document.querySelector('.toggle-filters');
+    const filtersPanel = document.getElementById('filtersPanel');
+    toggleFiltersBtn.addEventListener('click', () => {
+      filtersPanel.classList.toggle('open');
+    });
+
+    const priceMax = document.getElementById('priceMax');
+  const maxPriceDisplay = document.getElementById('maxPrice');
+
+  // Handle the max price slider
+  priceMax.addEventListener('input', () => {
+    maxPriceDisplay.textContent = priceMax.value;
+  });
+
+  // Initialize the price value
+  maxPriceDisplay.textContent = priceMax.value;
+
+    // Clear All Filters
+    const clearFiltersBtn = document.querySelector('.clear-filters');
+    clearFiltersBtn.addEventListener('click', () => {
+      priceMin.value = 0;
+      priceMax.value = 100;
+      minPriceDisplay.textContent = '0';
+      maxPriceDisplay.textContent = '100';
+      document.getElementById('filtersPanel').reset();
+    });
+
+  </script>
+</body
