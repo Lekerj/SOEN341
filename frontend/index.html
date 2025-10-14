@@ -17,7 +17,7 @@
             </a>
             <ul class="navbar-menu">
                 <li><a href="index.html">Home</a></li>
-                <li><a href="#events">Events</a></li>
+                <li><a href="browse.html">Browse</a></li>
                 <li><a href="#about">About</a></li>
                 <li id="authLinks">
                     <a href="login.html" class="btn btn-secondary btn-sm">Login</a>
@@ -42,7 +42,7 @@
                     find it all here!
                 </p>
                 <div class="hero-buttons">
-                    <a href="#events" class="btn btn-accent btn-lg">Browse Events</a>
+                    <a href="browse.html" class="btn btn-accent btn-lg">Browse Events</a>
                     <a href="register.html" class="btn btn-secondary btn-lg" id="createAccountButton"
                         style="display: inline-block;">Create Account</a>
                 </div>
@@ -57,6 +57,10 @@
 
                 <div class="grid grid-3" id="eventsGrid">
                     <p class="text-muted" style="grid-column: 1 / -1;">Loading events...</p>
+                </div>
+                
+                <div class="text-center mt-3">
+                <a href="browse.html" class="btn btn-secondary btn-lg">Browse All Events</a>
                 </div>
             </section>
 
@@ -86,7 +90,7 @@
 <footer class="footer">
   <div class="footer-links">
     <a href="about.html">About Us</a>
-    <a href="index.html#events">Events</a>
+    <a href="browse.html">Events</a>
     <a href="privacy.html">Privacy Policy</a>
     <a href="terms.html">Terms of Service</a>
     <a href="contact.html">Contact</a>
@@ -150,7 +154,7 @@
             eventsGrid.innerHTML = '<p class="text-muted" style="grid-column: 1 / -1;">Loading events...</p>';
 
             try {
-                const response = await fetch('http://localhost:3000/api/events');
+                const response = await fetch('http://localhost:3000/api/events/preview');
                 if (!response.ok) {
                     throw new Error(`Request failed with status ${response.status}`);
                 }

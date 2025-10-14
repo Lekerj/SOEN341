@@ -1205,3 +1205,5 @@ select.form-control {
     transition: box-shadow 120ms ease, border-color 120ms ease;
   }
 }
+
+/* Browse header inherits body gradient; no extra overlay to avoid seams */

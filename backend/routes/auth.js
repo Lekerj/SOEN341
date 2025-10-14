@@ -133,7 +133,7 @@ router.get("/profile", (req, res) => {
 
   const db = require("../config/db");
   db.query(
-    "SELECT id, name, email, role, created_at FROM users WHERE id = ?",
+    "SELECT id, name, email, role, created_at, profile_pic_url FROM users WHERE id = ?",
     [req.session.userId],
     (err, results) => {
       if (err) {
