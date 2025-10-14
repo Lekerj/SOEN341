@@ -4,9 +4,16 @@ const validateDateFormat = (dateString) => {
     if (!dateString) return true; // Allow empty dates
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(dateString)) return false;
-    
-    const date = new Date(dateString);
-    return date instanceof Date && !isNaN(date);
+
+    // Strict check: components must match a real calendar date
+    const [y, m, d] = dateString.split('-').map((v) => parseInt(v, 10));
+    if (m < 1 || m > 12 || d < 1 || d > 31) return false;
+    const date = new Date(Date.UTC(y, m - 1, d));
+    return (
+        date.getUTCFullYear() === y &&
+        date.getUTCMonth() === m - 1 &&
+        date.getUTCDate() === d
+    );
 };
 
 const validateTimeFormat = (timeString) => {

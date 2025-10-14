@@ -77,6 +77,7 @@
     .filters-section {
       background: var(--white);
       box-shadow: var(--shadow-md);
+      border: 1px solid #e9ecef;
       margin-bottom: 4px;
       margin-top: calc(-1 * var(--spacing-md)); /* overlap header to remove seam */
       padding: var(--spacing-lg);
@@ -93,6 +94,12 @@
 
     .events-section .container {
       padding-top: 4px;
+      /* Revert to colored background: remove white card styling */
+      max-width: 1200px;            /* match filters-section width */
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: var(--spacing-lg);
+      padding-right: var(--spacing-lg);
     }
 
     .quick-filters {
@@ -293,10 +300,15 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: var(--spacing-md);
-      background: var(--light-gray);
-      border-radius: var(--radius-md);
+      padding: var(--spacing-md) var(--spacing-lg);
+      background: var(--white);
+      border: 1px solid #e9ecef;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
       margin-bottom: var(--spacing-xl);
+      /* Stretch to match filters-section card width */
+      margin-left: calc(-1 * var(--spacing-lg));
+      margin-right: calc(-1 * var(--spacing-lg));
     }
 
     .results-count {
@@ -310,6 +322,22 @@
       border-radius: var(--radius-md);
       background: var(--white);
     }
+
+    .sort-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+
+    .sort-dir-btn {
+      padding: 8px 12px;
+      border: 2px solid var(--medium-gray);
+      border-radius: var(--radius-md);
+      background: var(--white);
+      cursor: pointer;
+      transition: all var(--transition-base);
+    }
+    .sort-dir-btn:hover { border-color: var(--primary-maroon); }
 
     /* Events Grid */
     .events-grid {
@@ -442,11 +470,13 @@
     <div class="filters-grid">
       <div class="quick-filters">
         <span class="filter-label">Quick Filters:</span>
-        <button class="filter-chip active">All Events</button>
-        <button class="filter-chip">Free Events</button>
-        <button class="filter-chip">This Week</button>
-        <button class="filter-chip">Sports</button>
-        <button class="filter-chip">Social</button>
+        <button class="filter-chip active" data-quick="all">All Events</button>
+        <button class="filter-chip" data-quick="free">Free Events</button>
+        <button class="filter-chip" data-quick="this-week">This Week</button>
+        <button class="filter-chip" data-quick="category" data-category="sports">Sports</button>
+        <button class="filter-chip" data-quick="category" data-category="social">Social</button>
+        <button class="filter-chip" data-quick="category" data-category="academic">Academic</button>
+        <button class="filter-chip" data-quick="category" data-category="club">Club</button>
       </div>
       <div class="advanced-filters">
         <button class="toggle-filters">Advanced Filters ⚙️</button>
@@ -517,13 +547,15 @@
           <span class="results-filters" id="activeFilters"></span>
         </div>
         <div class="sort-options">
-          <label>Sort by:</label>
-          <select class="sort-select">
-            <option value="date">Event Date</option>
-            <option value="price">Price</option>
-            <option value="title">Title</option>
-            <option value="popularity">Most Popular</option>
-          </select>
+          <div class="sort-controls">
+            <label for="sortField">Sort via:</label>
+            <select id="sortField" class="sort-select">
+              <option value="date">Event Date</option>
+              <option value="price">Price</option>
+              <option value="title">Title</option>
+            </select>
+            <button id="sortDirBtn" class="sort-dir-btn" aria-pressed="false" title="Toggle ascending/descending">Asc ↑</button>
+          </div>
         </div>
       </div>
 
@@ -559,28 +591,455 @@
 
     const priceMax = document.getElementById('priceMax');
     const maxPriceDisplay = document.getElementById('maxPrice');
+    const searchInput = document.querySelector('.search-input');
+    const searchButton = document.querySelector('.search-button');
+    const eventsGrid = document.getElementById('eventsGrid');
+    const eventCountEl = document.getElementById('eventCount');
+    const activeFiltersEl = document.getElementById('activeFilters');
+    const loadMoreBtn = document.querySelector('.load-more-btn');
+    const quickFilterChips = document.querySelectorAll('.quick-filters .filter-chip');
+    const categorySelect = document.querySelector('.advanced-filters select.filter-select');
+    const locationInput = document.querySelector('.advanced-filters input[placeholder="Enter location..."]');
+    const organizationInput = document.querySelector('.advanced-filters input[placeholder="Enter organization..."]');
+    const dateStart = document.getElementById('dateStart');
+    const dateEnd = document.getElementById('dateEnd');
+    const ticketsNeeded = document.getElementById('ticketsNeeded');
+    const applyFiltersBtn = document.querySelector('.apply-filters');
+  const sortFieldSelect = document.getElementById('sortField');
+  const sortDirBtn = document.getElementById('sortDirBtn');
+
+    // Load dynamic filter options from backend
+    async function loadFilterOptions() {
+      try {
+        const res = await fetch('http://localhost:3000/api/events/filter-options');
+        if (!res.ok) throw new Error(`options ${res.status}`);
+        const data = await res.json();
+        const opts = data.filter_options || {};
+        if (opts.categories && Array.isArray(opts.categories) && categorySelect) {
+          while (categorySelect.options.length > 1) categorySelect.remove(1);
+          opts.categories.forEach(entry => {
+            const c = entry.category || entry.CATEGORY || entry.Category;
+            if (!c) return;
+            const opt = document.createElement('option');
+            opt.value = String(c).toLowerCase();
+            opt.textContent = String(c).charAt(0).toUpperCase() + String(c).slice(1);
+            categorySelect.appendChild(opt);
+          });
+        }
+        if (opts.price_range && opts.price_range.length > 0) {
+          const pr = opts.price_range[0];
+          const max = pr.max_price ?? pr.max ?? 300;
+          priceMax.max = String(max);
+          if (!priceMax.value || Number(priceMax.value) > Number(max)) {
+            priceMax.value = String(max);
+          }
+          maxPriceDisplay.textContent = priceMax.value;
+        } else {
+          maxPriceDisplay.textContent = priceMax.value;
+        }
+      } catch (e) {
+        console.warn('Failed to load filter options, using defaults', e);
+        maxPriceDisplay.textContent = priceMax.value;
+      }
+    }
 
     // Handle the max price slider
     priceMax.addEventListener('input', () => {
       maxPriceDisplay.textContent = priceMax.value;
     });
 
-  // Initialize the price value
+  // Initialize the price value (will be updated by loadFilterOptions)
   maxPriceDisplay.textContent = priceMax.value;
 
     // Clear All Filters (avoid undefined vars; clear inputs in panel)
     const clearFiltersBtn = document.querySelector('.clear-filters');
     clearFiltersBtn.addEventListener('click', () => {
-      priceMax.value = 300;
-      maxPriceDisplay.textContent = '300';
-      const panel = document.getElementById('filtersPanel');
-      if (panel) {
-        panel.querySelectorAll('input[type="text"]').forEach(el => (el.value = ''));
-        panel.querySelectorAll('input[type="date"]').forEach(el => (el.value = ''));
-        panel.querySelectorAll('input[type="number"]').forEach(el => (el.value = ''));
-        panel.querySelectorAll('select').forEach(el => (el.selectedIndex = 0));
-      }
+  priceMax.value = priceMax.max || '300';
+  maxPriceDisplay.textContent = priceMax.value;
+      searchInput.value = '';
+      categorySelect.selectedIndex = 0;
+      locationInput.value = '';
+      organizationInput.value = '';
+      dateStart.value = '';
+      dateEnd.value = '';
+      ticketsNeeded.value = '';
+      // reset quick filters
+      setActiveQuickFilter('all');
+      // fetch fresh list
+      fetchAndRender();
     });
+
+    // ====================
+    // Filtering + Search
+    // ====================
+    const API_BASE = 'http://localhost:3000/api/events';
+    const PAGE_SIZE = 18;
+    let currentResults = [];
+    let renderedCount = 0;
+    let currentQuick = 'all';        // all | free | this-week | category:<name>
+    let sortField = 'date';          // date | price | title
+    let sortDir = 'asc';             // asc | desc
+
+    function applySorting() {
+      if (!Array.isArray(currentResults) || currentResults.length === 0) return;
+      const dir = sortDir === 'desc' ? -1 : 1;
+      const field = sortField;
+      currentResults.sort((a, b) => {
+        let av, bv;
+        if (field === 'date') {
+          av = new Date(a.event_date || 0).getTime();
+          bv = new Date(b.event_date || 0).getTime();
+        } else if (field === 'price') {
+          av = Number(a.price) || 0;
+          bv = Number(b.price) || 0;
+        } else if (field === 'title') {
+          av = (a.title || '').toLowerCase();
+          bv = (b.title || '').toLowerCase();
+        }
+        if (av < bv) return -1 * dir;
+        if (av > bv) return 1 * dir;
+        return 0;
+      });
+    }
+
+    function setActiveQuickFilter(kind, category) {
+      currentQuick = kind === 'category' && category ? `category:${category}` : kind;
+      quickFilterChips.forEach(chip => chip.classList.remove('active'));
+      // find matching chip to set active
+      quickFilterChips.forEach(chip => {
+        const q = chip.getAttribute('data-quick');
+        const cat = chip.getAttribute('data-category');
+        if (kind === 'category') {
+          // Only the clicked category chip should be active
+          if (q === 'category' && cat === category) {
+            chip.classList.add('active');
+          }
+        } else {
+          // For non-category quick filters, match by kind exactly
+          if (q === kind) {
+            chip.classList.add('active');
+          }
+        }
+      });
+      // Reflect category quick filter in dropdown (optional)
+      if (kind === 'category' && categorySelect) {
+        categorySelect.value = category;
+      }
+      if (kind !== 'category' && categorySelect) {
+        categorySelect.value = '';
+      }
+    }
+
+    quickFilterChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const q = chip.getAttribute('data-quick');
+        const cat = chip.getAttribute('data-category');
+        setActiveQuickFilter(q, cat);
+        fetchAndRender();
+      });
+    });
+
+    function getWeekRange() {
+      const today = new Date();
+      const start = new Date();
+      const end = new Date();
+      // next 7 days including today
+      start.setHours(0,0,0,0);
+      end.setDate(today.getDate() + 7);
+      end.setHours(23,59,59,999);
+      const toISO = d => d.toISOString().slice(0,10);
+      return { start: toISO(start), end: toISO(end) };
+    }
+
+    function buildQueryParams() {
+      const params = new URLSearchParams();
+      const search = (searchInput.value || '').trim();
+      if (search) params.set('search', search);
+
+      // Quick filter overrides
+      if (currentQuick === 'free') {
+        params.set('price_min', '0');
+        params.set('price_max', '0');
+      } else if (currentQuick === 'this-week') {
+        const { start, end } = getWeekRange();
+        params.set('date_start', start);
+        params.set('date_end', end);
+      } else if (currentQuick.startsWith('category:')) {
+        const cat = currentQuick.split(':')[1];
+        if (cat) params.set('category', cat);
+      }
+
+      // Advanced filters
+      if (categorySelect.value && currentQuick === 'all') {
+        params.set('category', categorySelect.value);
+      }
+      if (locationInput.value) params.set('location', locationInput.value);
+      if (organizationInput.value) params.set('organization', organizationInput.value);
+
+      // Price slider (0..priceMax) unless 'free' quick filter is active
+      if (currentQuick !== 'free') {
+        const sliderMax = parseFloat(priceMax.value || '0');
+        params.set('price_min', '0');
+        params.set('price_max', String(sliderMax));
+      }
+
+      if (dateStart.value) params.set('date_start', dateStart.value);
+      if (dateEnd.value) params.set('date_end', dateEnd.value);
+      if (ticketsNeeded.value) params.set('min_tickets_needed', String(parseInt(ticketsNeeded.value, 10)));
+
+      return params;
+    }
+
+    async function fetchAndRender() {
+      // Build query and fetch
+      const params = buildQueryParams();
+      const url = `${API_BASE}?${params.toString()}`;
+      eventsGrid.innerHTML = '<p class="text-muted">Loading events...</p>';
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        const data = await res.json();
+        currentResults = Array.isArray(data.events) ? data.events : (Array.isArray(data) ? data : []);
+        renderedCount = 0;
+        eventsGrid.innerHTML = '';
+        applySorting();
+        updateCount();
+        if (currentResults.length === 0) {
+          eventsGrid.innerHTML = '<p class="text-muted">No events match your filters.</p>';
+          if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+        } else {
+          renderNextPage();
+        }
+      } catch (err) {
+        console.error('Fetch error', err);
+        eventsGrid.innerHTML = '<p style="color:#b00020;">Unable to load events. Please try again later.</p>';
+      }
+    }
+
+    function updateCount() {
+      if (eventCountEl) eventCountEl.textContent = String(currentResults.length);
+      // optional: show active filters summary
+      const tags = [];
+      const search = (searchInput.value || '').trim();
+      if (search) tags.push(`Search: "${search}"`);
+      if (currentQuick === 'free') tags.push('Free only');
+      if (currentQuick === 'this-week') tags.push('This week');
+      if (currentQuick.startsWith('category:')) tags.push(`Category: ${currentQuick.split(':')[1]}`);
+      if (categorySelect.value && currentQuick === 'all') tags.push(`Category: ${categorySelect.value}`);
+      if (locationInput.value) tags.push(`Location: ${locationInput.value}`);
+      if (organizationInput.value) tags.push(`Org: ${organizationInput.value}`);
+      if (ticketsNeeded.value) tags.push(`Tickets ≥ ${ticketsNeeded.value}`);
+      if (activeFiltersEl) activeFiltersEl.textContent = tags.join(' • ');
+    }
+
+    function renderNextPage() {
+      const next = currentResults.slice(renderedCount, renderedCount + PAGE_SIZE);
+      next.forEach(ev => eventsGrid.appendChild(buildEventCard(ev)));
+      renderedCount += next.length;
+      updateLoadMore();
+    }
+
+    function updateLoadMore() {
+      if (!loadMoreBtn) return;
+      if (renderedCount >= currentResults.length) {
+        loadMoreBtn.style.display = 'none';
+      } else {
+        loadMoreBtn.style.display = 'inline-block';
+      }
+    }
+
+    if (loadMoreBtn) {
+      loadMoreBtn.addEventListener('click', () => {
+        renderNextPage();
+      });
+    }
+
+    // Search triggers
+    if (searchButton) searchButton.addEventListener('click', fetchAndRender);
+    if (searchInput) searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') fetchAndRender();
+    });
+
+    if (applyFiltersBtn) applyFiltersBtn.addEventListener('click', fetchAndRender);
+
+    // Sort controls handlers
+    if (sortFieldSelect) {
+      sortFieldSelect.addEventListener('change', () => {
+        sortField = sortFieldSelect.value;
+        renderedCount = 0;
+        applySorting();
+        eventsGrid.innerHTML = '';
+        renderNextPage();
+      });
+    }
+    if (sortDirBtn) {
+      sortDirBtn.addEventListener('click', () => {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        sortDirBtn.textContent = sortDir === 'asc' ? 'Asc ↑' : 'Desc ↓';
+        sortDirBtn.setAttribute('aria-pressed', sortDir === 'desc');
+        renderedCount = 0;
+        applySorting();
+        eventsGrid.innerHTML = '';
+        renderNextPage();
+      });
+    }
+
+    // Sync dropdown <-> chips
+    if (categorySelect) {
+      categorySelect.addEventListener('change', () => {
+        const val = categorySelect.value;
+        if (!val) {
+          setActiveQuickFilter('all');
+        } else {
+          setActiveQuickFilter('category', val);
+        }
+        fetchAndRender();
+      });
+    }
+
+    // Initial load: load options then fetch
+    (async () => {
+      await loadFilterOptions();
+      await fetchAndRender();
+    })();
+
+    // ================
+    // Card builders
+    // ================
+    function buildEventCard(event) {
+      const card = document.createElement('div');
+      card.className = 'event-card';
+
+      const image = document.createElement('div');
+      image.className = 'event-image';
+
+      const { gradient, icon } = getCategoryStyle(event.category);
+      if (event.image_url) {
+        image.style.backgroundImage = `url('${event.image_url}')`;
+        image.style.backgroundSize = 'cover';
+        image.style.backgroundPosition = 'center';
+      } else {
+        image.style.background = gradient;
+        image.style.display = 'flex';
+        image.style.alignItems = 'center';
+        image.style.justifyContent = 'center';
+        image.style.color = 'white';
+        image.style.fontSize = '3rem';
+        image.textContent = icon;
+      }
+
+      const content = document.createElement('div');
+      content.className = 'event-content';
+
+      const date = document.createElement('span');
+      date.className = 'event-date';
+      date.textContent = `📅 ${formatEventDate(event.event_date)}`;
+
+      const title = document.createElement('h3');
+      title.className = 'event-title';
+      title.textContent = event.title || 'Untitled Event';
+
+      const description = document.createElement('p');
+      description.className = 'event-description';
+      description.textContent = event.description || 'Details coming soon.';
+
+      const meta = document.createElement('div');
+      meta.className = 'event-meta';
+
+      const location = document.createElement('span');
+      location.className = 'event-meta-item';
+      location.textContent = `📍 ${event.location || 'Location TBA'}`;
+
+      const time = document.createElement('span');
+      time.className = 'event-meta-item';
+      time.textContent = `⏰ ${formatEventTime(event.event_time)}`;
+
+      const spots = document.createElement('span');
+      spots.className = 'event-meta-item';
+      const spotsValue = Number.isFinite(Number(event.tickets_available))
+        ? Number(event.tickets_available)
+        : Number(event.capacity);
+      spots.textContent = spotsValue && spotsValue > 0 ? `👥 ${spotsValue} spots` : '👥 Limited spots';
+
+      meta.appendChild(location);
+      meta.appendChild(time);
+      meta.appendChild(spots);
+
+      const footer = document.createElement('div');
+      footer.className = 'card-footer';
+
+      const price = document.createElement('span');
+      price.className = 'event-price';
+      price.textContent = formatEventPrice(event.price);
+
+      const ticketButton = document.createElement('button');
+      ticketButton.className = 'btn btn-primary';
+      const priceValue = Number(event.price);
+      ticketButton.textContent = priceValue > 0 ? 'Get Tickets' : 'Reserve Spot';
+      ticketButton.addEventListener('click', () => {
+        purchaseTicket(event.title || 'Event', Number.isFinite(priceValue) ? priceValue : 0);
+      });
+
+      footer.appendChild(price);
+      footer.appendChild(ticketButton);
+
+      content.appendChild(date);
+      content.appendChild(title);
+      content.appendChild(description);
+      content.appendChild(meta);
+      content.appendChild(footer);
+
+      card.appendChild(image);
+      card.appendChild(content);
+
+      return card;
+    }
+
+    function getCategoryStyle(category) {
+      const defaults = {
+        gradient: 'linear-gradient(135deg, #6B2C91 0%, #912338 100%)',
+        icon: '🎫'
+      };
+      const styles = {
+        academic: { gradient: 'linear-gradient(135deg, #0072CE 0%, #6B2C91 100%)', icon: '🎓' },
+        social: { gradient: 'linear-gradient(135deg, #FF6B6B 0%, #FFA500 100%)', icon: '🎉' },
+        sports: { gradient: 'linear-gradient(135deg, #28A745 0%, #20C997 100%)', icon: '🏅' },
+        club: { gradient: 'linear-gradient(135deg, #FFD700 0%, #FF3D3D 100%)', icon: '🤝' }
+      };
+      return styles[category] || defaults;
+    }
+
+    function formatEventDate(value) {
+      if (!value) return 'Date TBA';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return value;
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    function formatEventTime(value) {
+      if (!value) return 'Time TBA';
+      const timeString = String(value).slice(0,5);
+      const d = new Date(`1970-01-01T${timeString}`);
+      if (Number.isNaN(d.getTime())) return value;
+      return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+    function formatEventPrice(value) {
+      const amount = Number(value);
+      if (!Number.isFinite(amount) || amount <= 0) return 'FREE';
+      return `$${amount.toFixed(2)}`;
+    }
+
+    function purchaseTicket(eventName, price) {
+      const user = localStorage.getItem('user');
+      if (!user) {
+        alert('Please login to purchase tickets!');
+        window.location.href = 'login.html';
+        return;
+      }
+      const confirmPurchase = confirm(`Purchase ticket for:\n\nEvent: ${eventName}\nPrice: $${price.toFixed(2)}\n\nProceed with purchase?`);
+      if (confirmPurchase) {
+        alert(`✅ Ticket purchased successfully!\n\nEvent: ${eventName}\nPrice: $${price.toFixed(2)}\n\nCheck your email for confirmation.`);
+      }
+    }
   </script>
 </body>
 </html>
