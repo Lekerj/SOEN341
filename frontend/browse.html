@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browse Events - ConEvents</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .browse-header {
+      background: transparent; /* inherit body gradient to avoid seam */
+      color: var(--white);
+      padding: var(--spacing-2xl) var(--spacing-lg) var(--spacing-md);
+      text-align: center;
+      position: relative;
+      overflow: visible;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .page-title {
+      font-size: var(--font-size-4xl);
+      font-weight: 800;
+      margin-bottom: var(--spacing-sm);
+      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .page-subtitle {
+      font-size: var(--font-size-xl);
+      opacity: 0.95;
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .search-container {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      gap: var(--spacing-sm);
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 16px 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-lg);
+      background: rgba(255,255,255,0.15);
+      color: var(--white);
+      backdrop-filter: blur(10px);
+    }
+
+    .search-input::placeholder {
+      color: rgba(255,255,255,0.8);
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--white);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+    }
+
+    .search-button {
+      padding: 16px 24px;
+      background: transparent;
+      border: 2px solid rgba(255,255,255,0.5);
+      border-radius: var(--radius-full);
+      color: var(--white);
+      font-size: var(--font-size-lg);
+      cursor: pointer;
+      transition: all var(--transition-base);
+    }
+    
+    .search-button:hover {
+      background: rgba(255,255,255,0.15);
+      border-color: var(--white);
+    }
+
+    /* Filters Section */
+    .filters-section {
+      background: var(--white);
+      box-shadow: var(--shadow-md);
+      border: 1px solid #e9ecef;
+      margin-bottom: 4px;
+      margin-top: calc(-1 * var(--spacing-md)); /* overlap header to remove seam */
+      padding: var(--spacing-lg);
+      border-radius: var(--radius-lg);
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .events-section {
+      margin-top: 0;
+      padding-top: 0;
+    }
+
+    .events-section .container {
+      padding-top: 4px;
+      /* Revert to colored background: remove white card styling */
+      max-width: 1200px;            /* match filters-section width */
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: var(--spacing-lg);
+      padding-right: var(--spacing-lg);
+    }
+
+    .quick-filters {
+      display: flex;
+      gap: var(--spacing-sm);
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .filter-chip {
+      padding: 8px 16px;
+      border: 2px solid var(--light-gray);
+      border-radius: var(--radius-full);
+      background: var(--white);
+      color: var(--dark-gray);
+      cursor: pointer;
+      transition: all var(--transition-base);
+    }
+
+    .filter-chip.active,
+    .filter-chip:hover {
+      background: var(--gradient-primary);
+      color: var(--white);
+      border-color: var(--primary-maroon);
+    }
+
+    .advanced-filters {
+      margin-top: var(--spacing-md);
+    }
+
+    /* Updated Style for Advanced Filters Button */
+    .toggle-filters {
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      border: 2px solid var(--light-gray);
+      background: var(--white);
+      color: var(--dark-gray);
+      cursor: pointer;
+      font-size: var(--font-size-base);
+      transition: all var(--transition-base);
+    }
+
+    .toggle-filters:hover,
+    .toggle-filters:focus {
+      background: var(--gradient-primary);
+      color: var(--white);
+      border-color: var(--primary-maroon);
+    }
+
+    .filters-panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .filters-panel.open {
+      max-height: 400px;
+      margin-top: var(--spacing-md); /* space between button and categories */
+    }
+
+    /* When advanced filters are open, show a visible grey border for each group */
+    .filters-panel.open .filter-group {
+      border: 1px solid #e9ecef; /* thinner grey border to avoid heavy boxes */
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-md);
+      background: var(--white);
+    }
+
+    /* Make Price Range and Tickets Needed more compact */
+    .filters-panel.open .filter-group.price-range,
+    .filters-panel.open .filter-group.tickets-needed {
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--radius-md);
+    }
+
+    /* Slimmer slider for compact look */
+    .filters-panel.open .filter-group.price-range .price-slider-container {
+      height: 28px;
+    }
+
+    .filters-panel.open .filter-group.price-range .price-slider {
+      height: 4px;
+    }
+
+    .filters-panel.open .filter-group.price-range .price-slider::-webkit-slider-thumb {
+      width: 16px;
+      height: 16px;
+    }
+
+    .filters-panel.open .filter-group.price-range .price-display {
+      top: 6px;
+      font-size: 0.85rem;
+    }
+
+    /* Tickets Needed: left-align text; input spans full width like the slider */
+    .filters-panel.open .filter-group.tickets-needed .filter-input {
+      text-align: left;              /* placeholder and text align left */
+      display: block;
+      width: 100%;                   /* fill the card width similar to price slider */
+      margin-left: 0;
+      margin-right: 0;
+      margin-top: auto;              /* vertically center the input within the card */
+      margin-bottom: auto;
+      box-sizing: border-box;        /* include padding in width */
+    }
+
+    @media (max-width: 768px) {
+      .filters-panel.open .filter-group.tickets-needed .filter-input { width: 100%; }
+    }
+
+    /* Vertically center the input inside the Tickets Needed card, similar to price range */
+    .filters-panel.open .filter-group.tickets-needed {
+      min-height: 110px;
+    }
+    .filters-panel.open .filter-group.tickets-needed label {
+      margin-bottom: var(--spacing-sm);
+    }
+
+    /* Vertically center the slider inside its card */
+    .filters-panel.open .filter-group.price-range {
+      min-height: 110px;
+    }
+    .filters-panel.open .filter-group.price-range .price-slider-container {
+      margin-top: auto;
+      margin-bottom: auto;
+    }
+
+    .filters-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+
+    /* Same style as quick filters for input fields and select boxes */
+    .filter-input,
+    .filter-select {
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      border: 2px solid var(--light-gray);
+      background: var(--white);
+      color: var(--dark-gray);
+      font-size: var(--font-size-base);
+      transition: all var(--transition-base);
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+      border-color: var(--primary-maroon);
+      box-shadow: 0 0 0 3px rgba(145, 35, 56, 0.1);
+    }
+
+    .price-slider-container {
+      position: relative;
+      height: 40px;
+      width: 100%;
+    }
+
+    .price-slider {
+      position: absolute;
+      width: 100%;
+      height: 6px;
+      background: var(--light-gray);
+      border-radius: var(--radius-full);
+      appearance: none;
+      z-index: 1;
+    }
+
+    .price-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--gradient-primary);
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    .price-display {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: var(--dark-gray);
+      z-index: 3;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--spacing-md) var(--spacing-lg);
+      background: var(--white);
+      border: 1px solid #e9ecef;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      margin-bottom: var(--spacing-xl);
+      /* Stretch to match filters-section card width */
+      margin-left: calc(-1 * var(--spacing-lg));
+      margin-right: calc(-1 * var(--spacing-lg));
+    }
+
+    .results-count {
+      color: var(--dark-gray);
+      font-weight: 600;
+    }
+
+    .sort-select {
+      padding: 8px 12px;
+      border: 2px solid var(--medium-gray);
+      border-radius: var(--radius-md);
+      background: var(--white);
+    }
+
+    .sort-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+
+    .sort-dir-btn {
+      padding: 8px 12px;
+      border: 2px solid var(--medium-gray);
+      border-radius: var(--radius-md);
+      background: var(--white);
+      cursor: pointer;
+      transition: all var(--transition-base);
+    }
+    .sort-dir-btn:hover { border-color: var(--primary-maroon); }
+
+    /* Events Grid */
+    .events-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      padding: 2rem 1rem;
+    }
+
+    .event-card {
+      background: var(--white);
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .event-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+    }
+    .event-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+    .event-card-content {
+      padding: 1rem;
+    }
+    .event-card-content h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.2rem;
+      color: var(--primary-maroon);
+    }
+    .event-card-content p {
+      margin: 0.25rem 0;
+      color: var(--medium-gray);
+      font-size: 0.9rem;
+    }
+
+    /* Load More Button (Fixed) */
+    .load-more-section {
+      text-align: center;
+      margin-top: var(--spacing-lg);
+    }
+
+    .load-more-btn {
+      padding: 16px 36px;
+      background: var(--white);
+      color: var(--primary-maroon);
+      border: 2px solid var(--primary-maroon);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      transition: all var(--transition-base);
+      visibility: visible; /* Button always visible */
+    }
+
+    .load-more-btn:hover {
+      background: var(--primary-maroon);
+      color: var(--white);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .filters-section {
+        padding: var(--spacing-md);
+      }
+
+      .search-container {
+        flex-direction: column;
+        gap: var(--spacing-md);
+      }
+
+      .results-header {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .events-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .load-more-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar (reuse homepage navbar) -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">
+        🎫 ConEvents
+      </a>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="browse.html">Browse</a></li>
+        <li><a href="#about">About</a></li>
+        <li id="authLinks">
+          <a href="login.html" class="btn btn-secondary btn-sm">Login</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </li>
+        <li id="userLinks" style="display: none;">
+          <span id="welcomeMessage" class="text-muted"></span>
+          <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Page Header with Search -->
+  <div class="browse-header">
+    <div class="container">
+      <h1 class="page-title">Browse Events</h1>
+      <p class="page-subtitle">Discover amazing campus events</p>
+      <div class="search-container">
+        <input type="text" class="search-input" placeholder="Search events, organizers, or organizations...">
+        <button class="search-button">🔍</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-section">
+    <div class="filters-grid">
+      <div class="quick-filters">
+        <span class="filter-label">Quick Filters:</span>
+        <button class="filter-chip active" data-quick="all">All Events</button>
+        <button class="filter-chip" data-quick="free">Free Events</button>
+        <button class="filter-chip" data-quick="this-week">This Week</button>
+        <button class="filter-chip" data-quick="category" data-category="sports">Sports</button>
+        <button class="filter-chip" data-quick="category" data-category="social">Social</button>
+        <button class="filter-chip" data-quick="category" data-category="academic">Academic</button>
+        <button class="filter-chip" data-quick="category" data-category="club">Club</button>
+      </div>
+      <div class="advanced-filters">
+        <button class="toggle-filters">Advanced Filters ⚙️</button>
+        <div class="filters-panel" id="filtersPanel">
+          <div class="filters-row">
+            <div class="filter-group">
+              <label>Category</label>
+              <select class="filter-input filter-select">
+                <option value="">All Categories</option>
+                <option value="sports">Sports</option>
+                <option value="academic">Academic</option>
+                <option value="social">Social</option>
+                <option value="club">Club</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Location</label>
+              <input type="text" class="filter-input" placeholder="Enter location...">
+            </div>
+            <div class="filter-group">
+              <label>Organization</label>
+              <input type="text" class="filter-input" placeholder="Enter organization...">
+            </div>
+          </div>
+          <div class="filters-row">
+            <div class="filter-group price-range">
+              <label>Price Range</label>
+              <div class="price-slider-container">
+                <!-- Single Max Price Slider -->
+                <input type="range" class="price-slider" id="priceMax" min="0" max="300" value="300" step="1">
+
+                <!-- Price Display -->
+                <div class="price-display">
+                  <span>$0</span> <!-- Minimum price is fixed -->
+                  <span>-</span>
+                  <span>$<span id="maxPrice">300</span></span> <!-- Max price updates dynamically -->
+                </div>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label>Date Range</label>
+              <div class="date-inputs">
+                <input type="date" class="filter-input" id="dateStart">
+                <span>to</span>
+                <input type="date" class="filter-input" id="dateEnd">
+              </div>
+            </div>
+            <div class="filter-group tickets-needed">
+              <label>Tickets Needed</label>
+              <input type="number" class="filter-input" id="ticketsNeeded" min="1" max="300" placeholder="Enter number..." inputmode="numeric">
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn btn-primary apply-filters">Apply Filters</button>
+            <button class="btn btn-secondary clear-filters">Clear All</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Events Grid Section -->
+  <div class="events-section">
+    <div class="container">
+      <div class="results-header">
+        <div class="results-info">
+          <span class="results-count">Showing <strong id="eventCount">0</strong> events</span>
+          <span class="results-filters" id="activeFilters"></span>
+        </div>
+        <div class="sort-options">
+          <div class="sort-controls">
+            <label for="sortField">Sort via:</label>
+            <select id="sortField" class="sort-select">
+              <option value="date">Event Date</option>
+              <option value="price">Price</option>
+              <option value="title">Title</option>
+            </select>
+            <button id="sortDirBtn" class="sort-dir-btn" aria-pressed="false" title="Toggle ascending/descending">Asc ↑</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Events Grid -->
+      <div class="events-grid" id="eventsGrid">
+        <!-- Events will be dynamically loaded from backend -->
+      </div>
+
+      <!-- Load More Button -->
+      <div class="load-more-section">
+        <button class="load-more-btn">Load More Events</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="about.html">About Us</a>
+      <a href="index.html#events">Events</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+  </footer>
+  <script>
+    const toggleFiltersBtn = document.querySelector('.toggle-filters');
+    const filtersPanel = document.getElementById('filtersPanel');
+    toggleFiltersBtn.addEventListener('click', () => {
+      filtersPanel.classList.toggle('open');
+    });
+
+    const priceMax = document.getElementById('priceMax');
+    const maxPriceDisplay = document.getElementById('maxPrice');
+    const searchInput = document.querySelector('.search-input');
+    const searchButton = document.querySelector('.search-button');
+    const eventsGrid = document.getElementById('eventsGrid');
+    const eventCountEl = document.getElementById('eventCount');
+    const activeFiltersEl = document.getElementById('activeFilters');
+    const loadMoreBtn = document.querySelector('.load-more-btn');
+    const quickFilterChips = document.querySelectorAll('.quick-filters .filter-chip');
+    const categorySelect = document.querySelector('.advanced-filters select.filter-select');
+    const locationInput = document.querySelector('.advanced-filters input[placeholder="Enter location..."]');
+    const organizationInput = document.querySelector('.advanced-filters input[placeholder="Enter organization..."]');
+    const dateStart = document.getElementById('dateStart');
+    const dateEnd = document.getElementById('dateEnd');
+    const ticketsNeeded = document.getElementById('ticketsNeeded');
+    const applyFiltersBtn = document.querySelector('.apply-filters');
+  const sortFieldSelect = document.getElementById('sortField');
+  const sortDirBtn = document.getElementById('sortDirBtn');
+
+    // Load dynamic filter options from backend
+    async function loadFilterOptions() {
+      try {
+        const res = await fetch('http://localhost:3000/api/events/filter-options');
+        if (!res.ok) throw new Error(`options ${res.status}`);
+        const data = await res.json();
+        const opts = data.filter_options || {};
+        if (opts.categories && Array.isArray(opts.categories) && categorySelect) {
+          while (categorySelect.options.length > 1) categorySelect.remove(1);
+          opts.categories.forEach(entry => {
+            const c = entry.category || entry.CATEGORY || entry.Category;
+            if (!c) return;
+            const opt = document.createElement('option');
+            opt.value = String(c).toLowerCase();
+            opt.textContent = String(c).charAt(0).toUpperCase() + String(c).slice(1);
+            categorySelect.appendChild(opt);
+          });
+        }
+        if (opts.price_range && opts.price_range.length > 0) {
+          const pr = opts.price_range[0];
+          const max = pr.max_price ?? pr.max ?? 300;
+          priceMax.max = String(max);
+          if (!priceMax.value || Number(priceMax.value) > Number(max)) {
+            priceMax.value = String(max);
+          }
+          maxPriceDisplay.textContent = priceMax.value;
+        } else {
+          maxPriceDisplay.textContent = priceMax.value;
+        }
+      } catch (e) {
+        console.warn('Failed to load filter options, using defaults', e);
+        maxPriceDisplay.textContent = priceMax.value;
+      }
+    }
+
+    // Handle the max price slider
+    priceMax.addEventListener('input', () => {
+      maxPriceDisplay.textContent = priceMax.value;
+    });
+
+  // Initialize the price value (will be updated by loadFilterOptions)
+  maxPriceDisplay.textContent = priceMax.value;
+
+    // Clear All Filters (avoid undefined vars; clear inputs in panel)
+    const clearFiltersBtn = document.querySelector('.clear-filters');
+    clearFiltersBtn.addEventListener('click', () => {
+  priceMax.value = priceMax.max || '300';
+  maxPriceDisplay.textContent = priceMax.value;
+      searchInput.value = '';
+      categorySelect.selectedIndex = 0;
+      locationInput.value = '';
+      organizationInput.value = '';
+      dateStart.value = '';
+      dateEnd.value = '';
+      ticketsNeeded.value = '';
+      // reset quick filters
+      setActiveQuickFilter('all');
+      // fetch fresh list
+      fetchAndRender();
+    });
+
+    // ====================
+    // Filtering + Search
+    // ====================
+    const API_BASE = 'http://localhost:3000/api/events';
+    const PAGE_SIZE = 18;
+    let currentResults = [];
+    let renderedCount = 0;
+    let currentQuick = 'all';        // all | free | this-week | category:<name>
+    let sortField = 'date';          // date | price | title
+    let sortDir = 'asc';             // asc | desc
+
+    function applySorting() {
+      if (!Array.isArray(currentResults) || currentResults.length === 0) return;
+      const dir = sortDir === 'desc' ? -1 : 1;
+      const field = sortField;
+      currentResults.sort((a, b) => {
+        let av, bv;
+        if (field === 'date') {
+          av = new Date(a.event_date || 0).getTime();
+          bv = new Date(b.event_date || 0).getTime();
+        } else if (field === 'price') {
+          av = Number(a.price) || 0;
+          bv = Number(b.price) || 0;
+        } else if (field === 'title') {
+          av = (a.title || '').toLowerCase();
+          bv = (b.title || '').toLowerCase();
+        }
+        if (av < bv) return -1 * dir;
+        if (av > bv) return 1 * dir;
+        return 0;
+      });
+    }
+
+    function setActiveQuickFilter(kind, category) {
+      currentQuick = kind === 'category' && category ? `category:${category}` : kind;
+      quickFilterChips.forEach(chip => chip.classList.remove('active'));
+      // find matching chip to set active
+      quickFilterChips.forEach(chip => {
+        const q = chip.getAttribute('data-quick');
+        const cat = chip.getAttribute('data-category');
+        if (kind === 'category') {
+          // Only the clicked category chip should be active
+          if (q === 'category' && cat === category) {
+            chip.classList.add('active');
+          }
+        } else {
+          // For non-category quick filters, match by kind exactly
+          if (q === kind) {
+            chip.classList.add('active');
+          }
+        }
+      });
+      // Reflect category quick filter in dropdown (optional)
+      if (kind === 'category' && categorySelect) {
+        categorySelect.value = category;
+      }
+      if (kind !== 'category' && categorySelect) {
+        categorySelect.value = '';
+      }
+    }
+
+    quickFilterChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const q = chip.getAttribute('data-quick');
+        const cat = chip.getAttribute('data-category');
+        setActiveQuickFilter(q, cat);
+        fetchAndRender();
+      });
+    });
+
+    function getWeekRange() {
+      const today = new Date();
+      const start = new Date();
+      const end = new Date();
+      // next 7 days including today
+      start.setHours(0,0,0,0);
+      end.setDate(today.getDate() + 7);
+      end.setHours(23,59,59,999);
+      const toISO = d => d.toISOString().slice(0,10);
+      return { start: toISO(start), end: toISO(end) };
+    }
+
+    function buildQueryParams() {
+      const params = new URLSearchParams();
+      const search = (searchInput.value || '').trim();
+      if (search) params.set('search', search);
+
+      // Quick filter overrides
+      if (currentQuick === 'free') {
+        params.set('price_min', '0');
+        params.set('price_max', '0');
+      } else if (currentQuick === 'this-week') {
+        const { start, end } = getWeekRange();
+        params.set('date_start', start);
+        params.set('date_end', end);
+      } else if (currentQuick.startsWith('category:')) {
+        const cat = currentQuick.split(':')[1];
+        if (cat) params.set('category', cat);
+      }
+
+      // Advanced filters
+      if (categorySelect.value && currentQuick === 'all') {
+        params.set('category', categorySelect.value);
+      }
+      if (locationInput.value) params.set('location', locationInput.value);
+      if (organizationInput.value) params.set('organization', organizationInput.value);
+
+      // Price slider (0..priceMax) unless 'free' quick filter is active
+      if (currentQuick !== 'free') {
+        const sliderMax = parseFloat(priceMax.value || '0');
+        params.set('price_min', '0');
+        params.set('price_max', String(sliderMax));
+      }
+
+      if (dateStart.value) params.set('date_start', dateStart.value);
+      if (dateEnd.value) params.set('date_end', dateEnd.value);
+      if (ticketsNeeded.value) params.set('min_tickets_needed', String(parseInt(ticketsNeeded.value, 10)));
+
+      return params;
+    }
+
+    async function fetchAndRender() {
+      // Build query and fetch
+      const params = buildQueryParams();
+      const url = `${API_BASE}?${params.toString()}`;
+      eventsGrid.innerHTML = '<p class="text-muted">Loading events...</p>';
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        const data = await res.json();
+        currentResults = Array.isArray(data.events) ? data.events : (Array.isArray(data) ? data : []);
+        renderedCount = 0;
+        eventsGrid.innerHTML = '';
+        applySorting();
+        updateCount();
+        if (currentResults.length === 0) {
+          eventsGrid.innerHTML = '<p class="text-muted">No events match your filters.</p>';
+          if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+        } else {
+          renderNextPage();
+        }
+      } catch (err) {
+        console.error('Fetch error', err);
+        eventsGrid.innerHTML = '<p style="color:#b00020;">Unable to load events. Please try again later.</p>';
+      }
+    }
+
+    function updateCount() {
+      if (eventCountEl) eventCountEl.textContent = String(currentResults.length);
+      // optional: show active filters summary
+      const tags = [];
+      const search = (searchInput.value || '').trim();
+      if (search) tags.push(`Search: "${search}"`);
+      if (currentQuick === 'free') tags.push('Free only');
+      if (currentQuick === 'this-week') tags.push('This week');
+      if (currentQuick.startsWith('category:')) tags.push(`Category: ${currentQuick.split(':')[1]}`);
+      if (categorySelect.value && currentQuick === 'all') tags.push(`Category: ${categorySelect.value}`);
+      if (locationInput.value) tags.push(`Location: ${locationInput.value}`);
+      if (organizationInput.value) tags.push(`Org: ${organizationInput.value}`);
+      if (ticketsNeeded.value) tags.push(`Tickets ≥ ${ticketsNeeded.value}`);
+      if (activeFiltersEl) activeFiltersEl.textContent = tags.join(' • ');
+    }
+
+    function renderNextPage() {
+      const next = currentResults.slice(renderedCount, renderedCount + PAGE_SIZE);
+      next.forEach(ev => eventsGrid.appendChild(buildEventCard(ev)));
+      renderedCount += next.length;
+      updateLoadMore();
+    }
+
+    function updateLoadMore() {
+      if (!loadMoreBtn) return;
+      if (renderedCount >= currentResults.length) {
+        loadMoreBtn.style.display = 'none';
+      } else {
+        loadMoreBtn.style.display = 'inline-block';
+      }
+    }
+
+    if (loadMoreBtn) {
+      loadMoreBtn.addEventListener('click', () => {
+        renderNextPage();
+      });
+    }
+
+    // Search triggers
+    if (searchButton) searchButton.addEventListener('click', fetchAndRender);
+    if (searchInput) searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') fetchAndRender();
+    });
+
+    if (applyFiltersBtn) applyFiltersBtn.addEventListener('click', fetchAndRender);
+
+    // Sort controls handlers
+    if (sortFieldSelect) {
+      sortFieldSelect.addEventListener('change', () => {
+        sortField = sortFieldSelect.value;
+        renderedCount = 0;
+        applySorting();
+        eventsGrid.innerHTML = '';
+        renderNextPage();
+      });
+    }
+    if (sortDirBtn) {
+      sortDirBtn.addEventListener('click', () => {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+        sortDirBtn.textContent = sortDir === 'asc' ? 'Asc ↑' : 'Desc ↓';
+        sortDirBtn.setAttribute('aria-pressed', sortDir === 'desc');
+        renderedCount = 0;
+        applySorting();
+        eventsGrid.innerHTML = '';
+        renderNextPage();
+      });
+    }
+
+    // Sync dropdown <-> chips
+    if (categorySelect) {
+      categorySelect.addEventListener('change', () => {
+        const val = categorySelect.value;
+        if (!val) {
+          setActiveQuickFilter('all');
+        } else {
+          setActiveQuickFilter('category', val);
+        }
+        fetchAndRender();
+      });
+    }
+
+    // Initial load: load options then fetch
+    (async () => {
+      await loadFilterOptions();
+      await fetchAndRender();
+    })();
+
+    // ================
+    // Card builders
+    // ================
+    function buildEventCard(event) {
+      const card = document.createElement('div');
+      card.className = 'event-card';
+
+      const image = document.createElement('div');
+      image.className = 'event-image';
+
+      const { gradient, icon } = getCategoryStyle(event.category);
+      if (event.image_url) {
+        image.style.backgroundImage = `url('${event.image_url}')`;
+        image.style.backgroundSize = 'cover';
+        image.style.backgroundPosition = 'center';
+      } else {
+        image.style.background = gradient;
+        image.style.display = 'flex';
+        image.style.alignItems = 'center';
+        image.style.justifyContent = 'center';
+        image.style.color = 'white';
+        image.style.fontSize = '3rem';
+        image.textContent = icon;
+      }
+
+      const content = document.createElement('div');
+      content.className = 'event-content';
+
+      const date = document.createElement('span');
+      date.className = 'event-date';
+      date.textContent = `📅 ${formatEventDate(event.event_date)}`;
+
+      const title = document.createElement('h3');
+      title.className = 'event-title';
+      title.textContent = event.title || 'Untitled Event';
+
+      const description = document.createElement('p');
+      description.className = 'event-description';
+      description.textContent = event.description || 'Details coming soon.';
+
+      const meta = document.createElement('div');
+      meta.className = 'event-meta';
+
+      const location = document.createElement('span');
+      location.className = 'event-meta-item';
+      location.textContent = `📍 ${event.location || 'Location TBA'}`;
+
+      const time = document.createElement('span');
+      time.className = 'event-meta-item';
+      time.textContent = `⏰ ${formatEventTime(event.event_time)}`;
+
+      const spots = document.createElement('span');
+      spots.className = 'event-meta-item';
+      const spotsValue = Number.isFinite(Number(event.tickets_available))
+        ? Number(event.tickets_available)
+        : Number(event.capacity);
+      spots.textContent = spotsValue && spotsValue > 0 ? `👥 ${spotsValue} spots` : '👥 Limited spots';
+
+      meta.appendChild(location);
+      meta.appendChild(time);
+      meta.appendChild(spots);
+
+      const footer = document.createElement('div');
+      footer.className = 'card-footer';
+
+      const price = document.createElement('span');
+      price.className = 'event-price';
+      price.textContent = formatEventPrice(event.price);
+
+      const ticketButton = document.createElement('button');
+      ticketButton.className = 'btn btn-primary';
+      const priceValue = Number(event.price);
+      ticketButton.textContent = priceValue > 0 ? 'Get Tickets' : 'Reserve Spot';
+      ticketButton.addEventListener('click', () => {
+        purchaseTicket(event.title || 'Event', Number.isFinite(priceValue) ? priceValue : 0);
+      });
+
+      footer.appendChild(price);
+      footer.appendChild(ticketButton);
+
+      content.appendChild(date);
+      content.appendChild(title);
+      content.appendChild(description);
+      content.appendChild(meta);
+      content.appendChild(footer);
+
+      card.appendChild(image);
+      card.appendChild(content);
+
+      return card;
+    }
+
+    function getCategoryStyle(category) {
+      const defaults = {
+        gradient: 'linear-gradient(135deg, #6B2C91 0%, #912338 100%)',
+        icon: '🎫'
+      };
+      const styles = {
+        academic: { gradient: 'linear-gradient(135deg, #0072CE 0%, #6B2C91 100%)', icon: '🎓' },
+        social: { gradient: 'linear-gradient(135deg, #FF6B6B 0%, #FFA500 100%)', icon: '🎉' },
+        sports: { gradient: 'linear-gradient(135deg, #28A745 0%, #20C997 100%)', icon: '🏅' },
+        club: { gradient: 'linear-gradient(135deg, #FFD700 0%, #FF3D3D 100%)', icon: '🤝' }
+      };
+      return styles[category] || defaults;
+    }
+
+    function formatEventDate(value) {
+      if (!value) return 'Date TBA';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return value;
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    function formatEventTime(value) {
+      if (!value) return 'Time TBA';
+      const timeString = String(value).slice(0,5);
+      const d = new Date(`1970-01-01T${timeString}`);
+      if (Number.isNaN(d.getTime())) return value;
+      return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+    function formatEventPrice(value) {
+      const amount = Number(value);
+      if (!Number.isFinite(amount) || amount <= 0) return 'FREE';
+      return `$${amount.toFixed(2)}`;
+    }
+
+    function purchaseTicket(eventName, price) {
+      const user = localStorage.getItem('user');
+      if (!user) {
+        alert('Please login to purchase tickets!');
+        window.location.href = 'login.html';
+        return;
+      }
+      const confirmPurchase = confirm(`Purchase ticket for:\n\nEvent: ${eventName}\nPrice: $${price.toFixed(2)}\n\nProceed with purchase?`);
+      if (confirmPurchase) {
+        alert(`✅ Ticket purchased successfully!\n\nEvent: ${eventName}\nPrice: $${price.toFixed(2)}\n\nCheck your email for confirmation.`);
+      }
+    }
+  </script>
+</body>
+</html>
