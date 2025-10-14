@@ -7,12 +7,13 @@
   <link rel="stylesheet" href="styles.css">
   <style>
     .browse-header {
-      background: var(--gradient-primary);
+      background: transparent; /* inherit body gradient to avoid seam */
       color: var(--white);
-      padding: var(--spacing-2xl) var(--spacing-lg);
+      padding: var(--spacing-2xl) var(--spacing-lg) var(--spacing-md);
       text-align: center;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
+      margin-bottom: var(--spacing-md);
     }
 
     .page-title {
@@ -29,7 +30,7 @@
     }
 
     .search-container {
-      max-width: 600px;
+      max-width: 800px;
       margin: 0 auto;
       display: flex;
       gap: var(--spacing-sm);
@@ -76,8 +77,22 @@
     .filters-section {
       background: var(--white);
       box-shadow: var(--shadow-md);
-      margin-bottom: var(--spacing-xl);
+      margin-bottom: 4px;
+      margin-top: calc(-1 * var(--spacing-md)); /* overlap header to remove seam */
       padding: var(--spacing-lg);
+      border-radius: var(--radius-lg);
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .events-section {
+      margin-top: 0;
+      padding-top: 0;
+    }
+
+    .events-section .container {
+      padding-top: 4px;
     }
 
     .quick-filters {
@@ -106,8 +121,7 @@
     }
 
     .advanced-filters {
-      border-top: 1px solid var(--light-gray);
-      padding-top: var(--spacing-md);
+      margin-top: var(--spacing-md);
     }
 
     /* Updated Style for Advanced Filters Button */
@@ -137,6 +151,74 @@
 
     .filters-panel.open {
       max-height: 400px;
+      margin-top: var(--spacing-md); /* space between button and categories */
+    }
+
+    /* When advanced filters are open, show a visible grey border for each group */
+    .filters-panel.open .filter-group {
+      border: 1px solid #e9ecef; /* thinner grey border to avoid heavy boxes */
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-md);
+      background: var(--white);
+    }
+
+    /* Make Price Range and Tickets Needed more compact */
+    .filters-panel.open .filter-group.price-range,
+    .filters-panel.open .filter-group.tickets-needed {
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--radius-md);
+    }
+
+    /* Slimmer slider for compact look */
+    .filters-panel.open .filter-group.price-range .price-slider-container {
+      height: 28px;
+    }
+
+    .filters-panel.open .filter-group.price-range .price-slider {
+      height: 4px;
+    }
+
+    .filters-panel.open .filter-group.price-range .price-slider::-webkit-slider-thumb {
+      width: 16px;
+      height: 16px;
+    }
+
+    .filters-panel.open .filter-group.price-range .price-display {
+      top: 6px;
+      font-size: 0.85rem;
+    }
+
+    /* Tickets Needed: left-align text; input spans full width like the slider */
+    .filters-panel.open .filter-group.tickets-needed .filter-input {
+      text-align: left;              /* placeholder and text align left */
+      display: block;
+      width: 100%;                   /* fill the card width similar to price slider */
+      margin-left: 0;
+      margin-right: 0;
+      margin-top: auto;              /* vertically center the input within the card */
+      margin-bottom: auto;
+      box-sizing: border-box;        /* include padding in width */
+    }
+
+    @media (max-width: 768px) {
+      .filters-panel.open .filter-group.tickets-needed .filter-input { width: 100%; }
+    }
+
+    /* Vertically center the input inside the Tickets Needed card, similar to price range */
+    .filters-panel.open .filter-group.tickets-needed {
+      min-height: 110px;
+    }
+    .filters-panel.open .filter-group.tickets-needed label {
+      margin-bottom: var(--spacing-sm);
+    }
+
+    /* Vertically center the slider inside its card */
+    .filters-panel.open .filter-group.price-range {
+      min-height: 110px;
+    }
+    .filters-panel.open .filter-group.price-range .price-slider-container {
+      margin-top: auto;
+      margin-bottom: auto;
     }
 
     .filters-row {
@@ -238,7 +320,7 @@
     }
 
     .event-card {
-      background: #fff;
+      background: var(--white);
       border-radius: 15px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       overflow: hidden;
@@ -259,11 +341,11 @@
     .event-card-content h3 {
       margin: 0 0 0.5rem;
       font-size: 1.2rem;
-      color: #912338;
+      color: var(--primary-maroon);
     }
     .event-card-content p {
       margin: 0.25rem 0;
-      color: #555;
+      color: var(--medium-gray);
       font-size: 0.9rem;
     }
 
@@ -394,13 +476,13 @@
               <label>Price Range</label>
               <div class="price-slider-container">
                 <!-- Single Max Price Slider -->
-                <input type="range" class="price-slider" id="priceMax" min="0" max="100" value="100" step="1">
+                <input type="range" class="price-slider" id="priceMax" min="0" max="300" value="300" step="1">
 
                 <!-- Price Display -->
                 <div class="price-display">
                   <span>$0</span> <!-- Minimum price is fixed -->
                   <span>-</span>
-                  <span>$<span id="maxPrice">100</span></span> <!-- Max price updates dynamically -->
+                  <span>$<span id="maxPrice">300</span></span> <!-- Max price updates dynamically -->
                 </div>
               </div>
             </div>
@@ -412,15 +494,9 @@
                 <input type="date" class="filter-input" id="dateEnd">
               </div>
             </div>
-            <div class="filter-group">
+            <div class="filter-group tickets-needed">
               <label>Tickets Needed</label>
-              <select class="filter-input filter-select">
-                <option value="">Any Amount</option>
-                <option value="1">1 ticket</option>
-                <option value="2">2+ tickets</option>
-                <option value="5">5+ tickets</option>
-                <option value="10">10+ tickets</option>
-              </select>
+              <input type="number" class="filter-input" id="ticketsNeeded" min="1" max="300" placeholder="Enter number..." inputmode="numeric">
             </div>
           </div>
           <div class="filter-actions">
@@ -474,9 +550,7 @@
     </div>
     <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
   </footer>
-
   <script>
-    // Toggle Advanced Filters
     const toggleFiltersBtn = document.querySelector('.toggle-filters');
     const filtersPanel = document.getElementById('filtersPanel');
     toggleFiltersBtn.addEventListener('click', () => {
@@ -484,25 +558,29 @@
     });
 
     const priceMax = document.getElementById('priceMax');
-  const maxPriceDisplay = document.getElementById('maxPrice');
+    const maxPriceDisplay = document.getElementById('maxPrice');
 
-  // Handle the max price slider
-  priceMax.addEventListener('input', () => {
-    maxPriceDisplay.textContent = priceMax.value;
-  });
+    // Handle the max price slider
+    priceMax.addEventListener('input', () => {
+      maxPriceDisplay.textContent = priceMax.value;
+    });
 
   // Initialize the price value
   maxPriceDisplay.textContent = priceMax.value;
 
-    // Clear All Filters
+    // Clear All Filters (avoid undefined vars; clear inputs in panel)
     const clearFiltersBtn = document.querySelector('.clear-filters');
     clearFiltersBtn.addEventListener('click', () => {
-      priceMin.value = 0;
-      priceMax.value = 100;
-      minPriceDisplay.textContent = '0';
-      maxPriceDisplay.textContent = '100';
-      document.getElementById('filtersPanel').reset();
+      priceMax.value = 300;
+      maxPriceDisplay.textContent = '300';
+      const panel = document.getElementById('filtersPanel');
+      if (panel) {
+        panel.querySelectorAll('input[type="text"]').forEach(el => (el.value = ''));
+        panel.querySelectorAll('input[type="date"]').forEach(el => (el.value = ''));
+        panel.querySelectorAll('input[type="number"]').forEach(el => (el.value = ''));
+        panel.querySelectorAll('select').forEach(el => (el.selectedIndex = 0));
+      }
     });
-
   </script>
-</body
+</body>
+</html>
