@@ -122,5 +122,81 @@
     </div>
     <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
   </footer>
+
+    <script>
+      // Check authentication status (match index.html)
+      window.addEventListener('DOMContentLoaded', async () => {
+        const user = localStorage.getItem('user');
+        if (user) {
+          try {
+            const userData = JSON.parse(user);
+            // Verify session is still valid
+            const response = await fetch('http://localhost:3000/api/auth/profile', {
+              credentials: 'include'
+            });
+            if (response.ok) {
+              // User is logged in
+              document.getElementById('authLinks').style.display = 'none';
+              document.getElementById('userLinks').style.display = 'flex';
+              document.getElementById('userLinks').style.gap = '1rem';
+              document.getElementById('userLinks').style.alignItems = 'center';
+              document.getElementById('welcomeMessage').textContent = `Welcome, ${userData.name || userData.username || 'User'}!`;
+            } else {
+              // Session expired
+              localStorage.removeItem('user');
+            }
+          } catch (error) {
+            console.error('Error checking session:', error);
+            localStorage.removeItem('user');
+          }
+        } else {
+          document.getElementById('authLinks').style.display = '';
+          document.getElementById('userLinks').style.display = 'none';
+          document.getElementById('welcomeMessage').textContent = '';
+        }
+      });
+
+      // Logout function (match index.html)
+      async function logout() {
+        const confirmLogout = confirm('Are you sure you want to log out?');
+        if (!confirmLogout) return;
+        try {
+          const response = await fetch('http://localhost:3000/api/auth/logout', {
+            method: 'POST',
+            credentials: 'include'
+          });
+          if (response.ok) {
+            localStorage.removeItem('user');
+            window.location.reload();
+          } else {
+            alert('Logout failed. Please try again.');
+          }
+        } catch (error) {
+          console.error('Logout error:', error);
+          alert('An error occurred during logout.');
+        }
+      }
+      
+  // Login detection and navbar update
+  document.addEventListener('DOMContentLoaded', function() {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const authLinks = document.getElementById('authLinks');
+    const userLinks = document.getElementById('userLinks');
+    const welcomeMessage = document.getElementById('welcomeMessage');
+    if (user && user.username) {
+      if (authLinks) authLinks.style.display = 'none';
+      if (userLinks) userLinks.style.display = '';
+      if (welcomeMessage) welcomeMessage.textContent = `Welcome, ${user.username}!`;
+    } else {
+      if (authLinks) authLinks.style.display = '';
+      if (userLinks) userLinks.style.display = 'none';
+      if (welcomeMessage) welcomeMessage.textContent = '';
+    }
+  });
+  function logout() {
+    localStorage.removeItem('user');
+    window.location.href = 'index.html';
+  }
+  </script>
 </body>
 </html>
