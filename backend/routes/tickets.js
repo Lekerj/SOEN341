@@ -1,8 +1,24 @@
 const express = require("express");
 const crypto = require("crypto");
+const QRCode = require("qrcode");
 const router = express.Router();
 const db = require("../config/db");
 const { requireAuth } = require("../middleware/auth");
+
+const DEMO_MODE = String(process.env.DEMO_MODE || "0") === "1";
+
+function getPublicWebBase(req) {
+  // Prefer explicit env, else infer from request's hostname for local/demo
+  const envBase =
+    process.env.PUBLIC_WEB_BASE && process.env.PUBLIC_WEB_BASE.trim();
+  if (envBase) return envBase.replace(/\/$/, "");
+  const host =
+    req.headers["x-forwarded-host"] ||
+    req.headers.host ||
+    `${req.hostname}:8080`;
+  const hostname = String(host).split(":")[0];
+  return `http://${hostname}:8080`;
+}
 
 function generateTicketCode() {
   if (crypto.randomUUID) return crypto.randomUUID();
@@ -178,6 +194,160 @@ router.get("/:id", requireAuth, (req, res) => {
     }
     res.json({ success: true, ticket: rows[0] });
   });
+});
+
+// Generate QR code for a ticket
+router.get("/qr/:ticketCode", async (req, res) => {
+  const { ticketCode } = req.params;
+
+  try {
+    // Verify ticket exists
+    db.query(
+      "SELECT id FROM tickets WHERE qr_code = ?",
+      [ticketCode],
+      async (err, rows) => {
+        if (err) {
+          console.error("Ticket lookup error:", err);
+          return res.status(500).json({ error: "Internal Server Error" });
+        }
+        if (rows.length === 0) {
+          return res.status(404).json({ error: "Ticket not found" });
+        }
+
+        // Generate QR code that points to verification page
+        const base = getPublicWebBase(req);
+        const verificationUrl = `${base}/verify-ticket.html?code=${ticketCode}`;
+
+        try {
+          const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
+            width: 300,
+            margin: 2,
+            color: {
+              dark: "#912338", // Concordia maroon
+              light: "#FFFFFF",
+            },
+          });
+
+          res.json({ success: true, qrCodeUrl: qrCodeDataUrl });
+        } catch (qrErr) {
+          console.error("QR generation error:", qrErr);
+          res.status(500).json({ error: "Failed to generate QR code" });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("QR endpoint error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// Verify a ticket by code; in demo mode, allow without auth for scanning convenience
+router.post("/verify", (req, res) => {
+  const { ticket_code } = req.body;
+
+  if (!ticket_code) {
+    return res.status(400).json({ error: "Missing ticket code" });
+  }
+
+  // Get ticket details with event info
+  const sql = `
+    SELECT 
+      t.id, t.qr_code, t.ticket_type, t.checked_in, t.created_at,
+      e.title, e.event_date, e.event_time, e.location, e.description,
+      u.name as attendee_name, u.email as attendee_email
+    FROM tickets t
+    JOIN events e ON t.event_id = e.id
+    JOIN users u ON t.user_id = u.id
+    WHERE t.qr_code = ?
+  `;
+
+  db.query(sql, [ticket_code], (err, rows) => {
+    if (err) {
+      console.error("Ticket verification error:", err);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Invalid ticket code" });
+    }
+
+    const ticket = rows[0];
+    res.json({
+      success: true,
+      ticket: {
+        ...ticket,
+        already_checked_in: ticket.checked_in === 1,
+      },
+    });
+  });
+});
+
+// Check-in a ticket (mark as used)
+router.post("/check-in", (req, res) => {
+  const { ticket_code } = req.body;
+
+  // In demo mode require a simple staff key header to prevent random check-ins
+  if (DEMO_MODE) {
+    const provided = req.header("x-staff-key");
+    const expected = process.env.STAFF_KEY || "demo-staff-key";
+    if (!provided || provided !== expected) {
+      return res
+        .status(401)
+        .json({ error: "Unauthorized: missing or invalid staff key" });
+    }
+  } else {
+    // In local mode, require auth to check in
+    if (!req.session || !req.session.userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+  }
+
+  if (!ticket_code) {
+    return res.status(400).json({ error: "Missing ticket code" });
+  }
+
+  // Check if already checked in
+  db.query(
+    "SELECT id, checked_in FROM tickets WHERE qr_code = ?",
+    [ticket_code],
+    (err, rows) => {
+      if (err) {
+        console.error("Check-in lookup error:", err);
+        return res.status(500).json({ error: "Internal Server Error" });
+      }
+
+      if (rows.length === 0) {
+        return res.status(404).json({ error: "Invalid ticket code" });
+      }
+
+      const ticket = rows[0];
+
+      if (ticket.checked_in) {
+        return res.status(409).json({
+          error: "Ticket already checked in",
+          already_checked_in: true,
+        });
+      }
+
+      // Mark as checked in
+      db.query(
+        "UPDATE tickets SET checked_in = TRUE WHERE id = ?",
+        [ticket.id],
+        (updateErr) => {
+          if (updateErr) {
+            console.error("Check-in update error:", updateErr);
+            return res.status(500).json({ error: "Internal Server Error" });
+          }
+
+          res.json({
+            success: true,
+            message: "Ticket checked in successfully",
+            checked_in: true,
+          });
+        }
+      );
+    }
+  );
 });
 
 module.exports = router;

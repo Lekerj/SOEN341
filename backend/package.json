@@ -8,10 +8,14 @@
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "express-session": "^1.18.2",
-    "mysql2": "^3.11.5"
+    "dotenv": "^16.4.5",
+    "mysql2": "^3.11.5",
+    "qrcode": "^1.5.4"
   },
   "scripts": {
     "start": "node server.js",
+    "start:local": "node scripts/start-local.js",
+    "start:demo": "node scripts/start-demo.js",
     "dev": "nodemon server.js",
     "test": "jest",
     "seed": "node scripts/seed.js"

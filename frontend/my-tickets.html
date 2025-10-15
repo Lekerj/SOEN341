@@ -158,6 +158,13 @@
                         ${isPast ? '<p style="color: #6c757d; font-weight: 600;">Event Ended</p>' : ''}
                     </div>
                     <div style="margin-top: auto; padding-top: 1rem;">
+                        <button class="btn btn-secondary view-qr-btn" onclick="showQRCode('${t.qr_code}')" style="width: 100%; margin-bottom: 0.5rem;">
+                            📱 Show QR Code
+                        </button>
+                        <div id="qr-${t.qr_code}" class="qr-code-container" style="display: none; text-align: center; padding: 1rem; background: white; border-radius: 8px; margin-bottom: 0.5rem;">
+                            <img style="max-width: 250px; width: 100%;" alt="QR Code">
+                            <p style="font-size: 0.85rem; color: #6c757d; margin-top: 0.5rem;">Scan to verify ticket</p>
+                        </div>
                         <button class="btn btn-secondary view-details-btn" onclick="toggleDetails(this)" style="width: 100%;">
                             View Details
                         </button>
@@ -191,6 +198,38 @@
                     details.style.display = 'none';
                     btn.textContent = 'View Details';
                 }
+            }
+        }
+
+        async function showQRCode(ticketCode) {
+            const container = document.getElementById(`qr-${ticketCode}`);
+            const img = container.querySelector('img');
+
+            // Toggle visibility
+            if (container.style.display === 'none') {
+                // Load QR code if not already loaded
+                if (!img.src || img.src === window.location.href) {
+                    try {
+                        const res = await fetch(`http://localhost:3000/api/tickets/qr/${ticketCode}`, {
+                            credentials: 'include'
+                        });
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            img.src = data.qrCodeUrl;
+                            container.style.display = 'block';
+                        } else {
+                            alert('Failed to load QR code');
+                        }
+                    } catch (error) {
+                        console.error('QR code error:', error);
+                        alert('Error loading QR code');
+                    }
+                } else {
+                    container.style.display = 'block';
+                }
+            } else {
+                container.style.display = 'none';
             }
         }
 
