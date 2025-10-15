@@ -428,6 +428,24 @@
         width: 100%;
       }
     }
+    .add-calendar-btn {
+  background: linear-gradient(90deg, #912338, #6B2C91);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.add-calendar-btn:hover {
+  background: linear-gradient(90deg, #6B2C91, #912338);
+  transform: translateY(-2px);
+}
+
   </style>
 </head>
 <body>
@@ -1061,6 +1079,29 @@
       footer.appendChild(price);
       footer.appendChild(ticketButton);
 
+//will add the google calendar button
+const calendarButton = document.createElement('button');
+calendarButton.className = 'btn add-calendar-btn';
+calendarButton.textContent = '📅 Add to Google Calendar';
+
+//will attach event data as attributes
+calendarButton.dataset.title = event.title || 'Untitled Event';
+calendarButton.dataset.description = event.description || 'Campus event';
+calendarButton.dataset.location = event.location || 'Concordia University';
+
+//Build proper start and end times
+const eventDate = event.event_date || ''; // e.g. "2025-10-14"
+const eventTime = event.event_time || '00:00:00'; // e.g. "18:00:00"
+const start = `${eventDate}T${eventTime}`;
+const end = new Date(new Date(start).getTime() + 60 * 60 * 1000).toISOString(); // +1 hour
+
+calendarButton.dataset.start = start;
+calendarButton.dataset.end = end;
+
+//Add the button to the footer
+footer.appendChild(calendarButton);
+
+
       content.appendChild(date);
       content.appendChild(title);
       content.appendChild(description);
@@ -1119,5 +1160,33 @@
       }
     }
   </script>
+  <script type="module">
+    //imports the function from ./util/calendar.js
+    import { generateGoogleCalendarURL } from './utils/calendar.js';
+  
+    // Listen for click events on dynamically created buttons
+    // will listen for every click made by user
+    //and will filter if the click in of the add calendar button
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('add-calendar-btn')) {
+        const button = e.target;
+  
+        //from the stored click it will collect data
+        const event = {
+          title: button.dataset.title,
+          start: button.dataset.start,
+          end: button.dataset.end,
+          description: button.dataset.description,
+          location: button.dataset.location,
+        };
+  
+        //will crreate the google calendar link which is automatically filled up
+        const calendarURL = generateGoogleCalendarURL(event);
+        //opens a new browser tab and will load the previous link
+        window.open(calendarURL, '_blank');
+      }
+    });
+  </script>
+  
 </body>
 </html>
