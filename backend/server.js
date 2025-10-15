@@ -2,6 +2,7 @@ const express = require("express");
 const session = require("express-session");
 const cors = require("cors");
 const authRoutes = require("./routes/auth");
+const ticketRoutes = require("./routes/tickets");
 
 //Adding this: Import the new events route file
 const eventRoutes = require("./routes/events");
@@ -21,7 +22,12 @@ app.use(
 
       try {
         const parsed = new URL(origin);
-        const allowedHosts = new Set(["localhost", "127.0.0.1", "[::1]",'http://[::]:8080']);
+        const allowedHosts = new Set([
+          "localhost",
+          "127.0.0.1",
+          "[::1]",
+          "http://[::]:8080",
+        ]);
 
         if (allowedHosts.has(parsed.hostname)) {
           if (process.env.NODE_ENV !== "production") {
@@ -30,7 +36,11 @@ app.use(
           return callback(null, true);
         }
       } catch (error) {
-        console.error("Invalid origin provided to CORS middleware:", origin, error);
+        console.error(
+          "Invalid origin provided to CORS middleware:",
+          origin,
+          error
+        );
         return callback(new Error(`Invalid origin: ${origin}`));
       }
 
@@ -60,9 +70,10 @@ app.use(
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/tickets", ticketRoutes);
 
-//Adding this: 
-app.use("/api/events",eventRoutes);
+//Adding this:
+app.use("/api/events", eventRoutes);
 
 app.get("/api/test", (req, res) => {
   res.json({ message: "API is working!" });

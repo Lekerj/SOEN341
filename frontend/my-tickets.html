@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Tickets - ConEvents</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="browse.html">Browse</a></li>
+                <li id="authLinks"><a href="login.html" class="btn btn-secondary btn-sm">Login</a></li>
+                <li id="userLinks" style="display:none;"><span id="welcomeMessage"></span><button onclick="logout()"
+                        class="btn btn-secondary btn-sm">Logout</button></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container" style="margin-top:2rem;">
+        <h1>My Tickets</h1>
+        <div id="ticketsList" class="grid grid-3"></div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            const userData = JSON.parse(user);
+            document.getElementById('authLinks').style.display = 'none';
+            const userLinks = document.getElementById('userLinks');
+            userLinks.style.display = 'flex';
+            userLinks.style.gap = '1rem';
+            document.getElementById('welcomeMessage').textContent = `Welcome, ${userData.name}!`;
+
+            try {
+                const res = await fetch('http://localhost:3000/api/tickets', { credentials: 'include' });
+                const data = await res.json();
+                const list = document.getElementById('ticketsList');
+                list.innerHTML = '';
+                if (!data.success || data.count === 0) {
+                    list.innerHTML = '<p class="text-muted">No tickets yet.</p>';
+                    return;
+                }
+                data.tickets.forEach(t => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+            <div class="card-header">
+              <h3 class="card-title">${t.title}</h3>
+              <p class="card-subtitle">Code: <strong>${t.qr_code}</strong></p>
+            </div>
+            <div class="card-body">
+              <p>📅 ${t.event_date} ⏰ ${String(t.event_time).slice(0, 5)}</p>
+              <p>📍 ${t.location}</p>
+              <p>Type: ${t.ticket_type.toUpperCase()}</p>
+            </div>`;
+                    list.appendChild(card);
+                });
+            } catch (e) {
+                console.error(e);
+                document.getElementById('ticketsList').innerHTML = '<p style="color:#b00020;">Failed to load tickets.</p>';
+            }
+        });
+
+        async function logout() {
+            try {
+                await fetch('http://localhost:3000/api/auth/logout', { method: 'POST', credentials: 'include' });
+                localStorage.removeItem('user');
+                window.location.href = 'index.html';
+            } catch (e) { }
+        }
+    </script>
+</body>
+
+</html>
