@@ -56,14 +56,18 @@
                 <li><a href="browse.html">Browse</a></li>
                 <li><a href="my-tickets.html">My Tickets</a></li>
                 <li id="authLinks"><a href="login.html" class="btn btn-secondary btn-sm">Login</a></li>
-                <li id="userLinks" style="display:none;"><span id="welcomeMessage"></span><button onclick="logout()"
-                        class="btn btn-secondary btn-sm">Logout</button></li>
+                <li id="userLinks" style="display:none;">
+                    <span id="welcomeMessage" class="text-muted"></span>
+                    <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+                </li>
             </ul>
         </div>
     </nav>
 
     <div class="container" style="margin-top:2rem;">
-        <h1>My Profile</h1>
+        <h1
+            style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem;">
+            My Profile</h1>
 
         <div class="profile-card">
             <form id="profileForm" class="profile-grid">
@@ -89,7 +93,9 @@
             </form>
         </div>
 
-        <h2 style="margin-top:2rem;">Your Recent Tickets</h2>
+        <h2
+            style="margin-top:2rem; background: white; padding: 1.25rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
+            Your Recent Tickets</h2>
         <div id="ticketsList" class="grid grid-3 tickets-section"></div>
     </div>
 
@@ -102,7 +108,9 @@
             const u = JSON.parse(user);
             document.getElementById('authLinks').style.display = 'none';
             const userLinks = document.getElementById('userLinks');
-            userLinks.style.display = 'flex'; userLinks.style.gap = '1rem';
+            userLinks.style.display = 'flex';
+            userLinks.style.gap = '1rem';
+            userLinks.style.alignItems = 'center';
             document.getElementById('welcomeMessage').textContent = `Welcome, ${u.name}!`;
 
             // Load server profile
@@ -134,19 +142,45 @@
             <p class="card-subtitle">Code: <strong>${t.qr_code}</strong></p>
           </div>
           <div class="card-body">
-            <p>📅 ${t.event_date} ⏰ ${String(t.event_time).slice(0, 5)}</p>
-            <p>📍 ${t.location}</p>
-            <button class="btn btn-primary add-calendar" 
-              data-title="${t.title}" 
-              data-description="${t.description || ''}"
-              data-location="${t.location}"
-              data-start="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
-              data-end="${t.event_date}T${String(t.event_time).slice(0, 5)}:00">
-              📅 Add to Google Calendar
-            </button>
+            <div style="flex-grow: 1;">
+              <p>📅 ${t.event_date} ⏰ ${String(t.event_time).slice(0, 5)}</p>
+              <p>📍 ${t.location}</p>
+            </div>
+            <div style="margin-top: auto; padding-top: 1rem;">
+              <button class="btn btn-secondary view-details-btn" onclick="toggleTicketDetails(this)" style="width: 100%;">
+                View Details
+              </button>
+              <div class="ticket-details" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                <p><strong>Description:</strong> ${t.description || 'No description available.'}</p>
+                <p><strong>Type:</strong> ${t.ticket_type.toUpperCase()}</p>
+                <p><strong>Organization:</strong> ${t.organization || 'N/A'}</p>
+              </div>
+              <button class="btn btn-primary add-calendar" 
+                data-title="${t.title}" 
+                data-description="${t.description || ''}"
+                data-location="${t.location}"
+                data-start="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
+                data-end="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
+                style="width: 100%; margin-top: 0.5rem;">
+                📅 Add to Google Calendar
+              </button>
+            </div>
           </div>`;
                 list.appendChild(card);
             });
+        }
+
+        window.toggleTicketDetails = function (btn) {
+            const details = btn.nextElementSibling;
+            if (details && details.classList.contains('ticket-details')) {
+                if (details.style.display === 'none') {
+                    details.style.display = 'block';
+                    btn.textContent = 'Hide Details';
+                } else {
+                    details.style.display = 'none';
+                    btn.textContent = 'View Details';
+                }
+            }
         }
 
         document.addEventListener('click', (e) => {

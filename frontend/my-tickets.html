@@ -15,19 +15,70 @@
             <ul class="navbar-menu">
                 <li><a href="index.html">Home</a></li>
                 <li><a href="browse.html">Browse</a></li>
+                <li><a href="profile.html">Profile</a></li>
                 <li id="authLinks"><a href="login.html" class="btn btn-secondary btn-sm">Login</a></li>
-                <li id="userLinks" style="display:none;"><span id="welcomeMessage"></span><button onclick="logout()"
-                        class="btn btn-secondary btn-sm">Logout</button></li>
+                <li id="userLinks" style="display:none;">
+                    <span id="welcomeMessage" class="text-muted"></span>
+                    <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+                </li>
             </ul>
         </div>
     </nav>
 
     <div class="container" style="margin-top:2rem;">
-        <h1>My Tickets</h1>
-        <div id="ticketsList" class="grid grid-3"></div>
+        <h1
+            style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem;">
+            My Tickets</h1>
+
+        <!-- Tabs for Current and Past Tickets -->
+        <div class="ticket-tabs" style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+            <button class="tab-button active" onclick="showTicketTab('current')" id="currentTab"
+                style="flex: 1; padding: 12px 24px; border: 2px solid #912338; border-radius: 8px; background: #912338; color: white; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                Current Tickets
+            </button>
+            <button class="tab-button" onclick="showTicketTab('past')" id="pastTab"
+                style="flex: 1; padding: 12px 24px; border: 2px solid #912338; border-radius: 8px; background: white; color: #912338; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                Past Tickets
+            </button>
+        </div>
+
+        <div id="currentTickets" class="ticket-section">
+            <div id="currentTicketsList" class="grid grid-3"></div>
+        </div>
+
+        <div id="pastTickets" class="ticket-section" style="display: none;">
+            <div id="pastTicketsList" class="grid grid-3"></div>
+        </div>
     </div>
 
     <script>
+        function showTicketTab(tab) {
+            const currentTab = document.getElementById('currentTab');
+            const pastTab = document.getElementById('pastTab');
+            const currentSection = document.getElementById('currentTickets');
+            const pastSection = document.getElementById('pastTickets');
+
+            if (tab === 'current') {
+                currentTab.style.background = '#912338';
+                currentTab.style.color = 'white';
+                currentTab.classList.add('active');
+                pastTab.style.background = 'white';
+                pastTab.style.color = '#912338';
+                pastTab.classList.remove('active');
+                currentSection.style.display = 'block';
+                pastSection.style.display = 'none';
+            } else {
+                pastTab.style.background = '#912338';
+                pastTab.style.color = 'white';
+                pastTab.classList.add('active');
+                currentTab.style.background = 'white';
+                currentTab.style.color = '#912338';
+                currentTab.classList.remove('active');
+                pastSection.style.display = 'block';
+                currentSection.style.display = 'none';
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', async () => {
             const user = localStorage.getItem('user');
             if (!user) {
@@ -39,45 +90,109 @@
             const userLinks = document.getElementById('userLinks');
             userLinks.style.display = 'flex';
             userLinks.style.gap = '1rem';
+            userLinks.style.alignItems = 'center';
             document.getElementById('welcomeMessage').textContent = `Welcome, ${userData.name}!`;
 
             try {
                 const res = await fetch('http://localhost:3000/api/tickets', { credentials: 'include' });
                 const data = await res.json();
-                const list = document.getElementById('ticketsList');
-                list.innerHTML = '';
+                const currentList = document.getElementById('currentTicketsList');
+                const pastList = document.getElementById('pastTicketsList');
+                currentList.innerHTML = '';
+                pastList.innerHTML = '';
+
                 if (!data.success || data.count === 0) {
-                    list.innerHTML = '<p class="text-muted">No tickets yet.</p>';
+                    currentList.innerHTML = '<p class="text-muted">No current tickets.</p>';
+                    pastList.innerHTML = '<p class="text-muted">No past tickets.</p>';
                     return;
                 }
+
+                const now = new Date();
+                const currentTickets = [];
+                const pastTickets = [];
+
                 data.tickets.forEach(t => {
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    card.innerHTML = `
-            <div class="card-header">
-              <h3 class="card-title">${t.title}</h3>
-              <p class="card-subtitle">Code: <strong>${t.qr_code}</strong></p>
-            </div>
-            <div class="card-body">
-              <p>📅 ${t.event_date} ⏰ ${String(t.event_time).slice(0, 5)}</p>
-              <p>📍 ${t.location}</p>
-              <p>Type: ${t.ticket_type.toUpperCase()}</p>
-                                    <button class="btn btn-primary add-calendar" 
-                                        data-title="${t.title}"
-                                        data-description="${t.description || ''}"
-                                        data-location="${t.location}"
-                                        data-start="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
-                                        data-end="${t.event_date}T${String(t.event_time).slice(0, 5)}:00">
-                                        📅 Add to Google Calendar
-                                    </button>
-            </div>`;
-                    list.appendChild(card);
+                    const eventDate = new Date(t.event_date + 'T' + t.event_time);
+                    if (eventDate >= now) {
+                        currentTickets.push(t);
+                    } else {
+                        pastTickets.push(t);
+                    }
                 });
+
+                if (currentTickets.length === 0) {
+                    currentList.innerHTML = '<p class="text-muted">No current tickets.</p>';
+                } else {
+                    currentTickets.forEach(t => {
+                        currentList.appendChild(createTicketCard(t));
+                    });
+                }
+
+                if (pastTickets.length === 0) {
+                    pastList.innerHTML = '<p class="text-muted">No past tickets.</p>';
+                } else {
+                    pastTickets.forEach(t => {
+                        pastList.appendChild(createTicketCard(t, true));
+                    });
+                }
             } catch (e) {
                 console.error(e);
-                document.getElementById('ticketsList').innerHTML = '<p style="color:#b00020;">Failed to load tickets.</p>';
+                document.getElementById('currentTicketsList').innerHTML = '<p style="color:#b00020;">Failed to load tickets.</p>';
             }
         });
+
+        function createTicketCard(t, isPast = false) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style.opacity = isPast ? '0.7' : '1';
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">${t.title}</h3>
+                    <p class="card-subtitle">Code: <strong>${t.qr_code}</strong></p>
+                </div>
+                <div class="card-body">
+                    <div style="flex-grow: 1;">
+                        <p>📅 ${t.event_date} ⏰ ${String(t.event_time).slice(0, 5)}</p>
+                        <p>📍 ${t.location}</p>
+                        <p>Type: ${t.ticket_type.toUpperCase()}</p>
+                        ${isPast ? '<p style="color: #6c757d; font-weight: 600;">Event Ended</p>' : ''}
+                    </div>
+                    <div style="margin-top: auto; padding-top: 1rem;">
+                        <button class="btn btn-secondary view-details-btn" onclick="toggleDetails(this)" style="width: 100%;">
+                            View Details
+                        </button>
+                        <div class="ticket-details" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                            <p><strong>Description:</strong> ${t.description || 'No description available.'}</p>
+                            <p><strong>Organizer:</strong> ${t.organization || 'N/A'}</p>
+                        </div>
+                        ${!isPast ? `
+                        <button class="btn btn-primary add-calendar" 
+                            data-title="${t.title}"
+                            data-description="${t.description || ''}"
+                            data-location="${t.location}"
+                            data-start="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
+                            data-end="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
+                            style="margin-top: 0.5rem; width: 100%;">
+                            📅 Add to Google Calendar
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>`;
+            return card;
+        }
+
+        function toggleDetails(btn) {
+            const details = btn.nextElementSibling;
+            if (details && details.classList.contains('ticket-details')) {
+                if (details.style.display === 'none') {
+                    details.style.display = 'block';
+                    btn.textContent = 'Hide Details';
+                } else {
+                    details.style.display = 'none';
+                    btn.textContent = 'View Details';
+                }
+            }
+        }
 
         async function logout() {
             try {

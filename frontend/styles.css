@@ -231,6 +231,22 @@ body::before {
   content: none;
 }
 
+.navbar-menu #userLinks {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.navbar-menu #userLinks #welcomeMessage {
+  margin-right: 0;
+  color: var(--dark-gray);
+  font-weight: 500;
+  font-size: 1rem;
+  line-height: 1.5;
+  padding: var(--spacing-xs) 0;
+  white-space: nowrap;
+}
+
 .navbar-menu a {
   text-decoration: none;
   color: var(--dark-gray);
@@ -294,6 +310,9 @@ body::before {
   box-shadow: var(--shadow-md);
   padding: var(--spacing-xl);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
 }
 
 .card:hover {
@@ -303,6 +322,10 @@ body::before {
 
 .card-header {
   margin-bottom: var(--spacing-lg);
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .card-title {
@@ -318,16 +341,50 @@ body::before {
 
 .card-body {
   margin-bottom: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
 }
 
 .card-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   padding-top: var(--spacing-md);
   border-top: 1px solid var(--light-gray);
-    margin-top: auto;
-    min-height: 64px;
+  margin-top: auto;
+  min-height: 60px;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.card-footer .event-price {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #912338 !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  background: #fff !important;
+  border: 2px solid #912338;
+  border-radius: 6px;
+  display: inline-block;
+  line-height: 1.2;
+  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: #912338 !important;
+  background-clip: initial !important;
+  animation: none !important;
+}
+
+.card-footer .btn {
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.card-footer .btn-secondary {
+  padding: 8px 12px;
+  font-size: 0.875rem;
 }
 
 /* === Event Cards === */
@@ -339,9 +396,9 @@ body::before {
   transition: all var(--transition-base);
   position: relative;
   border: 2px solid transparent;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .event-card::before {
@@ -401,9 +458,9 @@ body::before {
   padding: var(--spacing-lg);
   position: relative;
   z-index: 1;
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .event-date {
@@ -1217,7 +1274,7 @@ select.form-control {
 
 .form-control:focus-visible,
 .form-group:focus-within .form-control {
-  outline: 3px solid transparent;            /* reserve space for accessibility */
+  outline: 3px solid transparent; /* reserve space for accessibility */
   box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.25); /* maroon-ish glow */
   border-color: var(--primary-maroon);
 }

@@ -1220,6 +1220,9 @@
     const price = document.createElement('span');
     price.className = 'event-price';
     price.textContent = formatEventPrice(event.price);
+    price.style.color = '#912338';
+    price.style.visibility = 'visible';
+    price.style.opacity = '1';
 
     const ticketButton = document.createElement('button');
     ticketButton.className = 'btn btn-primary';
@@ -1322,13 +1325,9 @@
       window.location.href = 'login.html';
       return;
     }
-    // Free: proceed directly. Paid: open modal.
-    if (price > 0) {
-      modalState = { eventId, eventName, price, spotsEl, buttonEl };
-      openClaimModal(eventName, price);
-    } else {
-      await performClaim({ eventId, eventName, price, spotsEl, buttonEl });
-    }
+    // Open modal for all events (both free and paid)
+    modalState = { eventId, eventName, price, spotsEl, buttonEl };
+    openClaimModal(eventName, price);
   }
 
   async function performClaim({ eventId, eventName, price, spotsEl, buttonEl, purchaser }) {
@@ -1382,6 +1381,17 @@
     modal.querySelector('.claim-price').textContent = price > 0 ? `$${price.toFixed(2)}` : 'FREE';
     const err = document.getElementById('claimError');
     if (err) { err.textContent = ''; err.style.display = 'none'; }
+
+    // Pre-fill with logged-in user's info
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const nameInput = modal.querySelector('input[name="purchaser_name"]');
+      const emailInput = modal.querySelector('input[name="purchaser_email"]');
+      if (nameInput) nameInput.value = user.name || '';
+      if (emailInput) emailInput.value = user.email || '';
+    }
+
     modal.style.display = 'block';
   }
 
@@ -1434,6 +1444,31 @@
         if (err) { err.textContent = 'Please enter a valid email address.'; err.style.display = 'block'; }
         return;
       }
+
+      // Validate name and email match logged-in user's profile
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        const nameMismatch = name.toLowerCase() !== user.name.toLowerCase();
+        const emailMismatch = email.toLowerCase() !== user.email.toLowerCase();
+
+        if (nameMismatch || emailMismatch) {
+          if (err) {
+            err.textContent = 'Name and email must match your profile. Cannot complete purchase.';
+            err.style.display = 'block';
+          }
+          setModalSubmitting(false);
+
+          setTimeout(() => {
+            closeClaimModal();
+            if (confirm('Your entered details do not match your profile. Would you like to view your tickets page?')) {
+              window.location.href = 'my-tickets.html';
+            }
+          }, 2000);
+          return;
+        }
+      }
+
       setModalSubmitting(true);
       await performClaim({
         eventId: modalState.eventId,

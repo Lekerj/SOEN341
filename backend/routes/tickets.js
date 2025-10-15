@@ -12,7 +12,7 @@ function generateTicketCode() {
 // Claim a ticket for an event (free requires auth; paid flow can be extended later)
 router.post("/claim", requireAuth, (req, res) => {
   const userId = req.session.userId;
-  const { event_id, purchaser_name, purchaser_email } = req.body;
+  const { event_id } = req.body;
 
   if (!event_id || isNaN(event_id)) {
     return res.status(400).json({ error: "Invalid or missing event_id" });
@@ -75,15 +75,8 @@ router.post("/claim", requireAuth, (req, res) => {
 
             // 3) Insert ticket
             db.query(
-              "INSERT INTO tickets (user_id, event_id, ticket_type, qr_code, purchaser_name, purchaser_email) VALUES (?, ?, ?, ?, ?, ?)",
-              [
-                userId,
-                event_id,
-                ticketType,
-                code,
-                purchaser_name || null,
-                purchaser_email || null,
-              ],
+              "INSERT INTO tickets (user_id, event_id, ticket_type, qr_code) VALUES (?, ?, ?, ?)",
+              [userId, event_id, ticketType, code],
               (insErr, result) => {
                 if (insErr) {
                   console.error("Ticket insert error:", insErr);
