@@ -62,6 +62,14 @@
               <p>📅 ${t.event_date} ⏰ ${String(t.event_time).slice(0, 5)}</p>
               <p>📍 ${t.location}</p>
               <p>Type: ${t.ticket_type.toUpperCase()}</p>
+                                    <button class="btn btn-primary add-calendar" 
+                                        data-title="${t.title}"
+                                        data-description="${t.description || ''}"
+                                        data-location="${t.location}"
+                                        data-start="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
+                                        data-end="${t.event_date}T${String(t.event_time).slice(0, 5)}:00">
+                                        📅 Add to Google Calendar
+                                    </button>
             </div>`;
                     list.appendChild(card);
                 });
@@ -78,6 +86,22 @@
                 window.location.href = 'index.html';
             } catch (e) { }
         }
+    </script>
+    <script type="module">
+        import { generateGoogleCalendarURL } from './utils/calendar.js';
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.add-calendar');
+            if (!btn) return;
+            const ev = {
+                title: btn.dataset.title,
+                description: btn.dataset.description,
+                location: btn.dataset.location,
+                start: btn.dataset.start,
+                end: btn.dataset.end
+            };
+            const url = generateGoogleCalendarURL(ev);
+            window.open(url, '_blank');
+        });
     </script>
 </body>
 

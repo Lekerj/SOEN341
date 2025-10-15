@@ -469,6 +469,80 @@
       background: linear-gradient(90deg, #6B2C91, #912338);
       transform: translateY(-2px);
     }
+
+    /* Simple modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: none;
+      /* toggled via JS */
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .modal .modal-content {
+      background: #fff;
+      color: #222;
+      border-radius: 12px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      padding: 1.25rem;
+    }
+
+    .modal .modal-content h3 {
+      margin: 0 0 0.5rem;
+    }
+
+    .modal .modal-content p {
+      margin: 0.25rem 0 1rem;
+      color: #555;
+    }
+
+    .modal .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .modal input[type="text"],
+    .modal input[type="email"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+
+    .modal .modal-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+      margin-top: 0.5rem;
+    }
+
+    #claimCancel {
+      background: #eee;
+      color: #333;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #claimSubmit {
+      background: var(--primary-maroon);
+      color: #fff;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
   </style>
 </head>
 
@@ -494,6 +568,28 @@
       </ul>
     </div>
   </nav>
+
+  <!-- Paid Claim Modal -->
+  <div id="claimModal" class="modal">
+    <div class="modal-content">
+      <h3 class="claim-title">Claim Ticket</h3>
+      <p>Price: <strong class="claim-price">$0.00</strong></p>
+      <form id="claimForm">
+        <div class="form-row">
+          <label for="claimName">Name</label>
+          <input id="claimName" name="purchaser_name" type="text" placeholder="Your full name" required>
+        </div>
+        <div class="form-row">
+          <label for="claimEmail">Email</label>
+          <input id="claimEmail" name="purchaser_email" type="email" placeholder="you@example.com" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="claimCancel">Cancel</button>
+          <button type="submit" id="claimSubmit">Confirm Claim</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- Page Header with Search -->
   <div class="browse-header">
@@ -1099,7 +1195,7 @@
     const priceValue = Number(event.price);
     ticketButton.textContent = priceValue > 0 ? 'Get Tickets' : 'Reserve Spot';
     ticketButton.addEventListener('click', () => {
-      purchaseTicket(event.id, event.title || 'Event', Number.isFinite(priceValue) ? priceValue : 0);
+      purchaseTicket(event.id, event.title || 'Event', Number.isFinite(priceValue) ? priceValue : 0, spots, ticketButton);
     });
 
     footer.appendChild(price);
@@ -1174,22 +1270,32 @@
     return `$${amount.toFixed(2)}`;
   }
 
-  async function purchaseTicket(eventId, eventName, price) {
+  // Simple modal state
+  let modalState = { eventId: null, eventName: '', price: 0, spotsEl: null, buttonEl: null };
+
+  async function purchaseTicket(eventId, eventName, price, spotsEl, buttonEl) {
     const user = localStorage.getItem('user');
     if (!user) {
       alert('Please login to purchase tickets!');
       window.location.href = 'login.html';
       return;
     }
-    const confirmPurchase = confirm(`Claim ticket for:\n\nEvent: ${eventName}\nPrice: $${price.toFixed(2)}\n\nProceed?`);
-    if (!confirmPurchase) return;
+    // Free: proceed directly. Paid: open modal.
+    if (price > 0) {
+      modalState = { eventId, eventName, price, spotsEl, buttonEl };
+      openClaimModal(eventName, price);
+    } else {
+      await performClaim({ eventId, eventName, price, spotsEl, buttonEl });
+    }
+  }
 
+  async function performClaim({ eventId, eventName, price, spotsEl, buttonEl, purchaser }) {
     try {
       const res = await fetch('http://localhost:3000/api/tickets/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ event_id: eventId })
+        body: JSON.stringify({ event_id: eventId, ...(purchaser || {}) })
       });
       if (res.status === 401) {
         alert('Please login to claim a ticket.');
@@ -1202,13 +1308,22 @@
           alert('You already claimed a ticket for this event.');
         } else if (data && data.error === 'sold_out') {
           alert('Sorry, this event is sold out.');
+          if (buttonEl) buttonEl.disabled = true;
         } else {
           alert('Failed to claim ticket. Please try again.');
         }
         return;
       }
       alert(`✅ Ticket claimed!\n\nEvent: ${eventName}\nCode: ${data.ticket.code}`);
-      // Optionally take user to My Tickets
+      // Update spots on the card if we know it
+      if (spotsEl) {
+        const current = parseInt((spotsEl.textContent.match(/(\d+)/) || [0, 0])[1], 10);
+        if (!Number.isNaN(current) && current > 0) {
+          const next = current - 1;
+          spotsEl.textContent = next > 0 ? `👥 ${next} spots` : '👥 Limited spots';
+          if (next <= 0 && buttonEl) buttonEl.disabled = true;
+        }
+      }
       if (confirm('View your tickets now?')) {
         window.location.href = 'my-tickets.html';
       }
@@ -1217,6 +1332,48 @@
       alert('Network error. Please try again.');
     }
   }
+
+  // ---------- Paid claim modal ----------
+  function openClaimModal(eventName, price) {
+    const modal = document.getElementById('claimModal');
+    modal.querySelector('.claim-title').textContent = `Claim Ticket: ${eventName}`;
+    modal.querySelector('.claim-price').textContent = price > 0 ? `$${price.toFixed(2)}` : 'FREE';
+    modal.style.display = 'block';
+  }
+
+  function closeClaimModal() {
+    const modal = document.getElementById('claimModal');
+    modal.style.display = 'none';
+    const form = document.getElementById('claimForm');
+    form.reset();
+  }
+
+  document.addEventListener('click', (e) => {
+    if (e.target.id === 'claimCancel') {
+      closeClaimModal();
+    }
+  });
+
+  document.addEventListener('submit', async (e) => {
+    if (e.target && e.target.id === 'claimForm') {
+      e.preventDefault();
+      const name = e.target.querySelector('input[name="purchaser_name"]').value.trim();
+      const email = e.target.querySelector('input[name="purchaser_email"]').value.trim();
+      if (!name || !email) {
+        alert('Please fill your name and email.');
+        return;
+      }
+      await performClaim({
+        eventId: modalState.eventId,
+        eventName: modalState.eventName,
+        price: modalState.price,
+        spotsEl: modalState.spotsEl,
+        buttonEl: modalState.buttonEl,
+        purchaser: { purchaser_name: name, purchaser_email: email }
+      });
+      closeClaimModal();
+    }
+  });
 </script>
 <script type="module">
   //imports the function from ./util/calendar.js

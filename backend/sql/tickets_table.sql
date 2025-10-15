@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS tickets (
   event_id INT NOT NULL COMMENT 'Event associated with this ticket',
   ticket_type ENUM('free', 'paid') DEFAULT 'free' COMMENT 'Type of ticket claimed',
   qr_code VARCHAR(255) COMMENT 'Unique QR code string or file reference',
+  purchaser_name VARCHAR(100) NULL COMMENT 'Name provided for paid ticket (dummy info)',
+  purchaser_email VARCHAR(255) NULL COMMENT 'Email provided for paid ticket (dummy info)',
   checked_in BOOLEAN DEFAULT FALSE COMMENT 'True if student checked in at event',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'When the ticket was claimed',
 
