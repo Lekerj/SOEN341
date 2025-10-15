@@ -470,6 +470,26 @@
       transform: translateY(-2px);
     }
 
+    /* Sold-out badge/button styles */
+    .badge-soldout {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: #b00020;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .event-card .btn[disabled] {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     /* Simple modal styles */
     .modal {
       display: none;
@@ -543,6 +563,13 @@
       border-radius: 8px;
       cursor: pointer;
     }
+
+    #claimError {
+      color: #b00020;
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+      display: none;
+    }
   </style>
 </head>
 
@@ -557,6 +584,7 @@
         <li><a href="index.html">Home</a></li>
         <li><a href="browse.html">Browse</a></li>
         <li><a href="about.html">About</a></li>
+        <li><a href="profile.html">Profile</a></li>
         <li id="authLinks">
           <a href="login.html" class="btn btn-primary btn-sm">Login</a>
           <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
@@ -583,6 +611,7 @@
           <label for="claimEmail">Email</label>
           <input id="claimEmail" name="purchaser_email" type="email" placeholder="you@example.com" required>
         </div>
+        <div id="claimError"></div>
         <div class="modal-actions">
           <button type="button" id="claimCancel">Cancel</button>
           <button type="submit" id="claimSubmit">Confirm Claim</button>
@@ -1174,10 +1203,12 @@
 
     const spots = document.createElement('span');
     spots.className = 'event-meta-item';
-    const spotsValue = Number.isFinite(Number(event.tickets_available))
-      ? Number(event.tickets_available)
-      : Number(event.capacity);
-    spots.textContent = spotsValue && spotsValue > 0 ? `👥 ${spotsValue} spots` : '👥 Limited spots';
+    const available = Number.isFinite(Number(event.tickets_available)) ? Number(event.tickets_available) : null;
+    const spotsValue = available ?? (Number.isFinite(Number(event.capacity)) ? Number(event.capacity) : null);
+    const soldOut = available !== null && available <= 0;
+    spots.textContent = soldOut
+      ? '❌ Sold Out'
+      : (Number.isFinite(spotsValue) && spotsValue > 0 ? `👥 ${spotsValue} spots` : '👥 Limited spots');
 
     meta.appendChild(location);
     meta.appendChild(time);
@@ -1193,8 +1224,10 @@
     const ticketButton = document.createElement('button');
     ticketButton.className = 'btn btn-primary';
     const priceValue = Number(event.price);
-    ticketButton.textContent = priceValue > 0 ? 'Get Tickets' : 'Reserve Spot';
+    ticketButton.textContent = soldOut ? 'Sold Out' : (priceValue > 0 ? 'Get Tickets' : 'Reserve Spot');
+    ticketButton.disabled = !!soldOut;
     ticketButton.addEventListener('click', () => {
+      if (soldOut) return;
       purchaseTicket(event.id, event.title || 'Event', Number.isFinite(priceValue) ? priceValue : 0, spots, ticketButton);
     });
 
@@ -1230,6 +1263,15 @@
     content.appendChild(meta);
     content.appendChild(footer);
     content.appendChild(detailsPanel);
+
+    // Sold-out badge
+    if (soldOut) {
+      const badge = document.createElement('div');
+      badge.className = 'badge-soldout';
+      badge.textContent = 'SOLD OUT';
+      image.style.position = 'relative';
+      image.appendChild(badge);
+    }
 
     card.appendChild(image);
     card.appendChild(content);
@@ -1338,6 +1380,8 @@
     const modal = document.getElementById('claimModal');
     modal.querySelector('.claim-title').textContent = `Claim Ticket: ${eventName}`;
     modal.querySelector('.claim-price').textContent = price > 0 ? `$${price.toFixed(2)}` : 'FREE';
+    const err = document.getElementById('claimError');
+    if (err) { err.textContent = ''; err.style.display = 'none'; }
     modal.style.display = 'block';
   }
 
@@ -1349,20 +1393,48 @@
   }
 
   document.addEventListener('click', (e) => {
-    if (e.target.id === 'claimCancel') {
+    const modal = document.getElementById('claimModal');
+    if (e.target.id === 'claimCancel' || e.target === modal) {
       closeClaimModal();
     }
   });
+
+  document.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('claimModal');
+    if (e.key === 'Escape' && modal.style.display === 'block') {
+      closeClaimModal();
+    }
+  });
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function setModalSubmitting(submitting) {
+    const form = document.getElementById('claimForm');
+    const submitBtn = document.getElementById('claimSubmit');
+    if (!form || !submitBtn) return;
+    [...form.querySelectorAll('input')].forEach(i => i.disabled = submitting);
+    submitBtn.disabled = submitting;
+    submitBtn.textContent = submitting ? 'Submitting…' : 'Confirm Claim';
+  }
 
   document.addEventListener('submit', async (e) => {
     if (e.target && e.target.id === 'claimForm') {
       e.preventDefault();
       const name = e.target.querySelector('input[name="purchaser_name"]').value.trim();
       const email = e.target.querySelector('input[name="purchaser_email"]').value.trim();
-      if (!name || !email) {
-        alert('Please fill your name and email.');
+      const err = document.getElementById('claimError');
+      if (err) { err.textContent = ''; err.style.display = 'none'; }
+      if (!name) {
+        if (err) { err.textContent = 'Name is required.'; err.style.display = 'block'; }
         return;
       }
+      if (!isValidEmail(email)) {
+        if (err) { err.textContent = 'Please enter a valid email address.'; err.style.display = 'block'; }
+        return;
+      }
+      setModalSubmitting(true);
       await performClaim({
         eventId: modalState.eventId,
         eventName: modalState.eventName,
@@ -1371,6 +1443,7 @@
         buttonEl: modalState.buttonEl,
         purchaser: { purchaser_name: name, purchaser_email: email }
       });
+      setModalSubmitting(false);
       closeClaimModal();
     }
   });

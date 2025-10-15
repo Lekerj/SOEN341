@@ -1,68 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ConEvents Team & Project Information</title>
     <link rel="stylesheet" href="styles.css" />
-    
+
     <style>
         /* Styles for the team member table for presentation */
         .team-table {
             /* Ensures the table can maintain its width without being forced to shrink */
-            width: 100%; 
-            min-width: 600px; /* Setting a minimum width prevents the table data from scrunching up completely and forces the wrapper to scroll */
+            width: 100%;
+            min-width: 600px;
+            /* Setting a minimum width prevents the table data from scrunching up completely and forces the wrapper to scroll */
             border-collapse: collapse;
             margin-top: 1.5rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             background-color: white;
             border-radius: 8px;
-            overflow: hidden; 
+            overflow: hidden;
         }
-        .team-table th, .team-table td {
+
+        .team-table th,
+        .team-table td {
             padding: 12px 15px;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
+
         .team-table th {
-            background-color: #f8f9fa; 
+            background-color: #f8f9fa;
             font-weight: 600;
             color: #333;
             text-transform: uppercase;
             font-size: 0.9em;
         }
+
         .team-table tr:hover {
-            background-color: #f1f1f1; 
+            background-color: #f1f1f1;
         }
+
         .team-table tr:last-child td {
             border-bottom: none;
         }
-        
+
         /* NEW: Responsive wrapper for horizontal scrolling on small screens */
         .table-responsive {
-            overflow-x: auto; /* Adds a horizontal scrollbar if content is wider than its container */
-            -webkit-overflow-scrolling: touch; /* Improves scrolling performance on iOS devices */
+            overflow-x: auto;
+            /* Adds a horizontal scrollbar if content is wider than its container */
+            -webkit-overflow-scrolling: touch;
+            /* Improves scrolling performance on iOS devices */
         }
     </style>
-    </head>
+</head>
 
 <script>
     // Event listener to run code after the page loads
     window.addEventListener('DOMContentLoaded', async () => {
         const user = localStorage.getItem('user');
-        
+
         // Check if a user token exists in localStorage
         if (user) {
             try {
                 // Attempt to fetch user profile to validate the session/token
                 const resp = await fetch('http://localhost:3000/api/auth/profile', { credentials: 'include' });
-                
+
                 if (resp.ok) {
                     const u = JSON.parse(user);
-                    
+
                     // Hide Login/Sign Up links (authLinks)
                     document.getElementById('authLinks').style.display = 'none';
-                    
+
                     // Show User-specific links (userLinks) and set Welcome message
                     const ul = document.getElementById('userLinks');
                     ul.style.display = 'flex'; ul.style.gap = '1rem'; ul.style.alignItems = 'center';
@@ -83,7 +92,7 @@
         try {
             // Send request to backend to destroy the server session
             const r = await fetch('http://localhost:3000/api/auth/logout', { method: 'POST', credentials: 'include' });
-            
+
             // On success, clear local storage and redirect to homepage
             if (r.ok) { localStorage.removeItem('user'); location.href = 'index.html'; }
             else { alert('Logout failed. Please try again.'); }
@@ -93,16 +102,18 @@
         }
     }
 </script>
+
 <body>
-    
+
     <nav class="navbar">
         <div class="navbar-container">
             <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
-            
+
             <ul class="navbar-menu">
                 <li><a href="index.html">Home</a></li>
                 <li><a href="browse.html">Browse</a></li>
                 <li><a href="about.html">About</a></li>
+                <li><a href="profile.html">Profile</a></li>
 
                 <li id="authLinks">
                     <a href="login.html" class="btn btn-primary btn-sm">Login</a>
@@ -119,7 +130,7 @@
     <div class="main-content">
         <div class="container container-md">
             <div class="card">
-                
+
                 <div class="card-header text-center">
                     <h1 class="card-title">ConEvents Team </h1>
                     <p class="card-subtitle">
@@ -130,7 +141,7 @@
                 <div class="card-body">
                     <section class="mb-4">
                         <p class="mb-4 text-center">
-                            This project was developed by a dedicated team of students. 
+                            This project was developed by a dedicated team of students.
                             Here are the contact and identification details for all contributors:
                         </p>
 
@@ -146,26 +157,60 @@
                                 </thead>
                                 <tbody>
                                     <tr title="Ahmed Gara Ali">
-                                        <td>Ahmed Gara Ali</td> <td>40310578</td> <td><a href="mailto:garaali.ahmed@gmail.com">garaali.ahmed@gmail.com</a></td> <td>Lekerj</td> </tr>
+                                        <td>Ahmed Gara Ali</td>
+                                        <td>40310578</td>
+                                        <td><a href="mailto:garaali.ahmed@gmail.com">garaali.ahmed@gmail.com</a></td>
+                                        <td>Lekerj</td>
+                                    </tr>
                                     <tr title="Salia pona">
-                                        <td>Salia pona</td> <td>40262708</td> <td><a href="mailto:ponasalia@gmail.com">ponasalia@gmail.com</a></td> <td>godlight1</td> </tr>
+                                        <td>Salia pona</td>
+                                        <td>40262708</td>
+                                        <td><a href="mailto:ponasalia@gmail.com">ponasalia@gmail.com</a></td>
+                                        <td>godlight1</td>
+                                    </tr>
                                     <tr title="Luca Nasrallah">
-                                        <td>Luca Nasrallah</td> <td>40316548</td> <td><a href="mailto:lucanasrallah8@gmail.com">lucanasrallah8@gmail.com</a></td> <td>LucaDNasrallah</td> </tr>
+                                        <td>Luca Nasrallah</td>
+                                        <td>40316548</td>
+                                        <td><a href="mailto:lucanasrallah8@gmail.com">lucanasrallah8@gmail.com</a></td>
+                                        <td>LucaDNasrallah</td>
+                                    </tr>
                                     <tr title="Mike Kouka">
-                                        <td>Mike Kouka</td> <td>40299971</td> <td><a href="mailto:matrixmike.89@gmail.com">matrixmike.89@gmail.com</a></td> <td>mickeyblue89</td> </tr>
+                                        <td>Mike Kouka</td>
+                                        <td>40299971</td>
+                                        <td><a href="mailto:matrixmike.89@gmail.com">matrixmike.89@gmail.com</a></td>
+                                        <td>mickeyblue89</td>
+                                    </tr>
                                     <tr title="Jotnivaas Gill">
-                                        <td>Jotnivaas Gill</td> <td>40260752</td> <td><a href="mailto:jot_Gill@hotmail.com">jot_Gill@hotmail.com</a></td> <td>Jotnivaas</td> </tr>
+                                        <td>Jotnivaas Gill</td>
+                                        <td>40260752</td>
+                                        <td><a href="mailto:jot_Gill@hotmail.com">jot_Gill@hotmail.com</a></td>
+                                        <td>Jotnivaas</td>
+                                    </tr>
                                     <tr title="Abdeljalil Sennaoui">
-                                        <td>Abdeljalil Sennaoui</td> <td>40117162</td> <td><a href="mailto:abdeljalilsennaoui@gmail.com">abdeljalilsennaoui@gmail.com</a></td> <td>abdeljalilsennaoui</td> </tr>
+                                        <td>Abdeljalil Sennaoui</td>
+                                        <td>40117162</td>
+                                        <td><a
+                                                href="mailto:abdeljalilsennaoui@gmail.com">abdeljalilsennaoui@gmail.com</a>
+                                        </td>
+                                        <td>abdeljalilsennaoui</td>
+                                    </tr>
                                     <tr title="Subaanky Krishnapillai">
-                                        <td>Subaanky Krishnapillai</td> <td>40128716</td> <td><a href="mailto:subaankyk@hotmail.com">subaankyk@hotmail.com</a></td> <td>Subaanky</td> </tr>
+                                        <td>Subaanky Krishnapillai</td>
+                                        <td>40128716</td>
+                                        <td><a href="mailto:subaankyk@hotmail.com">subaankyk@hotmail.com</a></td>
+                                        <td>Subaanky</td>
+                                    </tr>
                                     <tr title="Adriana Atijas">
-                                        <td>Adriana Atijas</td> <td>40317966</td> <td><a href="mailto:atijasadriana@gmail.com">atijasadriana@gmail.com</a></td> <td>adrianaatijas</td> </tr>
+                                        <td>Adriana Atijas</td>
+                                        <td>40317966</td>
+                                        <td><a href="mailto:atijasadriana@gmail.com">atijasadriana@gmail.com</a></td>
+                                        <td>adrianaatijas</td>
+                                    </tr>
                                 </tbody>
                             </table>
-                            </div>
-                        </section>
-                    
+                        </div>
+                    </section>
+
                     <div class="text-center mt-4">
                         <button class="btn btn-secondary" onclick="goBack()">← Go Back</button>
                     </div>
@@ -189,7 +234,7 @@
             if (history.length > 1) history.back();
             else window.location.href = "index.html";
         }
-        
+
         // Simplified logout for non-backend pages
         async function logout() {
             // Note: The original, more robust logout is in the head script block.
@@ -197,5 +242,6 @@
             window.location.href = "index.html";
         }
     </script>
-    </body>
+</body>
+
 </html>
