@@ -185,39 +185,79 @@
 
     .price-slider-container {
       position: relative;
-      height: 40px;
+      padding: 20px 0;
       width: 100%;
     }
 
     .price-slider {
-      position: absolute;
       width: 100%;
-      height: 6px;
-      background: var(--light-gray);
+      height: 8px;
+      background: linear-gradient(to right, #28a745 0%, #ffc107 50%, #dc3545 100%);
       border-radius: var(--radius-full);
       appearance: none;
-      z-index: 1;
+      cursor: pointer;
+      outline: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .price-slider::-webkit-slider-thumb {
       appearance: none;
-      width: 20px;
-      height: 20px;
-      background: var(--gradient-primary);
+      width: 24px;
+      height: 24px;
+      background: var(--white);
+      border: 3px solid var(--primary-maroon);
       border-radius: 50%;
-      cursor: pointer;
-      z-index: 2;
+      cursor: grab;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
+    }
+
+    .price-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      box-shadow: 0 4px 12px rgba(145, 35, 56, 0.4);
+    }
+
+    .price-slider::-webkit-slider-thumb:active {
+      cursor: grabbing;
+      transform: scale(1.1);
+    }
+
+    .price-slider::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      background: var(--white);
+      border: 3px solid var(--primary-maroon);
+      border-radius: 50%;
+      cursor: grab;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
+    }
+
+    .price-slider::-moz-range-thumb:hover {
+      transform: scale(1.15);
+      box-shadow: 0 4px 12px rgba(145, 35, 56, 0.4);
+    }
+
+    .price-slider::-moz-range-thumb:active {
+      cursor: grabbing;
     }
 
     .price-display {
-      position: absolute;
-      top: 10px;
-      width: 100%;
       display: flex;
       justify-content: space-between;
-      font-size: 0.9rem;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 1rem;
+      font-weight: 600;
       color: var(--dark-gray);
-      z-index: 3;
+    }
+
+    .price-display span:last-child {
+      color: var(--primary-maroon);
+      font-size: 1.1rem;
+      background: rgba(145, 35, 56, 0.1);
+      padding: 4px 12px;
+      border-radius: var(--radius-md);
     }
 
     .results-header {
@@ -582,15 +622,13 @@
             <div class="filter-group price-range">
               <label>Price Range</label>
               <div class="price-slider-container">
+                <!-- Price Display (above slider) -->
+                <div class="price-display">
+                  <span>Min: $0</span>
+                  <span>Max: $<span id="maxPrice">300</span></span>
+                </div>
                 <!-- Single Max Price Slider -->
                 <input type="range" class="price-slider" id="priceMax" min="0" max="300" value="300" step="1">
-
-                <!-- Price Display -->
-                <div class="price-display">
-                  <span>$0</span> <!-- Minimum price is fixed -->
-                  <span>-</span>
-                  <span>$<span id="maxPrice">300</span></span> <!-- Max price updates dynamically -->
-                </div>
               </div>
             </div>
             <div class="filter-group">
