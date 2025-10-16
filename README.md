@@ -21,7 +21,7 @@ Welcome! This single README covers everything you need to run, test, and develop
 
 ---
 
-## 2. Database Setup
+## 2. Database Setup (first run)
 
 1. Start MySQL server:
    - **macOS:** `brew services start mysql`
@@ -37,18 +37,41 @@ Welcome! This single README covers everything you need to run, test, and develop
 
 ---
 
-## 3. Backend Setup
+## 3. Team Onboarding / Schema Sync
+
+If you just pulled this branch or your schema is out of date, run these steps once to match the latest tables/data model:
+
+1. Install/update dependencies:
+   ```
+   npm --prefix backend install
+   npm --prefix frontend --no-save install http-server
+   ```
+2. Recreate the database tables (this overwrites existing table definitions):
+   ```bash
+   mysql -u 341 -p convenevents < backend/sql/users_table.sql
+   mysql -u 341 -p convenevents < backend/sql/events_table.sql
+   mysql -u 341 -p convenevents < backend/sql/tickets_table.sql
+   ```
+   > Tip: from inside the MySQL shell you can also run `SOURCE backend/sql/<file>.sql`.
+3. (Optional) Seed demo data after the schema refresh:
+   ```
+   npm --prefix backend run seed
+   ```
+
+After this one-time sync you’re ready to use either local or demo mode.
+
+---
+
+## 4. Backend Setup
 
 1. Install dependencies:
    ```
    npm --prefix backend install
    ```
 2. Configure `.env` in `backend/`:
-   - If you use the `start-demo.sh` script, `.env` is auto-generated for demo mode and LAN sharing—no manual editing needed.
-   - If you want to customize or run in local mode, edit `backend/.env` manually:
-     - Set your database credentials, staff key, and mode.
-     - To run in demo mode, set: `DEMO_MODE=1`
-     - To run in local mode, set: `DEMO_MODE=0`
+   - For **demo mode**, run `./start-demo.sh` once or edit `backend/.env` so it includes your LAN IP. The script auto-detects your LAN IP, enables demo sharing, and writes the file for you.
+   - For **local mode**, no manual changes are needed unless you want to override defaults. `npm --prefix backend run start:local` now forces `DEMO_MODE=0`, binds the backend to `127.0.0.1`, and sets `PUBLIC_WEB_BASE`/`ALLOWED_ORIGINS` to `http://localhost:8080` so QR links stay laptop-only.
+   - If you do edit manually, set your database credentials, staff key, and mode explicitly.
    - Example `.env` (for demo mode):
      ```env
      DEMO_MODE=1
@@ -64,8 +87,8 @@ Welcome! This single README covers everything you need to run, test, and develop
      SESSION_SECRET=your_secret_key_change_in_production
      ```
 3. Start backend:
-   - **Demo mode:** `npm --prefix backend run start:demo`
-   - **Local mode:** `npm --prefix backend run start:local`
+   - **Demo mode (LAN sharing + staff key prompt):** `npm --prefix backend run start:demo`
+   - **Local mode (localhost only, QR works on the same machine):** `npm --prefix backend run start:local`
 4. Print staff key & config:
    ```
    npm --prefix backend run print:config
@@ -77,26 +100,27 @@ Welcome! This single README covers everything you need to run, test, and develop
 
 ---
 
-## 4. Frontend Setup
+## 5. Frontend Setup
 
 1. Serve frontend:
-   - **macOS:**
-     ```
-     cd frontend
-     python3 -m http.server 8080
-     ```
-   - **Windows:**
-     ```
-     cd frontend
-     python -m http.server 8080
-     ```
-2. Open browser to:
-   - `http://localhost:8080` (local)
-   - `http://<LAN_IP>:8080` (LAN)
+   - From the project root you can run a one-liner:
+     - **Local mode (laptop only):**
+       ```
+       python3 -m http.server 8080 --bind 127.0.0.1 --directory frontend
+       ```
+     - **Demo mode (share on LAN / phones, matches `start-demo.sh`):**
+       ```
+       npx --yes http-server frontend -p 8080 -a 0.0.0.0
+       ```
+     - On Windows, use `py`/`python` for the local command; the `npx` command works the same.
+   - Alternatively, `cd frontend` first and drop the `--directory frontend` flag.
+2. Open the frontend:
+   - `http://localhost:8080` for local mode
+   - `http://<LAN_IP>:8080` for demo mode (the backend prints this)
 
 ---
 
-## 5. One-Command Demo (macOS/Linux)
+## 6. One-Command Demo (macOS/Linux)
 
 Run the provided script to auto-detect LAN IP, set up `.env`, and start everything:
 
@@ -104,11 +128,11 @@ Run the provided script to auto-detect LAN IP, set up `.env`, and start everythi
 ./start-demo.sh
 ```
 
-This will print the staff key and QR base URL for sharing.
+This will print the staff key and QR base URL for sharing. The script now uses `npx http-server` for the frontend, so make sure you ran `npm --prefix frontend --no-save install http-server` during the team onboarding step (or have it cached locally).
 
 ---
 
-## 6. Scripted E2E Smoke Test
+## 7. Scripted E2E Smoke Test
 
 To run a full end-to-end test (register → login → claim → verify → check-in):
 

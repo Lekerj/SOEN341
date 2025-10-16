@@ -80,6 +80,9 @@
             }
         }
 
+        // Expose tab switcher to inline handlers
+        window.showTicketTab = showTicketTab;
+
         window.addEventListener('DOMContentLoaded', async () => {
             const user = localStorage.getItem('user');
             if (!user) {
@@ -201,6 +204,10 @@
                 }
             }
         }
+
+        // Expose helpers used by inline buttons
+        window.toggleDetails = toggleDetails;
+        window.showQRCode = showQRCode;
 
         async function showQRCode(ticketCode) {
             const container = document.getElementById(`qr-${ticketCode}`);

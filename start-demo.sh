@@ -4,6 +4,10 @@
 
 set -e
 
+# Ensure we run from the repository root even if invoked via relative path
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 # Detect LAN IP
 LAN_IP=$(ipconfig getifaddr en0 2>/dev/null || ifconfig | awk '/inet /{print $2}' | grep -v 127.0.0.1 | head -n1)
 if [ -z "$LAN_IP" ]; then
@@ -37,11 +41,12 @@ npm --prefix backend run start:demo &
 BACKEND_PID=$!
 sleep 2
 
-# Start frontend
+# Start frontend (run in subshell to avoid leaving project root)
 echo "[INFO] Starting frontend on port 8080..."
-cd frontend && python3 -m http.server 8080 &
+(
+  npx --yes http-server frontend -p 8080 -a 0.0.0.0
+) &
 FRONTEND_PID=$!
-cd ..
 sleep 2
 
 # Print staff key and QR base URL

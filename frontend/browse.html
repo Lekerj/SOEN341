@@ -907,6 +907,40 @@
       return params;
     }
 
+    function applySorting() {
+      if (!Array.isArray(currentResults) || currentResults.length === 0) return;
+      const direction = sortDir === 'desc' ? -1 : 1;
+      currentResults.sort((a, b) => {
+        const getTimestamp = (evt) => {
+          if (!evt || !evt.event_date) return 0;
+          const datePart = evt.event_date;
+          const timePart = evt.event_time || '00:00:00';
+          const timestamp = Date.parse(`${datePart}T${timePart}`);
+          return Number.isNaN(timestamp) ? 0 : timestamp;
+        };
+        let aVal;
+        let bVal;
+        switch (sortField) {
+          case 'price':
+            aVal = Number(a?.price ?? 0);
+            bVal = Number(b?.price ?? 0);
+            break;
+          case 'title':
+            aVal = (a?.title || '').toLowerCase();
+            bVal = (b?.title || '').toLowerCase();
+            break;
+          case 'date':
+          default:
+            aVal = getTimestamp(a);
+            bVal = getTimestamp(b);
+            break;
+        }
+        if (aVal < bVal) return -1 * direction;
+        if (aVal > bVal) return 1 * direction;
+        return 0;
+      });
+    }
+
     async function fetchAndRender() {
       // Build query and fetch
       const params = buildQueryParams();
