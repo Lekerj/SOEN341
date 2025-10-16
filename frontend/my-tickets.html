@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Tickets - ConEvents</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+        /* Compact ticket card styles */
+        .grid-3 {
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1rem;
+        }
+
+        .card {
+            padding: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .card-header {
+            margin-bottom: 0.75rem;
+            min-height: auto;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            margin-bottom: 0.25rem;
+            line-height: 1.3;
+        }
+
+        .card-subtitle {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .card-body {
+            margin-bottom: 0;
+        }
+
+        .card-body > div:first-child {
+            margin-bottom: 0.75rem;
+        }
+
+        .card-body p {
+            margin: 0.35rem 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .card-body .btn {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        .qr-code-container {
+            margin-top: 0.5rem;
+            padding: 0.75rem;
+        }
+
+        .qr-code-container img {
+            max-width: 200px !important;
+        }
+
+        .qr-code-container p {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        .ticket-details {
+            padding-top: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
+        .ticket-details p {
+            font-size: 0.85rem;
+            margin: 0.25rem 0;
+        }
+
+        /* Tab button improvements */
+        .ticket-tabs {
+            background: white;
+            padding: 0.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-button {
+            transition: all 0.3s ease !important;
+        }
+
+        .tab-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(145, 35, 56, 0.2);
+        }
+
+        /* Compact spacing for past tickets */
+        #pastTickets .card {
+            opacity: 0.85;
+            filter: grayscale(10%);
+        }
+
+        #pastTickets .card:hover {
+            opacity: 1;
+            filter: grayscale(0%);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="browse.html">Browse</a></li>
+                <li><a href="profile.html">Profile</a></li>
+                <li id="authLinks"><a href="login.html" class="btn btn-secondary btn-sm">Login</a></li>
+                <li id="userLinks" style="display:none;">
+                    <span id="welcomeMessage" class="text-muted"></span>
+                    <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container" style="margin-top:2rem;">
+        <h1
+            style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem;">
+            My Tickets</h1>
+
+        <!-- Tabs for Current and Past Tickets -->
+        <div class="ticket-tabs" style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+            <button class="tab-button active" onclick="showTicketTab('current')" id="currentTab"
+                style="flex: 1; padding: 12px 24px; border: 2px solid #912338; border-radius: 8px; background: #912338; color: white; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                Current Tickets
+            </button>
+            <button class="tab-button" onclick="showTicketTab('past')" id="pastTab"
+                style="flex: 1; padding: 12px 24px; border: 2px solid #912338; border-radius: 8px; background: white; color: #912338; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                Past Tickets
+            </button>
+        </div>
+
+        <div id="currentTickets" class="ticket-section">
+            <div id="currentTicketsList" class="grid grid-3"></div>
+        </div>
+
+        <div id="pastTickets" class="ticket-section" style="display: none;">
+            <div id="pastTicketsList" class="grid grid-3"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getApiBase } from './utils/api.js';
+        function showTicketTab(tab) {
+            const currentTab = document.getElementById('currentTab');
+            const pastTab = document.getElementById('pastTab');
+            const currentSection = document.getElementById('currentTickets');
+            const pastSection = document.getElementById('pastTickets');
+
+            if (tab === 'current') {
+                currentTab.style.background = '#912338';
+                currentTab.style.color = 'white';
+                currentTab.classList.add('active');
+                pastTab.style.background = 'white';
+                pastTab.style.color = '#912338';
+                pastTab.classList.remove('active');
+                currentSection.style.display = 'block';
+                pastSection.style.display = 'none';
+            } else {
+                pastTab.style.background = '#912338';
+                pastTab.style.color = 'white';
+                pastTab.classList.add('active');
+                currentTab.style.background = 'white';
+                currentTab.style.color = '#912338';
+                currentTab.classList.remove('active');
+                pastSection.style.display = 'block';
+                currentSection.style.display = 'none';
+            }
+        }
+
+        // Expose tab switcher to inline handlers
+        window.showTicketTab = showTicketTab;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            const userData = JSON.parse(user);
+            document.getElementById('authLinks').style.display = 'none';
+            const userLinks = document.getElementById('userLinks');
+            userLinks.style.display = 'flex';
+            userLinks.style.gap = '1rem';
+            userLinks.style.alignItems = 'center';
+            document.getElementById('welcomeMessage').textContent = `Welcome, ${userData.name}!`;
+
+            try {
+                const res = await fetch(`${getApiBase()}/api/tickets`, { credentials: 'include' });
+                const data = await res.json();
+                const currentList = document.getElementById('currentTicketsList');
+                const pastList = document.getElementById('pastTicketsList');
+                currentList.innerHTML = '';
+                pastList.innerHTML = '';
+
+                if (!data.success || data.count === 0) {
+                    currentList.innerHTML = '<p class="text-muted">No current tickets.</p>';
+                    pastList.innerHTML = '<p class="text-muted">No past tickets.</p>';
+                    return;
+                }
+
+                const now = new Date();
+                const currentTickets = [];
+                const pastTickets = [];
+
+                data.tickets.forEach(t => {
+                    const eventDate = new Date(t.event_date + 'T' + t.event_time);
+                    if (eventDate >= now) {
+                        currentTickets.push(t);
+                    } else {
+                        pastTickets.push(t);
+                    }
+                });
+
+                if (currentTickets.length === 0) {
+                    currentList.innerHTML = '<p class="text-muted">No current tickets.</p>';
+                } else {
+                    currentTickets.forEach(t => {
+                        currentList.appendChild(createTicketCard(t));
+                    });
+                }
+
+                if (pastTickets.length === 0) {
+                    pastList.innerHTML = '<p class="text-muted">No past tickets.</p>';
+                } else {
+                    pastTickets.forEach(t => {
+                        pastList.appendChild(createTicketCard(t, true));
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('currentTicketsList').innerHTML = '<p style="color:#b00020;">Failed to load tickets.</p>';
+            }
+        });
+
+        function createTicketCard(t, isPast = false) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">${t.title}</h3>
+                    <p class="card-subtitle">Ticket: <strong>${t.qr_code}</strong></p>
+                </div>
+                <div class="card-body">
+                    <div>
+                        <p><strong>📅</strong> ${new Date(t.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} <strong>⏰</strong> ${String(t.event_time).slice(0, 5)}</p>
+                        <p><strong>📍</strong> ${t.location}</p>
+                        <p><strong>Type:</strong> ${t.ticket_type === 'free' ? '🎟️ FREE' : '💳 ' + t.ticket_type.toUpperCase()}</p>
+                        ${isPast ? '<p style="color: #dc3545; font-weight: 600; margin-top: 0.5rem;">⏱️ Event Ended</p>' : ''}
+                    </div>
+                    <div style="margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.4rem;">
+                        <button class="btn btn-secondary view-qr-btn" onclick="showQRCode('${t.qr_code}')" style="width: 100%;">
+                            📱 Show QR Code
+                        </button>
+                        <div id="qr-${t.qr_code}" class="qr-code-container" style="display: none; text-align: center; background: #f8f9fa; border-radius: 8px; border: 2px dashed #912338;">
+                            <img style="max-width: 100%; height: auto;" alt="QR Code">
+                            <p style="color: #6c757d;">Scan this QR code at the event</p>
+                        </div>
+                        <button class="btn btn-secondary view-details-btn" onclick="toggleDetails(this)" style="width: 100%;">
+                            ℹ️ Details
+                        </button>
+                        <div class="ticket-details" style="display: none; border-top: 1px solid #e0e0e0;">
+                            <p><strong>Description:</strong> ${t.description || 'No description available.'}</p>
+                            <p><strong>Organizer:</strong> ${t.organization || 'N/A'}</p>
+                        </div>
+                        ${!isPast ? `
+                        <button class="btn btn-primary add-calendar"
+                            data-title="${t.title}"
+                            data-description="${t.description || ''}"
+                            data-location="${t.location}"
+                            data-start="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
+                            data-end="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
+                            style="width: 100%;">
+                            📅 Add to Calendar
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>`;
+            return card;
+        }
+
+        function toggleDetails(btn) {
+            const details = btn.nextElementSibling;
+            if (details && details.classList.contains('ticket-details')) {
+                if (details.style.display === 'none') {
+                    details.style.display = 'block';
+                    btn.textContent = 'Hide Details';
+                } else {
+                    details.style.display = 'none';
+                    btn.textContent = 'View Details';
+                }
+            }
+        }
+
+        // Expose helpers used by inline buttons
+        window.toggleDetails = toggleDetails;
+        window.showQRCode = showQRCode;
+
+        async function showQRCode(ticketCode) {
+            const container = document.getElementById(`qr-${ticketCode}`);
+            const img = container.querySelector('img');
+
+            // Toggle visibility
+            if (container.style.display === 'none') {
+                // Load QR code if not already loaded
+                if (!img.src || img.src === window.location.href) {
+                    try {
+                        const res = await fetch(`${getApiBase()}/api/tickets/qr/${ticketCode}`, {
+                            credentials: 'include'
+                        });
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            img.src = data.qrCodeUrl;
+                            container.style.display = 'block';
+                        } else {
+                            alert('Failed to load QR code');
+                        }
+                    } catch (error) {
+                        console.error('QR code error:', error);
+                        alert('Error loading QR code');
+                    }
+                } else {
+                    container.style.display = 'block';
+                }
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch(`${getApiBase()}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+                localStorage.removeItem('user');
+                window.location.href = 'index.html';
+            } catch (e) { }
+        }
+    </script>
+    <script type="module">
+        import { generateGoogleCalendarURL } from './utils/calendar.js';
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.add-calendar');
+            if (!btn) return;
+            const ev = {
+                title: btn.dataset.title,
+                description: btn.dataset.description,
+                location: btn.dataset.location,
+                start: btn.dataset.start,
+                end: btn.dataset.end
+            };
+            const url = generateGoogleCalendarURL(ev);
+            window.open(url, '_blank');
+        });
+    </script>
+</body>
+
+</html>

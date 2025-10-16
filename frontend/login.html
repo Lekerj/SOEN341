@@ -188,7 +188,8 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
     const form = document.getElementById('loginForm');
     const emailEl = document.getElementById('email');
     const passEl = document.getElementById('password');
@@ -326,7 +327,7 @@
       };
 
       try {
-        const res = await fetch('http://localhost:3000/api/auth/login', {
+        const res = await fetch(`${getApiBase()}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -377,7 +378,7 @@
     });
 
     // === Request password reset (ADD) ===
-    const RESET_ENDPOINT = 'http://localhost:3000/api/auth/password-reset/request';
+    const RESET_ENDPOINT = `${getApiBase()}/api/auth/password-reset/request`;
 
     async function sendPasswordReset(email) {
       resetHint.textContent = '';
@@ -419,14 +420,14 @@
       }
     }
 
-  resetBtn?.addEventListener('click', () => {
-    sendPasswordReset(emailEl.value.trim());
-  });
+    resetBtn?.addEventListener('click', () => {
+      sendPasswordReset(emailEl.value.trim());
+    });
 
-  submitBtn.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && submitBtn.disabled) e.preventDefault();
-  });
-</script>
+    submitBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && submitBtn.disabled) e.preventDefault();
+    });
+  </script>
 </body>
 
 </html>

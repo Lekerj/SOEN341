@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Privacy Policy - ConEvents</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<script>
+<script type="module">
+  import { getApiBase } from './utils/api.js';
   window.addEventListener('DOMContentLoaded', async () => {
     const user = localStorage.getItem('user');
     if (user) {
       try {
-        const resp = await fetch('http://localhost:3000/api/auth/profile', { credentials: 'include' });
+        const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
         if (resp.ok) {
           const u = JSON.parse(user);
           document.getElementById('authLinks').style.display = 'none';
@@ -29,7 +31,7 @@
 
   async function logout() {
     try {
-      const r = await fetch('http://localhost:3000/api/auth/logout', { method: 'POST', credentials: 'include' });
+      const r = await fetch(`${getApiBase()}/api/auth/logout`, { method: 'POST', credentials: 'include' });
       if (r.ok) { localStorage.removeItem('user'); location.href = 'index.html'; }
       else { alert('Logout failed. Please try again.'); }
     } catch {
@@ -39,32 +41,33 @@
 </script>
 
 <body>
- <!-- Header / Navbar (matches homepage) -->
-<nav class="navbar">
-  <div class="navbar-container">
-    <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
-    <ul class="navbar-menu">
-      <!-- These take you back to the homepage and its sections -->
-  <li><a href="index.html">Home</a></li>
-  <li><a href="browse.html">Browse</a></li>
+  <!-- Header / Navbar (matches homepage) -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+      <ul class="navbar-menu">
+        <!-- These take you back to the homepage and its sections -->
+        <li><a href="index.html">Home</a></li>
+        <li><a href="browse.html">Browse</a></li>
+        <li><a href="profile.html">Profile</a></li>
 
-      <!-- Go to the About page -->
-  <li><a href="about.html">About</a></li>
+        <!-- Go to the About page -->
+        <li><a href="about.html">About</a></li>
 
-      <!-- Auth buttons (same look as home) -->
-      <li id="authLinks">
-        <a href="login.html" class="btn btn-primary btn-sm">Login</a>
-        <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
-      </li>
+        <!-- Auth buttons (same look as home) -->
+        <li id="authLinks">
+          <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </li>
 
-      <!-- Logged-in state -->
-      <li id="userLinks" style="display:none;">
-        <span id="welcomeMessage" class="text-muted"></span>
-        <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
-      </li>
-    </ul>
-  </div>
-</nav>
+        <!-- Logged-in state -->
+        <li id="userLinks" style="display:none;">
+          <span id="welcomeMessage" class="text-muted"></span>
+          <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+        </li>
+      </ul>
+    </div>
+  </nav>
 
 
   <!-- Main Content -->
@@ -139,17 +142,17 @@
   </div>
 
   <!-- Footer (shared across pages) -->
- <!-- Footer -->
-<footer class="footer">
-  <div class="footer-links">
-  <a href="about.html">About Us</a>
-  <a href="browse.html">Events</a>
-  <a href="privacy.html">Privacy Policy</a>
-  <a href="terms.html">Terms of Service</a>
-  <a href="contact.html">Contact</a>
-  </div>
-  <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
-</footer>
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="about.html">About Us</a>
+      <a href="browse.html">Events</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+  </footer>
 
   <!-- Shared page helpers -->
   <script>
@@ -165,4 +168,5 @@
     }
   </script>
 </body>
+
 </html>

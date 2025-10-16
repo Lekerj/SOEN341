@@ -2,6 +2,7 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const router = express.Router();
+const { requireAuth } = require("../middleware/auth");
 
 // Import will be added when db config is integrated
 // const db = require('../config/db');
@@ -12,12 +13,9 @@ router.post("/register", async (req, res) => {
 
   // Validation
   if (!name || !email || !password) {
-    return res
-      .status(400)
-      .json({
-        error:
-          "Missing required fields: name, email, and password are required",
-      });
+    return res.status(400).json({
+      error: "Missing required fields: name, email, and password are required",
+    });
   }
 
   // Email validation
@@ -151,3 +149,36 @@ router.get("/profile", (req, res) => {
 });
 
 module.exports = router;
+
+// Update current user profile (name, profile_pic_url)
+router.put("/profile", requireAuth, (req, res) => {
+  const { name, profile_pic_url } = req.body;
+  const db = require("../config/db");
+
+  if (!name && !profile_pic_url) {
+    return res.status(400).json({ error: "Nothing to update" });
+  }
+
+  const fields = [];
+  const params = [];
+  if (name) {
+    fields.push("name = ?");
+    params.push(name);
+  }
+  if (profile_pic_url) {
+    fields.push("profile_pic_url = ?");
+    params.push(profile_pic_url);
+  }
+  params.push(req.session.userId);
+
+  const sql = `UPDATE users SET ${fields.join(
+    ", "
+  )}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+  db.query(sql, params, (err, result) => {
+    if (err) {
+      console.error("Profile update error:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    res.json({ success: true, updated: result.affectedRows });
+  });
+});

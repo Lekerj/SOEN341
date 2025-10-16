@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Profile - ConEvents</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+        /* Profile page enhancements */
+        .profile-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, #912338 0%, #6b2c91 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(145, 35, 56, 0.2);
+            margin-bottom: 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            animation: headerRotate 20s linear infinite;
+        }
+
+        @keyframes headerRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .profile-header h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            font-weight: 800;
+            position: relative;
+            z-index: 1;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .profile-header p {
+            margin: 0.5rem 0 0;
+            font-size: 1.1rem;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+
+        .profile-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .profile-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .avatar-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .avatar-card:hover {
+            border-color: #912338;
+            box-shadow: 0 8px 24px rgba(145, 35, 56, 0.15);
+            transform: translateY(-4px);
+        }
+
+        .avatar-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .avatar-image {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #912338;
+            box-shadow: 0 8px 20px rgba(145, 35, 56, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .avatar-image:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 28px rgba(145, 35, 56, 0.4);
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #912338;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-weight: 600;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #912338;
+        }
+
+        .profile-form-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .profile-form-card:hover {
+            border-color: rgba(145, 35, 56, 0.2);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .form-section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #343a40;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid #912338;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-row {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-row label {
+            display: block;
+            font-weight: 600;
+            color: #343a40;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .form-row input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-row input:hover:not(:disabled) {
+            border-color: #ced4da;
+            background: white;
+        }
+
+        .form-row input:focus {
+            outline: none;
+            border-color: #912338;
+            box-shadow: 0 0 0 4px rgba(145, 35, 56, 0.1);
+            background: white;
+        }
+
+        .form-row input:disabled {
+            background: #e9ecef;
+            cursor: not-allowed;
+            color: #6c757d;
+        }
+
+        .input-hint {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .form-actions .btn {
+            flex: 1;
+            padding: 14px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .tickets-header {
+            background: white;
+            padding: 1.5rem 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #912338;
+        }
+
+        .tickets-header h2 {
+            margin: 0;
+            font-size: 1.75rem;
+            color: #343a40;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .view-all-link {
+            color: #912338;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 20px;
+            border: 2px solid #912338;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .view-all-link:hover {
+            background: #912338;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(145, 35, 56, 0.3);
+        }
+
+        /* Compact ticket cards for profile page */
+        .profile-ticket-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .profile-ticket-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(145, 35, 56, 0.15);
+            border-color: #912338;
+        }
+
+        .profile-ticket-card .card-header {
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #f0f0f0;
+            min-height: auto;
+        }
+
+        .profile-ticket-card .card-title {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .profile-ticket-card .card-subtitle {
+            font-size: 0.8rem;
+        }
+
+        .profile-ticket-card .card-body p {
+            margin: 0.35rem 0;
+            font-size: 0.9rem;
+        }
+
+        .profile-ticket-card .btn {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            color: #6c757d;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .profile-content {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-header h1 {
+                font-size: 1.75rem;
+            }
+
+            .avatar-image {
+                width: 140px;
+                height: 140px;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .tickets-header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="browse.html">Browse</a></li>
+                <li><a href="my-tickets.html">My Tickets</a></li>
+                <li id="authLinks"><a href="login.html" class="btn btn-secondary btn-sm">Login</a></li>
+                <li id="userLinks" style="display:none;">
+                    <span id="welcomeMessage" class="text-muted"></span>
+                    <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="profile-container">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <h1>👤 My Profile</h1>
+            <p>Manage your account settings and view your activity</p>
+        </div>
+
+        <!-- Profile Content -->
+        <div class="profile-content">
+            <!-- Sidebar -->
+            <div class="profile-sidebar">
+                <!-- Avatar Card -->
+                <div class="avatar-card">
+                    <div class="avatar-wrapper">
+                        <img id="avatar" src="https://via.placeholder.com/180?text=Profile" alt="Profile Avatar"
+                            class="avatar-image" />
+                    </div>
+                    <h3 id="displayName" style="margin: 0 0 0.5rem; font-size: 1.25rem; color: #343a40;">Loading...</h3>
+                    <p id="displayEmail" style="margin: 0; color: #6c757d; font-size: 0.9rem;">Loading...</p>
+                </div>
+
+                <!-- Stats Card -->
+                <div class="stats-card">
+                    <h4 style="margin: 0 0 1rem; font-size: 1.1rem; color: #343a40;">📊 Your Stats</h4>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Tickets</span>
+                        <span class="stat-value" id="totalTickets">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Upcoming Events</span>
+                        <span class="stat-value" id="upcomingEvents">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Member Since</span>
+                        <span class="stat-value" id="memberSince" style="font-size: 0.95rem;">2025</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Form -->
+            <div class="profile-form-card">
+                <h2 class="form-section-title">⚙️ Account Settings</h2>
+                <form id="profileForm">
+                    <div class="form-row">
+                        <label for="name">Full Name</label>
+                        <input id="name" name="name" type="text" placeholder="Enter your full name" required />
+                        <div class="input-hint">💡 This name will be displayed on your tickets</div>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="email">Email Address</label>
+                        <input id="email" name="email" type="email" disabled />
+                        <div class="input-hint">🔒 Email cannot be changed for security reasons</div>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="profile_pic_url">Profile Picture URL</label>
+                        <input id="profile_pic_url" name="profile_pic_url" type="url"
+                            placeholder="https://example.com/your-photo.jpg" />
+                        <div class="input-hint">🖼️ Enter a URL to your profile picture (optional)</div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn btn-primary" type="submit">💾 Save Changes</button>
+                        <button class="btn btn-secondary" type="button" onclick="resetForm()">🔄 Reset</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Tickets Section -->
+        <div class="tickets-header">
+            <h2>🎟️ Recent Tickets</h2>
+            <a href="my-tickets.html" class="view-all-link">View All Tickets →</a>
+        </div>
+        <div id="ticketsList" class="grid grid-3"></div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="about.html">About Us</a>
+            <a href="browse.html">Events</a>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms.html">Terms of Service</a>
+            <a href="contact.html">Contact</a>
+        </div>
+        <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+    </footer>
+
+    <script type="module">
+        import { generateGoogleCalendarURL } from './utils/calendar.js';
+        import { getApiBase } from './utils/api.js';
+
+        let originalFormData = {};
+
+        async function loadProfile() {
+            const user = localStorage.getItem('user');
+            if (!user) { window.location.href = 'login.html'; return; }
+            const u = JSON.parse(user);
+
+            document.getElementById('authLinks').style.display = 'none';
+            const userLinks = document.getElementById('userLinks');
+            userLinks.style.display = 'flex';
+            userLinks.style.gap = '1rem';
+            userLinks.style.alignItems = 'center';
+            document.getElementById('welcomeMessage').textContent = `Welcome, ${u.name}!`;
+
+            // Load server profile
+            const res = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
+            if (!res.ok) { return; }
+            const data = await res.json();
+            const p = data.user || {};
+
+            // Update form fields
+            document.getElementById('name').value = p.name || u.name || '';
+            document.getElementById('email').value = p.email || u.email || '';
+            document.getElementById('profile_pic_url').value = p.profile_pic_url || '';
+
+            // Update avatar and display info
+            const avatarUrl = p.profile_pic_url || 'https://via.placeholder.com/180?text=' + encodeURIComponent((p.name || 'User').charAt(0));
+            document.getElementById('avatar').src = avatarUrl;
+            document.getElementById('displayName').textContent = p.name || 'User';
+            document.getElementById('displayEmail').textContent = p.email || '';
+
+            // Member since
+            if (p.created_at) {
+                const date = new Date(p.created_at);
+                document.getElementById('memberSince').textContent = date.getFullYear();
+            }
+
+            // Store original form data for reset
+            originalFormData = {
+                name: p.name || u.name || '',
+                profile_pic_url: p.profile_pic_url || ''
+            };
+        }
+
+        async function loadTickets() {
+            const res = await fetch(`${getApiBase()}/api/tickets`, { credentials: 'include' });
+            const data = await res.json();
+            const list = document.getElementById('ticketsList');
+            list.innerHTML = '';
+
+            if (!data.success || data.count === 0) {
+                list.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-state-icon">🎫</div>
+                        <div class="empty-state-text">No tickets yet. Start exploring events!</div>
+                        <a href="browse.html" class="btn btn-primary">Browse Events</a>
+                    </div>
+                `;
+                document.getElementById('totalTickets').textContent = '0';
+                document.getElementById('upcomingEvents').textContent = '0';
+                return;
+            }
+
+            // Calculate stats
+            const now = new Date();
+            const upcomingCount = data.tickets.filter(t => {
+                const eventDate = new Date(t.event_date + 'T' + t.event_time);
+                return eventDate >= now;
+            }).length;
+
+            document.getElementById('totalTickets').textContent = data.count;
+            document.getElementById('upcomingEvents').textContent = upcomingCount;
+
+            // Show only first 3 tickets
+            const recentTickets = data.tickets.slice(0, 3);
+            recentTickets.forEach(t => {
+                const eventDate = new Date(t.event_date + 'T' + t.event_time);
+                const isPast = eventDate < now;
+
+                const card = document.createElement('div');
+                card.className = 'card profile-ticket-card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <h3 class="card-title">${t.title}</h3>
+                        <p class="card-subtitle">Code: <strong>${t.qr_code}</strong></p>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>📅</strong> ${new Date(t.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} <strong>⏰</strong> ${String(t.event_time).slice(0, 5)}</p>
+                        <p><strong>📍</strong> ${t.location}</p>
+                        <p><strong>Type:</strong> ${t.ticket_type === 'free' ? '🎟️ FREE' : '💳 ' + t.ticket_type.toUpperCase()}</p>
+                        ${isPast ? '<p style="color: #dc3545; font-weight: 600; margin-top: 0.5rem;">⏱️ Event Ended</p>' : ''}
+                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                            <a href="my-tickets.html" class="btn btn-secondary" style="flex: 1;">View Ticket</a>
+                            ${!isPast ? `<button class="btn btn-primary add-calendar"
+                                data-title="${t.title}"
+                                data-description="${t.description || ''}"
+                                data-location="${t.location}"
+                                data-start="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
+                                data-end="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
+                                style="flex: 1;">📅 Calendar</button>` : ''}
+                        </div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        window.resetForm = function() {
+            document.getElementById('name').value = originalFormData.name;
+            document.getElementById('profile_pic_url').value = originalFormData.profile_pic_url;
+        }
+
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.add-calendar');
+            if (!btn) return;
+            const ev = {
+                title: btn.dataset.title,
+                description: btn.dataset.description,
+                location: btn.dataset.location,
+                start: btn.dataset.start,
+                end: btn.dataset.end
+            };
+            const url = generateGoogleCalendarURL(ev);
+            window.open(url, '_blank');
+        });
+
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Saving...';
+
+            const name = document.getElementById('name').value.trim();
+            const profile_pic_url = document.getElementById('profile_pic_url').value.trim();
+
+            const res = await fetch(`${getApiBase()}/api/auth/profile`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ name, profile_pic_url })
+            });
+
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+
+            if (res.ok) {
+                // Update localStorage
+                const user = JSON.parse(localStorage.getItem('user'));
+                user.name = name;
+                localStorage.setItem('user', JSON.stringify(user));
+
+                alert('✅ Profile updated successfully!');
+                await loadProfile();
+            } else {
+                alert('❌ Failed to update profile. Please try again.');
+            }
+        });
+
+        // Update avatar preview when URL changes
+        document.getElementById('profile_pic_url').addEventListener('input', (e) => {
+            const url = e.target.value.trim();
+            if (url) {
+                const img = document.getElementById('avatar');
+                img.src = url;
+                img.onerror = () => {
+                    img.src = 'https://via.placeholder.com/180?text=Invalid+URL';
+                };
+            }
+        });
+
+        window.logout = async function logout() {
+            try {
+                await fetch(`${getApiBase()}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+                localStorage.removeItem('user');
+                window.location.href = 'index.html';
+            } catch (e) { }
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadProfile();
+            await loadTickets();
+        });
+    </script>
+</body>
+
+</html>

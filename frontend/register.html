@@ -179,7 +179,6 @@
         .shake {
             animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
         }
-
     </style>
 </head>
 
@@ -268,7 +267,8 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { getApiBase } from './utils/api.js';
         const registerForm = document.getElementById('registerForm');
         const messageDiv = document.getElementById('message');
         const nameInput = document.getElementById('name');
@@ -654,7 +654,7 @@
             };
 
             try {
-                const response = await fetch('http://localhost:3000/api/auth/register', {
+                const response = await fetch(`${getApiBase()}/api/auth/register`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

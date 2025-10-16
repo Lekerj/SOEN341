@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Ticket - ConEvents</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .verification-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+
+        .ticket-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-bottom: 1.5rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .status-valid {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .status-invalid {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
+        .status-used {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+
+        .ticket-info {
+            margin: 1rem 0;
+        }
+
+        .ticket-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .ticket-info-label {
+            font-weight: 600;
+            color: #6c757d;
+        }
+
+        .ticket-info-value {
+            color: #343a40;
+        }
+
+        .check-in-btn {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #912338;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="browse.html">Browse</a></li>
+                <li><a href="profile.html">Profile</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="verification-container">
+            <h1 style="text-align: center; margin-bottom: 2rem; color: white;">Ticket Verification</h1>
+
+            <div id="loadingState" class="loading">
+                <div class="spinner"></div>
+                <p style="color: white;">Verifying ticket...</p>
+            </div>
+
+            <div id="ticketDisplay" style="display: none;">
+                <div class="ticket-card">
+                    <div id="statusBadge"></div>
+
+                    <h2 id="eventTitle" style="margin-bottom: 1rem;"></h2>
+
+                    <div class="ticket-info">
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Attendee:</span>
+                            <span class="ticket-info-value" id="attendeeName"></span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Email:</span>
+                            <span class="ticket-info-value" id="attendeeEmail"></span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Event Date:</span>
+                            <span class="ticket-info-value" id="eventDate"></span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Event Time:</span>
+                            <span class="ticket-info-value" id="eventTime"></span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Location:</span>
+                            <span class="ticket-info-value" id="eventLocation"></span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Ticket Type:</span>
+                            <span class="ticket-info-value" id="ticketType"></span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Ticket Code:</span>
+                            <span class="ticket-info-value" id="ticketCode"
+                                style="font-family: monospace; font-size: 0.9rem;"></span>
+                        </div>
+                    </div>
+
+                    <button id="checkInBtn" class="btn btn-primary check-in-btn" style="display: none;">
+                        ✓ Check In
+                    </button>
+
+                    <div id="messageArea" style="margin-top: 1rem; padding: 1rem; border-radius: 8px; display: none;">
+                    </div>
+                </div>
+            </div>
+
+            <div id="errorDisplay" style="display: none;">
+                <div class="ticket-card">
+                    <div class="status-badge status-invalid">❌ Invalid Ticket</div>
+                    <h2 style="color: #dc3545;">Ticket Not Found</h2>
+                    <p>This ticket code is not valid. Please check the QR code and try again.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getApiBase } from './utils/api.js';
+        // Get ticket code from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const ticketCode = urlParams.get('code');
+
+        if (!ticketCode) {
+            showError();
+        } else {
+            verifyTicket(ticketCode);
+        }
+
+        async function verifyTicket(code) {
+            try {
+                const res = await fetch(`${getApiBase()}/api/tickets/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ ticket_code: code })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showError();
+                    return;
+                }
+
+                displayTicket(data.ticket);
+            } catch (error) {
+                console.error('Verification error:', error);
+                showError();
+            }
+        }
+
+        function displayTicket(ticket) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('ticketDisplay').style.display = 'block';
+
+            // Set status badge
+            const statusBadge = document.getElementById('statusBadge');
+            if (ticket.already_checked_in) {
+                statusBadge.className = 'status-badge status-used';
+                statusBadge.textContent = '⚠️ Already Checked In';
+            } else {
+                statusBadge.className = 'status-badge status-valid';
+                statusBadge.textContent = '✓ Valid Ticket';
+                document.getElementById('checkInBtn').style.display = 'block';
+            }
+
+            // Fill ticket details
+            document.getElementById('eventTitle').textContent = ticket.title;
+            document.getElementById('attendeeName').textContent = ticket.attendee_name;
+            document.getElementById('attendeeEmail').textContent = ticket.attendee_email;
+            document.getElementById('eventDate').textContent = ticket.event_date;
+            document.getElementById('eventTime').textContent = String(ticket.event_time).slice(0, 5);
+            document.getElementById('eventLocation').textContent = ticket.location;
+            document.getElementById('ticketType').textContent = ticket.ticket_type.toUpperCase();
+            document.getElementById('ticketCode').textContent = ticket.qr_code;
+        }
+
+        function showError() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorDisplay').style.display = 'block';
+        }
+
+        // Check-in button handler
+        document.getElementById('checkInBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('checkInBtn');
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                // Allow entering an optional staff key for demo mode
+                const existing = sessionStorage.getItem('staffKey') || '';
+                let staffKey = existing;
+                if (!staffKey) {
+                    staffKey = prompt('Enter staff key (provided to event staff):', '');
+                    if (staffKey) sessionStorage.setItem('staffKey', staffKey);
+                }
+                if (staffKey) headers['x-staff-key'] = staffKey;
+
+                const res = await fetch(`${getApiBase()}/api/tickets/check-in`, {
+                    method: 'POST',
+                    headers,
+                    credentials: 'include',
+                    body: JSON.stringify({ ticket_code: ticketCode })
+                });
+
+                const data = await res.json();
+                const messageArea = document.getElementById('messageArea');
+                messageArea.style.display = 'block';
+
+                if (res.ok) {
+                    messageArea.style.background = '#d4edda';
+                    messageArea.style.color = '#155724';
+                    messageArea.style.border = '2px solid #28a745';
+                    messageArea.textContent = '✓ Ticket successfully checked in!';
+
+                    // Update status badge
+                    const statusBadge = document.getElementById('statusBadge');
+                    statusBadge.className = 'status-badge status-used';
+                    statusBadge.textContent = '⚠️ Already Checked In';
+
+                    btn.style.display = 'none';
+                } else {
+                    messageArea.style.background = '#f8d7da';
+                    messageArea.style.color = '#721c24';
+                    messageArea.style.border = '2px solid #dc3545';
+                    messageArea.textContent = data.error || 'Failed to check in ticket';
+                    btn.disabled = false;
+                    btn.textContent = '✓ Check In';
+                }
+            } catch (error) {
+                console.error('Check-in error:', error);
+                const messageArea = document.getElementById('messageArea');
+                messageArea.style.display = 'block';
+                messageArea.style.background = '#f8d7da';
+                messageArea.style.color = '#721c24';
+                messageArea.textContent = 'Network error. Please try again.';
+                btn.disabled = false;
+                btn.textContent = '✓ Check In';
+            }
+        });
+    </script>
+</body>
+
+</html>
