@@ -68,7 +68,6 @@
         <h1
             style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 2rem;">
             My Profile</h1>
-
         <div class="profile-card">
             <form id="profileForm" class="profile-grid">
                 <div>
@@ -101,6 +100,7 @@
 
     <script type="module">
         import { generateGoogleCalendarURL } from './utils/calendar.js';
+        import { getApiBase } from './utils/api.js';
 
         async function loadProfile() {
             const user = localStorage.getItem('user');
@@ -114,7 +114,7 @@
             document.getElementById('welcomeMessage').textContent = `Welcome, ${u.name}!`;
 
             // Load server profile
-            const res = await fetch('http://localhost:3000/api/auth/profile', { credentials: 'include' });
+            const res = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
             if (!res.ok) { return; }
             const data = await res.json();
             const p = data.user || {};
@@ -125,7 +125,7 @@
         }
 
         async function loadTickets() {
-            const res = await fetch('http://localhost:3000/api/tickets', { credentials: 'include' });
+            const res = await fetch(`${getApiBase()}/api/tickets`, { credentials: 'include' });
             const data = await res.json();
             const list = document.getElementById('ticketsList');
             list.innerHTML = '';
@@ -137,35 +137,35 @@
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
-          <div class="card-header">
-            <h3 class="card-title">${t.title}</h3>
-            <p class="card-subtitle">Code: <strong>${t.qr_code}</strong></p>
-          </div>
-          <div class="card-body">
-            <div style="flex-grow: 1;">
-              <p>📅 ${t.event_date} ⏰ ${String(t.event_time).slice(0, 5)}</p>
-              <p>📍 ${t.location}</p>
-            </div>
-            <div style="margin-top: auto; padding-top: 1rem;">
-              <button class="btn btn-secondary view-details-btn" onclick="toggleTicketDetails(this)" style="width: 100%;">
-                View Details
-              </button>
-              <div class="ticket-details" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
-                <p><strong>Description:</strong> ${t.description || 'No description available.'}</p>
-                <p><strong>Type:</strong> ${t.ticket_type.toUpperCase()}</p>
-                <p><strong>Organization:</strong> ${t.organization || 'N/A'}</p>
-              </div>
-              <button class="btn btn-primary add-calendar" 
-                data-title="${t.title}" 
-                data-description="${t.description || ''}"
-                data-location="${t.location}"
-                data-start="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
-                data-end="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
-                style="width: 100%; margin-top: 0.5rem;">
-                📅 Add to Google Calendar
-              </button>
-            </div>
-          </div>`;
+                          <div class="card-header">
+                            <h3 class="card-title">${t.title}</h3>
+                            <p class="card-subtitle">Code: <strong>${t.qr_code}</strong></p>
+                          </div>
+                          <div class="card-body">
+                            <div style="flex-grow: 1;">
+                              <p>📅 ${t.event_date} ⏰ ${String(t.event_time).slice(0, 5)}</p>
+                              <p>📍 ${t.location}</p>
+                            </div>
+                            <div style="margin-top: auto; padding-top: 1rem;">
+                              <button class="btn btn-secondary view-details-btn" onclick="toggleTicketDetails(this)" style="width: 100%;">
+                                View Details
+                              </button>
+                              <div class="ticket-details" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                                <p><strong>Description:</strong> ${t.description || 'No description available.'}</p>
+                                <p><strong>Type:</strong> ${t.ticket_type.toUpperCase()}</p>
+                                <p><strong>Organization:</strong> ${t.organization || 'N/A'}</p>
+                              </div>
+                              <button class="btn btn-primary add-calendar" 
+                                data-title="${t.title}" 
+                                data-description="${t.description || ''}"
+                                data-location="${t.location}"
+                                data-start="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
+                                data-end="${t.event_date}T${String(t.event_time).slice(0, 5)}:00"
+                                style="width: 100%; margin-top: 0.5rem;">
+                                📅 Add to Google Calendar
+                              </button>
+                            </div>
+                          </div>`;
                 list.appendChild(card);
             });
         }
@@ -201,7 +201,7 @@
             e.preventDefault();
             const name = document.getElementById('name').value.trim();
             const profile_pic_url = document.getElementById('profile_pic_url').value.trim();
-            const res = await fetch('http://localhost:3000/api/auth/profile', {
+            const res = await fetch(`${getApiBase()}/api/auth/profile`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
                 body: JSON.stringify({ name, profile_pic_url })
             });
@@ -211,7 +211,7 @@
 
         window.logout = async function logout() {
             try {
-                await fetch('http://localhost:3000/api/auth/logout', { method: 'POST', credentials: 'include' });
+                await fetch(`${getApiBase()}/api/auth/logout`, { method: 'POST', credentials: 'include' });
                 localStorage.removeItem('user');
                 window.location.href = 'index.html';
             } catch (e) { }

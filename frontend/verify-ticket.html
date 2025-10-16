@@ -183,7 +183,8 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { getApiBase } from './utils/api.js';
         // Get ticket code from URL
         const urlParams = new URLSearchParams(window.location.search);
         const ticketCode = urlParams.get('code');
@@ -192,11 +193,6 @@
             showError();
         } else {
             verifyTicket(ticketCode);
-        }
-
-        function getApiBase() {
-            const host = window.location.hostname;
-            return `http://${host}:3000`;
         }
 
         async function verifyTicket(code) {

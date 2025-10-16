@@ -7,12 +7,13 @@
   <title>Privacy Policy - ConEvents</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<script>
+<script type="module">
+  import { getApiBase } from './utils/api.js';
   window.addEventListener('DOMContentLoaded', async () => {
     const user = localStorage.getItem('user');
     if (user) {
       try {
-        const resp = await fetch('http://localhost:3000/api/auth/profile', { credentials: 'include' });
+        const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
         if (resp.ok) {
           const u = JSON.parse(user);
           document.getElementById('authLinks').style.display = 'none';
@@ -30,7 +31,7 @@
 
   async function logout() {
     try {
-      const r = await fetch('http://localhost:3000/api/auth/logout', { method: 'POST', credentials: 'include' });
+      const r = await fetch(`${getApiBase()}/api/auth/logout`, { method: 'POST', credentials: 'include' });
       if (r.ok) { localStorage.removeItem('user'); location.href = 'index.html'; }
       else { alert('Logout failed. Please try again.'); }
     } catch {

@@ -55,7 +55,8 @@
     </style>
 </head>
 
-<script>
+<script type="module">
+    import { getApiBase } from './utils/api.js';
     // Event listener to run code after the page loads
     window.addEventListener('DOMContentLoaded', async () => {
         const user = localStorage.getItem('user');
@@ -64,7 +65,7 @@
         if (user) {
             try {
                 // Attempt to fetch user profile to validate the session/token
-                const resp = await fetch('http://localhost:3000/api/auth/profile', { credentials: 'include' });
+                const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
 
                 if (resp.ok) {
                     const u = JSON.parse(user);
@@ -91,7 +92,7 @@
     async function logout() {
         try {
             // Send request to backend to destroy the server session
-            const r = await fetch('http://localhost:3000/api/auth/logout', { method: 'POST', credentials: 'include' });
+            const r = await fetch(`${getApiBase()}/api/auth/logout`, { method: 'POST', credentials: 'include' });
 
             // On success, clear local storage and redirect to homepage
             if (r.ok) { localStorage.removeItem('user'); location.href = 'index.html'; }

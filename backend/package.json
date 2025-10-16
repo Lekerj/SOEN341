@@ -18,7 +18,9 @@
     "start:demo": "node scripts/start-demo.js",
     "dev": "nodemon server.js",
     "test": "jest",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "print:config": "node scripts/print-config.js",
+    "health:db": "node scripts/db-health.js"
   },
   "devDependencies": {
     "jest": "^29.7.0",

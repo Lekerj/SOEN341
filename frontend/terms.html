@@ -137,7 +137,8 @@
     <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
   </footer>
 
-  <script>
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
     // Check authentication status (match index.html)
     window.addEventListener('DOMContentLoaded', async () => {
       const user = localStorage.getItem('user');
@@ -145,7 +146,7 @@
         try {
           const userData = JSON.parse(user);
           // Verify session is still valid
-          const response = await fetch('http://localhost:3000/api/auth/profile', {
+          const response = await fetch(`${getApiBase()}/api/auth/profile`, {
             credentials: 'include'
           });
           if (response.ok) {
@@ -175,7 +176,7 @@
       const confirmLogout = confirm('Are you sure you want to log out?');
       if (!confirmLogout) return;
       try {
-        const response = await fetch('http://localhost:3000/api/auth/logout', {
+        const response = await fetch(`${getApiBase()}/api/auth/logout`, {
           method: 'POST',
           credentials: 'include'
         });
@@ -207,10 +208,7 @@
         if (welcomeMessage) welcomeMessage.textContent = '';
       }
     });
-    function logout() {
-      localStorage.removeItem('user');
-      window.location.href = 'index.html';
-    }
+    // Removed duplicate logout definition; using the async logout above
   </script>
 </body>
 
