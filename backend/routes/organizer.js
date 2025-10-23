@@ -6,25 +6,27 @@ const { requireOrganizer } = require('../middleware/auth');
 // Utility function for basic validation 
 const validateEventData = (data) => {
     const { title, description, event_date, event_time, location, capacity, price, organization, category } = data;
-    //Error handling for missing fields. 
+    
+    // Error handling for missing fields. 
     if (!title || !description || !event_date || !event_time || !location || !organization || !category) {
         return "Missing required field(s).";
     }
-    //Error handling for negative Capacity
-    if (isNaN(capacity) || capacity <= 0) { 
+
+    // Error handling for non-positive Capacity
+    if (isNaN(capacity) || capacity <= 0) {
         return "Capacity must be a positive number.";
     }
-    //Error handling for negative pricing
-    if (isNaN(price) || price < 0) { // This will also handle if the price of the ticket is free or not. 
+
+    // Error handling for negative pricing (Handles free tickets when price is 0)
+    if (isNaN(price) || price < 0) {
         return "Price must be a non-negative number.";
     }
+
+    // CORRECTED: Category validation check 
     const validCategories = ["sports", "academic", "social", "club"];
     if (!validCategories.includes(category)) {
-        return `Category must be one of: ${validCategories.join(', ')}`;
+         return `Category must be one of: ${validCategories.join(', ')}`;
     }
-
-    //Im assuming the fields for the event time and date will be only capable through a dedicated time input that limits the organizers inputs. So i don't have to 
-    // Take into consideration the Cases for it. 
 
     return null; // Return null if validation passes
 }
@@ -37,17 +39,16 @@ const validateEventData = (data) => {
 router.post('/events', requireOrganizer, (req, res) => {
     const eventData = req.body;
 
-    // 1. Validation (Step 4)
+    // 1. Validation 
     const validationError = validateEventData(eventData);
     if (validationError) {
         console.warn('Event creation validation failed:', validationError);
         return res.status(400).json({ success: false, error: "Invalid Data", message: validationError });
     }
 
-    // 2. Prepare Data (Step 5)
-    // NOTE: req.session.userId must be populated by your authentication middleware
+    // 2. Prepare Data 
     const organizer_Id = req.session.userId; 
-    const tickets_Available = eventData.capacity; // Acceptance Criteria: tickets_available = capacity initially
+    const tickets_Available = eventData.capacity; 
 
     const {
         title, description, event_date, event_time, location, 
@@ -65,17 +66,16 @@ router.post('/events', requireOrganizer, (req, res) => {
         capacity, organization, category, price, tickets_Available
     ];
 
-    // 3. Execute Database Insertion (Step 5/6)
+    // 3. Execute Database Insertion 
     db.query(sql, params, (err, result) => {
         if (err) {
             console.error("Database error during event creation:", err);
-            // Handle specific errors like SQL format errors if possible
             return res.status(500).json({ success: false, error: "Internal Server Error", message: "Failed to create event due to a database issue." });
         }
 
-        // 4. Success Response (Step 6)
+        // 4. Success Response: Return created event with ID and all details
         const newEvent = {
-            id: result.insertId, // Get the ID of the newly created event
+            id: result.insertId, // The ID is critical for the success response
             organizer_id: organizer_Id,
             tickets_available: tickets_Available,
             ...eventData
