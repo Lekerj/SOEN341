@@ -5,9 +5,13 @@ const cors = require("cors");
 const authRoutes = require("./routes/auth");
 const ticketRoutes = require("./routes/tickets");
 
-//Adding this: Import the new events route file
+// Import the new events route file
 const eventRoutes = require("./routes/events");
-//Adding this: Import the database connection
+
+// Adding this (PERSON1): Import the organizer route file
+const organizerRoutes = require("./routes/Organizer");
+
+//Import the database connection
 const db = require("./config/db");
 
 const app = express();
@@ -62,8 +66,10 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/tickets", ticketRoutes);
 
-//Adding this:
 app.use("/api/events", eventRoutes);
+
+// Adding this: Mount the organizer routes here
+app.use("/api/organizer", organizerRoutes);
 
 app.get("/api/test", (req, res) => {
   res.json({ message: "API is working!" });
@@ -72,6 +78,8 @@ app.get("/api/test", (req, res) => {
 app.get("/", (req, res) => {
   res.send("Welcome to ConEvents backend!");
 });
+
+
 
 app.listen(PORT, HOST, () => {
   const banner = [
