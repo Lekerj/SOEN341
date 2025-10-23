@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create New Event - ConEvents</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .event-builder-wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .event-builder-main {
+      flex: 1;
+      padding: var(--spacing-2xl) var(--spacing-lg);
+    }
+
+    .event-card {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--white);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      padding: var(--spacing-2xl);
+      display: grid;
+      gap: var(--spacing-xl);
+    }
+
+    .event-card header {
+      text-align: center;
+      display: grid;
+      gap: var(--spacing-xs);
+    }
+
+    .event-card header p {
+      color: var(--medium-gray);
+    }
+
+    .form-grid {
+      display: grid;
+      gap: var(--spacing-lg);
+    }
+
+    .form-grid.cols-2 {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .ticket-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(145, 35, 56, 0.08);
+      color: var(--primary-maroon);
+      font-weight: 600;
+      font-size: var(--font-size-sm);
+    }
+
+    .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-md);
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-actions .cta-buttons {
+      display: flex;
+      gap: var(--spacing-md);
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+      .event-builder-main {
+        padding: var(--spacing-xl) var(--spacing-md);
+      }
+
+      .event-card {
+        padding: var(--spacing-xl);
+      }
+
+      .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-md);
+      }
+
+      .form-actions .cta-buttons {
+        width: 100%;
+      }
+
+      .form-actions .cta-buttons .btn {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="event-builder-wrapper">
+    <nav class="navbar">
+      <div class="navbar-container">
+        <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+        <ul class="navbar-menu">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="index.html#events">Events</a></li>
+          <li><a href="about.html">About</a></li>
+          <li id="authLinks">
+            <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+            <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+          </li>
+          <li id="userLinks" style="display:none;">
+            <span id="welcomeMessage" class="text-muted"></span>
+            <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <main class="event-builder-main">
+      <div class="event-card">
+        <header>
+          <h1 class="auth-title" style="margin:0;">Create New Event</h1>
+          <p>Share your upcoming event details. All fields are required unless noted.</p>
+        </header>
+
+        <form id="createEventForm" novalidate>
+          <div id="formAlert" class="alert alert-error" style="display:none;" role="alert"></div>
+
+          <div class="form-group">
+            <label class="form-label" for="title">Title</label>
+            <input type="text" id="title" name="title" class="form-control" placeholder="Concordia Club Fair"
+              minlength="3" maxlength="120" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="description">Description</label>
+            <textarea id="description" name="description" class="form-control" rows="4"
+              placeholder="Tell attendees what to expect, who is hosting, and why they should come." required></textarea>
+          </div>
+
+          <div class="form-grid cols-2">
+            <div class="form-group">
+              <label class="form-label" for="eventDate">Event Date</label>
+              <input type="date" id="eventDate" name="eventDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="eventTime">Event Time</label>
+              <input type="time" id="eventTime" name="eventTime" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="location">Location</label>
+            <input type="text" id="location" name="location" class="form-control"
+              placeholder="Henry F. Hall Building, H-110" required>
+          </div>
+
+          <div class="form-grid cols-2">
+            <div class="form-group">
+              <label class="form-label" for="capacity">Capacity</label>
+              <input type="number" id="capacity" name="capacity" class="form-control" min="1" step="1"
+                placeholder="150" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="organization">Organization</label>
+              <input type="text" id="organization" name="organization" class="form-control"
+                placeholder="Engineering & Computer Science Association" required>
+            </div>
+          </div>
+
+          <div class="form-grid cols-2">
+            <div class="form-group">
+              <label class="form-label" for="category">Category</label>
+              <select id="category" name="category" class="form-control" required>
+                <option value="">Select a category</option>
+                <option value="sports">Sports</option>
+                <option value="academic">Academic</option>
+                <option value="social">Social</option>
+                <option value="club">Club</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="price">Ticket Price</label>
+              <input type="number" id="price" name="price" class="form-control" min="0" step="0.01" placeholder="0"
+                required>
+              <small>Enter 0 for a free event.</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <span class="ticket-indicator" id="ticketTypeIndicator" aria-live="polite">Ticket Type: Free</span>
+          </div>
+
+          <div class="form-actions">
+            <a href="organizer-dashboard.html" class="btn btn-secondary btn-sm">← Back to Dashboard</a>
+            <div class="cta-buttons">
+              <button type="button" id="saveDraftBtn" class="btn btn-secondary btn-lg">Save Draft</button>
+              <button type="submit" class="btn btn-primary btn-lg">Create Event</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="about.html">About Us</a>
+        <a href="index.html#events">Events</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms of Service</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      const $ = (selector) => document.querySelector(selector);
+      const form = $('#createEventForm');
+      const alertBox = $('#formAlert');
+      const priceInput = $('#price');
+      const ticketIndicator = $('#ticketTypeIndicator');
+      const saveDraftBtn = $('#saveDraftBtn');
+      const draftKey = 'conevents:organizerDraft';
+
+      function updateTicketIndicator() {
+        const price = parseFloat(priceInput.value || '0');
+        const type = price > 0 ? 'Paid' : 'Free';
+        ticketIndicator.textContent = `Ticket Type: ${type}`;
+        ticketIndicator.style.background =
+          type === 'Paid'
+            ? 'rgba(107, 44, 145, 0.12)'
+            : 'rgba(145, 35, 56, 0.08)';
+      }
+
+      function showErrors(messages) {
+        if (!messages.length) {
+          alertBox.style.display = 'none';
+          alertBox.innerHTML = '';
+          return;
+        }
+        alertBox.innerHTML = `<strong>Please fix the following:</strong><ul>${messages
+          .map((msg) => `<li>${msg}</li>`)
+          .join('')}</ul>`;
+        alertBox.style.display = 'block';
+      }
+
+      function validateForm() {
+        const messages = [];
+        const requiredFields = [
+          'title',
+          'description',
+          'eventDate',
+          'eventTime',
+          'location',
+          'capacity',
+          'organization',
+          'category',
+          'price',
+        ];
+
+        requiredFields.forEach((id) => {
+          const field = document.getElementById(id);
+          field.classList.remove('error-border');
+          if (!field.value || !field.value.trim()) {
+            field.classList.add('error-border');
+            messages.push(`${field.previousElementSibling?.textContent || id} is required.`);
+          }
+        });
+
+        const capacity = parseInt($('#capacity').value, 10);
+        if (Number.isFinite(capacity) && capacity < 1) {
+          $('#capacity').classList.add('error-border');
+          messages.push('Capacity must be at least 1.');
+        }
+
+        const price = parseFloat(priceInput.value || '0');
+        if (!Number.isFinite(price) || price < 0) {
+          priceInput.classList.add('error-border');
+          messages.push('Ticket price must be zero or higher.');
+        }
+
+        return messages;
+      }
+
+      function serializeForm() {
+        const data = {};
+        const inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach((field) => {
+          if (field.type === 'file') return;
+          data[field.id] = field.value;
+        });
+        return data;
+      }
+
+      function restoreDraft() {
+        const cached = localStorage.getItem(draftKey);
+        if (!cached) return;
+        try {
+          const data = JSON.parse(cached);
+          Object.entries(data).forEach(([id, value]) => {
+            const field = document.getElementById(id);
+            if (field) field.value = value;
+          });
+          updateTicketIndicator();
+        } catch (error) {
+          console.warn('Unable to restore draft:', error);
+        }
+      }
+
+      function saveDraft() {
+        localStorage.setItem(draftKey, JSON.stringify(serializeForm()));
+        showErrors([]);
+        alertBox.classList.remove('alert-error');
+        alertBox.classList.add('alert-info');
+        alertBox.textContent = 'Draft saved locally.';
+        alertBox.style.display = 'block';
+      }
+
+      priceInput.addEventListener('input', updateTicketIndicator);
+
+      saveDraftBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        saveDraft();
+      });
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const messages = validateForm();
+        if (messages.length) {
+          alertBox.classList.remove('alert-info');
+          alertBox.classList.add('alert-error');
+          showErrors(messages);
+          return;
+        }
+        showErrors([]);
+        const payload = serializeForm();
+        payload.ticketType = parseFloat(priceInput.value || '0') > 0 ? 'paid' : 'free';
+
+        alertBox.classList.remove('alert-error');
+        alertBox.classList.add('alert-info');
+        alertBox.textContent = 'Form is valid. Connect backend to submit.';
+        alertBox.style.display = 'block';
+        console.log('Event payload ready for backend:', payload);
+      });
+
+      restoreDraft();
+      updateTicketIndicator();
+    })();
+  </script>
+</body>
+
+</html>
