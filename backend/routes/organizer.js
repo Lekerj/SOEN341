@@ -7,7 +7,7 @@ const { requireOrganizer } = require('../middleware/auth');
 const validateEventData = (data) => {
     const { title, description, event_date, event_time, location, capacity, price, organization, category } = data;
     const errors = [];
-    const validCategories = ["sports","academics","social","club"];
+    const validCategories = ["sports","academic","social","club"];
 
     // Error handling for missing fields. 
     // if (!title || !description || !event_date || !event_time || !location || !organization || !category) {
