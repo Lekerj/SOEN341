@@ -152,4 +152,223 @@ router.post('/events', requireOrganizer, (req, res) => {
     });
 });
 
+/**
+ * Route: PUT /api/organizer/events/:id
+ * Function: Allows an authenticated 'organizer' user to update an existing event.
+ * Middleware: requireOrganizer (Checks session and role)
+ */
+router.put('/events/:id', requireOrganizer, (req, res) => {
+    const eventId = req.params.id;
+    const organizerId = req.session.userId;
+    const eventData = req.body;
+
+    // 1. Validate provided event data (only validate fields that are being updated)
+    const validateUpdateData = (data) => {
+        const errors = [];
+        const validCategories = ["sports","academic","social","club"];
+
+        // Title validation if provided
+        if (data.title !== undefined) {
+            if (!data.title) {
+                errors.push('title: Required.');
+            } else if (typeof data.title !== 'string' || data.title.length > 255) {
+                errors.push('title: Must be a string, max 255 characters.');
+            }
+        }
+
+        // Description validation if provided
+        if (data.description !== undefined && data.description && data.description.length > 5000) {
+            errors.push('description: Must not exceed 5000 characters.');
+        }
+
+        // Location validation if provided
+        if (data.location !== undefined) {
+            if (!data.location) {
+                errors.push('location: Required.');
+            } else if (typeof data.location !== 'string' || data.location.length > 255) {
+                errors.push('location: Must be a string, max 255 characters.');
+            }
+        }
+
+        // Organization validation if provided
+        if (data.organization !== undefined) {
+            if (!data.organization) {
+                errors.push('organization: Required.');
+            } else if (typeof data.organization !== 'string' || data.organization.length > 100) {
+                errors.push('organization: Must be a string, max 100 characters.');
+            }
+        }
+
+        // event_date validation if provided
+        if (data.event_date !== undefined) {
+            if (!data.event_date) {
+                errors.push('event_date: Required.');
+            } else if (!/^\d{4}-\d{2}-\d{2}$/.test(data.event_date) || isNaN(Date.parse(data.event_date))) {
+                errors.push('event_date: Must be in YYYY-MM-DD format.');
+            } else {
+                const eventDate = new Date(data.event_date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (eventDate < today) {
+                    errors.push('event_date: Must be a date in the future or today.');
+                }
+            }
+        }
+
+        // event_time validation if provided
+        if (data.event_time !== undefined) {
+            if (!data.event_time) {
+                errors.push('event_time: Required.');
+            } else if (!/^\d{2}:\d{2}:\d{2}$/.test(data.event_time)) {
+                errors.push('event_time: Must be in HH:MM:SS format.');
+            }
+        }
+
+        // Capacity validation if provided
+        if (data.capacity !== undefined) {
+            const capacityInt = parseInt(data.capacity);
+            if (isNaN(capacityInt) || capacityInt < 1 || capacityInt > 10000) {
+                errors.push('capacity: Required, must be an integer between 1 and 10000.');
+            }
+        }
+
+        // Price validation if provided
+        if (data.price !== undefined) {
+            const priceString = String(data.price);
+            const priceFloat = parseFloat(priceString);
+            if (isNaN(priceFloat) || priceFloat < 0) {
+                errors.push('price: Required, must be a non-negative number.');
+            } else if (!/^\d+(\.\d{1,2})?$/.test(priceString)) {
+                errors.push('price: Must have at most two decimal places (e.g., 10 or 10.99).');
+            }
+        }
+
+        // Category validation if provided
+        if (data.category !== undefined) {
+            if (!data.category || !validCategories.includes(data.category)) {
+                errors.push(`category: Required, must be one of: ${validCategories.join(', ')}.`);
+            }
+        }
+
+        return errors;
+    };
+
+    // Validate the update data
+    const validationErrors = validateUpdateData(eventData);
+    if (validationErrors.length > 0) {
+        console.warn('Event update validation failed:', validationErrors);
+        return res.status(400).json({ success: false, error: "Invalid Data", message: validationErrors });
+    }
+
+    // 2. Verify ownership of the event (Issue #113)
+    const ownershipCheckSql = 'SELECT organizer_id FROM events WHERE id = ?';
+    db.query(ownershipCheckSql, [eventId], (err, results) => {
+        if (err) {
+            console.error("Database error during ownership check:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error", message: "Failed to verify event ownership." });
+        }
+
+        // Check if event exists (404)
+        if (results.length === 0) {
+            console.warn(`Event update attempt for non-existent event ID: ${eventId}`);
+            return res.status(404).json({ success: false, error: "Event not found" });
+        }
+
+        // Check if organizer owns the event (403)
+        const event = results[0];
+        if (event.organizer_id !== organizerId) {
+            console.warn(`Unauthorized event update attempt: User ${organizerId} tried to update event owned by ${event.organizer_id}`);
+            return res.status(403).json({ success: false, error: "Unauthorized", message: "You can only update your own events" });
+        }
+
+        // 3. Build dynamic SQL UPDATE query based on provided fields
+        const updateFields = [];
+        const updateValues = [];
+
+        if (eventData.title !== undefined) {
+            updateFields.push('title = ?');
+            updateValues.push(eventData.title);
+        }
+        if (eventData.description !== undefined) {
+            updateFields.push('description = ?');
+            updateValues.push(eventData.description || null);
+        }
+        if (eventData.event_date !== undefined) {
+            updateFields.push('event_date = ?');
+            updateValues.push(eventData.event_date);
+        }
+        if (eventData.event_time !== undefined) {
+            updateFields.push('event_time = ?');
+            updateValues.push(eventData.event_time);
+        }
+        if (eventData.location !== undefined) {
+            updateFields.push('location = ?');
+            updateValues.push(eventData.location);
+        }
+        if (eventData.capacity !== undefined) {
+            updateFields.push('capacity = ?');
+            updateValues.push(eventData.capacity);
+        }
+        if (eventData.price !== undefined) {
+            updateFields.push('price = ?');
+            updateValues.push(eventData.price);
+        }
+        if (eventData.organization !== undefined) {
+            updateFields.push('organization = ?');
+            updateValues.push(eventData.organization);
+        }
+        if (eventData.category !== undefined) {
+            updateFields.push('category = ?');
+            updateValues.push(eventData.category);
+        }
+
+        // Always update the updated_at timestamp
+        updateFields.push('updated_at = CURRENT_TIMESTAMP');
+
+        // If no fields provided, return error
+        if (updateFields.length === 1) { // Only updated_at would be set
+            console.warn('Event update attempt with no fields provided');
+            return res.status(400).json({ success: false, error: "Invalid Data", message: "At least one field must be provided for update." });
+        }
+
+        // Add event ID to values for WHERE clause
+        updateValues.push(eventId);
+
+        const updateSql = `
+            UPDATE events
+            SET ${updateFields.join(', ')}
+            WHERE id = ?
+        `;
+
+        // 4. Execute database update
+        db.query(updateSql, updateValues, (err, result) => {
+            if (err) {
+                console.error("Database error during event update:", err);
+                return res.status(500).json({ success: false, error: "Internal Server Error", message: "Failed to update event due to a database issue." });
+            }
+
+            // 5. Fetch the updated event and return it
+            const fetchSql = 'SELECT * FROM events WHERE id = ?';
+            db.query(fetchSql, [eventId], (err, results) => {
+                if (err) {
+                    console.error("Database error fetching updated event:", err);
+                    return res.status(500).json({ success: false, error: "Internal Server Error", message: "Failed to fetch updated event." });
+                }
+
+                if (results.length === 0) {
+                    console.error("Updated event not found after update");
+                    return res.status(500).json({ success: false, error: "Internal Server Error", message: "Event was updated but could not be retrieved." });
+                }
+
+                const updatedEvent = results[0];
+                res.status(200).json({
+                    success: true,
+                    message: "Event successfully updated.",
+                    event: updatedEvent
+                });
+            });
+        });
+    });
+});
+
 module.exports = router;
