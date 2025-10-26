@@ -371,4 +371,85 @@ router.put('/events/:id', requireOrganizer, (req, res) => {
     });
 });
 
+/**
+ * Route: GET /api/organizer/events/:id/analytics
+ * Function: Returns detailed analytics for a specific event owned by the organizer.
+ * Middleware: requireOrganizer
+ */
+router.get('/events/:id/analytics', requireOrganizer, async (req, res) => {
+    const eventId = req.params.id;
+    const organizerId = req.session.userId;
+
+    // 1. Verify event ownership
+    const ownershipSql = 'SELECT * FROM events WHERE id = ? AND organizer_id = ?';
+    db.query(ownershipSql, [eventId, organizerId], (err, eventResults) => {
+        if (err) {
+            console.error('DB error during event ownership check:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to verify event ownership.' });
+        }
+        if (eventResults.length === 0) {
+            return res.status(404).json({ success: false, error: 'Event not found or not owned by organizer.' });
+        }
+        const event = eventResults[0];
+
+        // 2. Get main metrics
+        const metricsSql = `
+            SELECT 
+              (e.capacity - e.tickets_available) AS tickets_issued,
+              COUNT(CASE WHEN t.checked_in = TRUE THEN 1 END) AS tickets_checked_in,
+              e.tickets_available AS remaining_capacity,
+              ((COUNT(CASE WHEN t.checked_in = TRUE THEN 1 END) / NULLIF((e.capacity - e.tickets_available),0)) * 100) AS attendance_rate,
+              ((e.capacity - e.tickets_available) * e.price) AS total_revenue
+            FROM events e
+            LEFT JOIN tickets t ON e.id = t.event_id
+            WHERE e.id = ? AND e.organizer_id = ?
+            GROUP BY e.id
+        `;
+        db.query(metricsSql, [eventId, organizerId], (err, metricsResults) => {
+            if (err) {
+                console.error('DB error during metrics query:', err);
+                return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to calculate event metrics.' });
+            }
+            const metrics = metricsResults[0] || {
+                tickets_issued: 0,
+                tickets_checked_in: 0,
+                attendance_rate: 0,
+                remaining_capacity: event.capacity,
+                total_revenue: 0
+            };
+
+            // 3. Get timeline (claims by date)
+            const timelineSql = `
+                SELECT DATE(created_at) AS date, COUNT(*) AS claims
+                FROM tickets
+                WHERE event_id = ?
+                GROUP BY DATE(created_at)
+                ORDER BY date ASC
+            `;
+            db.query(timelineSql, [eventId], (err, timelineResults) => {
+                if (err) {
+                    console.error('DB error during timeline query:', err);
+                    return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to fetch claim timeline.' });
+                }
+                return res.status(200).json({
+                    success: true,
+                    analytics: {
+                        event,
+                        metrics: {
+                            tickets_issued: metrics.tickets_issued || 0,
+                            tickets_checked_in: metrics.tickets_checked_in || 0,
+                            attendance_rate: metrics.attendance_rate && !isNaN(metrics.attendance_rate)
+                                ? Number(metrics.attendance_rate).toFixed(2)
+                                : 0,
+                            remaining_capacity: metrics.remaining_capacity || event.tickets_available,
+                            total_revenue: metrics.total_revenue || 0
+                        },
+                        timeline: timelineResults || []
+                    }
+                });
+            });
+        });
+    });
+});
+
 module.exports = router;
