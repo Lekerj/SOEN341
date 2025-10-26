@@ -452,4 +452,65 @@ router.get('/events/:id/analytics', requireOrganizer, async (req, res) => {
     });
 });
 
+
+
+/**
+ * Route: GET /api/organizer/events
+ * Function: Returns all events owned by the authenticated organizer.
+ * Middleware: requireOrganizer
+ */
+
+router.get('/events', requireOrganizer, (req, res) => {
+    const organizerId = req.session.userId;
+    const sql = `
+        SELECT e.*, 
+            (e.capacity - e.tickets_available) AS tickets_issued,
+            COUNT(CASE WHEN t.checked_in = TRUE THEN 1 END) AS tickets_checked_in,
+            e.tickets_available AS remaining_capacity,
+            (CASE WHEN (e.capacity - e.tickets_available) > 0 THEN (COUNT(CASE WHEN t.checked_in = TRUE THEN 1 END) / (e.capacity - e.tickets_available)) * 100 ELSE 0 END) AS attendance_rate,
+            ((e.capacity - e.tickets_available) * e.price) AS total_revenue
+        FROM events e
+        LEFT JOIN tickets t ON e.id = t.event_id
+        WHERE e.organizer_id = ?
+        GROUP BY e.id
+        ORDER BY e.event_date DESC, e.event_time DESC
+    `;
+    db.query(sql, [organizerId], async (err, results) => {
+        if (err) {
+            console.error('DB error fetching organizer events:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to fetch events.' });
+        }
+
+        // For each event, fetch timeline data
+        const eventsWithTimeline = await Promise.all(results.map(event => {
+            return new Promise((resolve, reject) => {
+                const timelineSql = `
+                    SELECT DATE(created_at) AS date, COUNT(*) AS claims
+                    FROM tickets
+                    WHERE event_id = ?
+                    GROUP BY DATE(created_at)
+                    ORDER BY date ASC
+                `;
+                db.query(timelineSql, [event.id], (err, timelineResults) => {
+                    if (err) {
+                        // If timeline fails, just return event without timeline
+                        event.timeline = [];
+                    } else {
+                        event.timeline = timelineResults || [];
+                    }
+                    // Format metrics for consistency
+                    event.attendance_rate = event.attendance_rate && !isNaN(event.attendance_rate)
+                        ? Number(event.attendance_rate).toFixed(2)
+                        : 0;
+                    event.total_revenue = event.total_revenue || 0;
+                    event.remaining_capacity = event.remaining_capacity || event.tickets_available;
+                    resolve(event);
+                });
+            });
+        }));
+
+        return res.status(200).json({ success: true, events: eventsWithTimeline });
+    });
+});
+
 module.exports = router;
