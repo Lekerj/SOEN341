@@ -513,4 +513,70 @@ router.get('/events', requireOrganizer, (req, res) => {
     });
 });
 
+
+/**
+ * Route: GET /api/organizer/events/:id/attendees
+ * Function: Returns detailed attendee info for a specific event owned by the organizer.
+ * Middleware: requireOrganizer
+ */
+router.get('/events/:id/attendees', requireOrganizer, async (req, res) => {
+    const eventId = req.params.id;
+    const organizerId = req.session.userId;
+    const checkedInParam = req.query.checked_in;
+
+    // 1. Verify event ownership
+    const ownershipSql = 'SELECT organizer_id FROM events WHERE id = ?';
+    db.query(ownershipSql, [eventId], (err, eventResults) => {
+        if (err) {
+            console.error('DB error during event ownership check:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to verify event ownership.' });
+        }
+        if (eventResults.length === 0) {
+            return res.status(404).json({ success: false, error: 'Event not found.' });
+        }
+        if (eventResults[0].organizer_id !== organizerId) {
+            return res.status(403).json({ success: false, error: 'Unauthorized', message: 'You do not own this event.' });
+        }
+
+        // 2. Build attendee query
+        let attendeeSql = `
+            SELECT 
+              u.name, u.email,
+              t.id as ticket_id, t.ticket_type, t.qr_code, 
+              t.checked_in, t.created_at as claimed_at
+            FROM tickets t
+            JOIN users u ON t.user_id = u.id
+            WHERE t.event_id = ?
+        `;
+        const params = [eventId];
+        if (checkedInParam !== undefined) {
+            if (checkedInParam === 'true') {
+                attendeeSql += ' AND t.checked_in = TRUE';
+            } else if (checkedInParam === 'false') {
+                attendeeSql += ' AND t.checked_in = FALSE';
+            }
+        }
+        attendeeSql += ' ORDER BY t.created_at DESC';
+
+        db.query(attendeeSql, params, (err, attendeeResults) => {
+            if (err) {
+                console.error('DB error during attendee query:', err);
+                return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to fetch attendees.' });
+            }
+            return res.status(200).json({
+                success: true,
+                attendees: attendeeResults.map(a => ({
+                    name: a.name,
+                    email: a.email,
+                    ticket_id: a.ticket_id,
+                    ticket_type: a.ticket_type,
+                    qr_code: a.qr_code,
+                    checked_in: !!a.checked_in,
+                    claimed_at: a.claimed_at
+                }))
+            });
+        });
+    });
+});
+
 module.exports = router;
