@@ -69,6 +69,16 @@
       align-items: center;
       justify-content: center;
       text-align: center;
+      transition: background 0.3s ease, color 0.3s ease, opacity 0.3s ease;
+    }
+
+    .form-actions .btn[disabled] {
+      cursor: not-allowed;
+      opacity: 0.65;
+      background: linear-gradient(135deg, #b0b0b0 0%, #d4d4d4 100%);
+      color: rgba(255, 255, 255, 0.85) !important;
+      border: none;
+      box-shadow: none;
     }
 
     @media (max-width: 768px) {
