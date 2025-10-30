@@ -18,5 +18,5 @@ jobs:
         run: npm ci
         working-directory: backend
       - name: Run tests
-        run: npm test || exit 0
+        run: npm test
         working-directory: backend
