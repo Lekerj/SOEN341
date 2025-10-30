@@ -6,6 +6,55 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Event - ConEvents</title>
   <link rel="stylesheet" href="styles.css">
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const stored = localStorage.getItem('user');
+      if (!stored) return;
+
+      try {
+        const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
+        if (resp.ok) {
+          const user = JSON.parse(stored);
+          const authLinks = document.getElementById('authLinks');
+          const userLinks = document.getElementById('userLinks');
+          if (authLinks) authLinks.style.display = 'none';
+          if (userLinks) {
+            userLinks.style.display = 'flex';
+            userLinks.style.gap = '1rem';
+            userLinks.style.alignItems = 'center';
+          }
+          const welcome = document.getElementById('welcomeMessage');
+          if (welcome && user?.name) welcome.textContent = `Welcome, ${user.name}!`;
+        } else if (resp.status === 401) {
+          localStorage.removeItem('user');
+        }
+      } catch (error) {
+        console.warn('Profile check failed:', error);
+        localStorage.removeItem('user');
+      }
+    });
+
+    window.logout = async function logout() {
+      try {
+        const resp = await fetch(`${getApiBase()}/api/auth/logout`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        if (resp.ok) {
+          localStorage.removeItem('user');
+          window.location.href = 'index.html';
+        } else {
+          alert('Logout failed. Please try again.');
+        }
+      } catch (error) {
+        console.warn('Logout failed:', error);
+        localStorage.removeItem('user');
+        window.location.href = 'index.html';
+      }
+    };
+  </script>
   <style>
     .page-wrapper {
       min-height: 100vh;
@@ -70,6 +119,7 @@
       justify-content: center;
       text-align: center;
       transition: background 0.3s ease, color 0.3s ease, opacity 0.3s ease;
+      gap: 10px;
     }
 
     .form-actions .btn[disabled] {
@@ -79,6 +129,20 @@
       color: rgba(255, 255, 255, 0.85) !important;
       border: none;
       box-shadow: none;
+    }
+
+    .button-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-top-color: var(--white);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: none;
+    }
+
+    .btn.loading .button-spinner {
+      display: inline-block;
     }
 
     @media (max-width: 768px) {
@@ -255,7 +319,10 @@
 
         <div class="form-actions">
           <a href="organizer-dashboard.html" class="btn btn-secondary btn-lg">Back to Dashboard</a>
-          <button type="submit" class="btn btn-primary btn-lg" id="submitButton" disabled>Create Event</button>
+          <button type="submit" class="btn btn-primary btn-lg" id="submitButton" disabled>
+            <span class="button-spinner" aria-hidden="true"></span>
+            <span class="button-text">Create Event</span>
+          </button>
         </div>
       </form>
     </div>
@@ -274,12 +341,33 @@
 
   <script>
     (function () {
+      function getApiBase() {
+        const host = window.location.hostname;
+        const port = 3000;
+        return `http://${host}:${port}`;
+      }
+
+      function getAuthToken() {
+        const stored = localStorage.getItem('authToken');
+        if (stored) return stored;
+        try {
+          const user = JSON.parse(localStorage.getItem('user'));
+          if (user && user.token) return user.token;
+        } catch (error) {
+          console.warn('Unable to parse stored user token.');
+        }
+        return '';
+      }
+
       const $ = (selector) => document.querySelector(selector);
       const form = $('#createEventForm');
       const alertBox = $('#formAlert');
       const ticketIndicator = $('#ticketIndicator');
       const priceInput = $('#price');
       const submitButton = $('#submitButton');
+      const buttonSpinner = submitButton.querySelector('.button-spinner');
+      const buttonText = submitButton.querySelector('.button-text');
+      const formControls = form.querySelectorAll('input, select, textarea, button');
 
       const fieldConfigs = [
         {
@@ -451,6 +539,9 @@
       function updateSubmitState() {
         const isValid = fieldConfigs.every((config) => config.valid);
         submitButton.disabled = !isValid;
+        if (!isValid) {
+          submitButton.classList.remove('loading');
+        }
       }
 
       function showAlert(messages, isError = true) {
@@ -473,7 +564,11 @@
             .filter((field) => !field.valid)
             .map((field) => field.lastError)
             .filter(Boolean);
-          showAlert(remainingErrors, true);
+          if (remainingErrors.length) {
+            showAlert(remainingErrors, true);
+          } else {
+            showAlert([], true);
+          }
         }
       }
 
@@ -499,6 +594,21 @@
         });
       });
 
+      function setLoading(isLoading, text = 'Submitting…') {
+        formControls.forEach((control) => {
+          if (control !== submitButton) {
+            control.disabled = isLoading;
+          }
+        });
+        submitButton.disabled = isLoading || !fieldConfigs.every((config) => config.valid);
+        submitButton.classList.toggle('loading', isLoading);
+        if (isLoading) {
+          buttonText.textContent = text;
+        } else {
+          buttonText.textContent = 'Create Event';
+        }
+      }
+
       form.addEventListener('submit', (event) => {
         event.preventDefault();
         fieldConfigs.forEach((config) => {
@@ -516,14 +626,81 @@
           return;
         }
 
-        showAlert(['Form is valid. Wire up backend submission when ready.'], false);
-        const payload = Object.fromEntries(new FormData(form));
-        payload.ticketType = parseFloat(payload.price || '0') > 0 ? 'paid' : 'free';
-        console.log('Submit payload', payload);
+        const formData = Object.fromEntries(new FormData(form));
+        const normalizedTime = normalizeTime(formData.eventTime);
+        const payload = {
+          title: formData.title,
+          description: formData.description,
+          event_date: formData.eventDate,
+          event_time: normalizedTime,
+          location: formData.location,
+          capacity: Number(formData.capacity),
+          organization: formData.organization,
+          category: formData.category,
+          price: Number(formData.price),
+          ticketType: Number(formData.price) > 0 ? 'paid' : 'free'
+        };
+
+        setLoading(true);
+        showAlert(['Submitting event…'], false);
+
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        const token = getAuthToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        fetch(`${getApiBase()}/api/organizer/events`, {
+          method: 'POST',
+          headers,
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        })
+          .then(async (response) => {
+            if (!response.ok) {
+              const errorBody = await response.json().catch(() => ({}));
+              const message = errorBody?.message || 'Unable to create event. Please try again.';
+              throw new Error(message);
+            }
+            return response.json().catch(() => ({}));
+          })
+          .then(() => {
+            showAlert(['Event created successfully.'], false);
+            form.reset();
+            fieldConfigs.forEach((config) => {
+              config.valid = false;
+              config.touched = false;
+              config.lastError = null;
+              config.group?.classList.remove('valid', 'error');
+              if (config.errorEl) config.errorEl.textContent = '';
+            });
+            updateTicketIndicator();
+          })
+          .catch((error) => {
+            showAlert([error.message], true);
+          })
+          .finally(() => {
+            setLoading(false);
+            updateSubmitState();
+          });
       });
 
       updateTicketIndicator();
       updateSubmitState();
+
+      function normalizeTime(value) {
+        if (!value) return '';
+        if (/^\d{2}:\d{2}:\d{2}$/.test(value)) {
+          return value;
+        }
+        if (/^\d{1,2}:\d{2}$/.test(value)) {
+          const parts = value.split(':');
+          return `${parts[0].padStart(2, '0')}:${parts[1]}:00`;
+        }
+        return value;
+      }
     })();
   </script>
 </body>

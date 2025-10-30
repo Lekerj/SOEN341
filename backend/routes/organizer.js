@@ -103,7 +103,7 @@ router.post('/events', requireOrganizer, (req, res) => {
 
     // 1. Validation 
     const validationError = validateEventData(eventData);
-    if (validationError) {
+    if (validationError.length > 0) {
         console.warn('Event creation validation failed:', validationError);
         return res.status(400).json({ success: false, error: "Invalid Data", message: validationError });
     }
