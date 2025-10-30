@@ -461,6 +461,7 @@ body::before {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .event-date {
@@ -473,11 +474,10 @@ body::before {
   font-weight: bold;
   margin-bottom: var(--spacing-sm);
   box-shadow: var(--shadow-sm);
-  transition: all var(--transition-base);
+  transition: box-shadow var(--transition-base);
 }
 
 .event-card:hover .event-date {
-  transform: scale(1.05);
   box-shadow: var(--shadow-glow);
 }
 

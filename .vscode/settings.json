@@ -1,3 +1,19 @@
 {
-    "livePreview.defaultPreviewPath": "/frontend/index.html"
+    "livePreview.defaultPreviewPath": "/frontend/index.html",
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "local",
+            "database": "convenevents",
+            "username": "341"
+        }
+    ]
 }
