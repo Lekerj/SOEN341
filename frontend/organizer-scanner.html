@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Organizer • QR Scanner</title>
+  <!-- Assumes your global stylesheet is already used across other pages -->
+  <link rel="stylesheet" href="./styles.css" />
+  <!-- Optional: icon font if used elsewhere
+  <link rel="stylesheet" href="./icons.css" />
+  -->
+  <style>
+    /* Keep styles minimal; rely on your existing design system.
+       These are tiny helpers for layout-only, safe to remove if your CSS already covers them. */
+    .stack { display: grid; gap: var(--gap, 1rem); }
+    .row { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    @media (min-width: 768px) { .row--2 { grid-template-columns: 1fr 1fr; } }
+    .card { background: var(--surface, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 0.75rem; padding: 1rem; }
+    .muted { color: var(--muted, #6b7280); }
+    .badge { display: inline-flex; align-items: center; padding: 0.25rem 0.5rem; border-radius: 999px; font-size: 0.875rem; }
+    .badge--ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .badge--warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+    .badge--err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.625rem 0.9rem; border-radius: 0.625rem; border: 1px solid var(--border, #e5e7eb); background: var(--btn, #111827); color: #fff; cursor: pointer; }
+    .btn--ghost { background: transparent; color: inherit; }
+    .input, .select, .textarea { width: 100%; padding: 0.65rem 0.75rem; border: 1px solid var(--border, #e5e7eb); border-radius: 0.5rem; background: var(--surface, #fff); }
+    .header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; }
+    .header__title { font-size: 1.125rem; font-weight: 600; }
+    .header__meta { font-size: 0.95rem; }
+    .toolbar { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .list { list-style: none; padding: 0; margin: 0; }
+    .list li { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed var(--border, #e5e7eb); }
+    .list li:last-child { border-bottom: none; }
+    .vis { min-height: 72px; display:flex; align-items:center; justify-content:space-between; gap: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="container stack" style="--gap: 1.25rem; max-width: 1000px; margin: 0 auto; padding: 1rem;">
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                🎫 ConEvents
+            </a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="browse.html">Browse</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="profile.html">Profile</a></li>
+                <li id="authLinks">
+                    <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+                    <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+                </li>
+                <li id="userLinks" style="display: none;">
+                    <span id="welcomeMessage" class="text-muted"></span>
+                    <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <!-- Page Header -->
+    <header class="header">
+      <div class="header__left stack" style="--gap: 0.25rem;">
+        <a href="./organizer-dashboard.html" class="btn btn--ghost" aria-label="Back to dashboard">← Back</a>
+        <h1 class="header__title">QR Scanner</h1>
+        <div class="header__meta muted" id="eventMeta">
+          <label for="eventSelect" class="muted" style="margin-right: .5rem;">Event:</label>
+          <select id="eventSelect" class="select" aria-label="Select event" style="max-width: 420px;">
+            <option value="" selected disabled>Loading your events…</option>
+          </select>
+          <div class="muted" style="margin-top:.25rem;">
+            <strong id="eventTitle">{{ Event Title }}</strong>
+            <span class="muted">•</span>
+            <span id="eventDate">{{ Date }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="btnClear">Clear</button>
+      </div>
+    </header>
+
+    <!-- Actions Row: Upload & Manual Entry -->
+    <section class="row row--2">
+      <!-- Upload Card -->
+      <div class="card stack" style="--gap: 0.75rem;">
+        <h2 style="font-size: 1rem; font-weight: 600;">Upload QR Image</h2>
+        <p class="muted">Upload a QR code image to validate a ticket.</p>
+        <input class="input" type="file" id="qrFile" accept="image/*" aria-label="Upload QR code image" />
+        <div class="stack" style="--gap: 0.5rem;">
+          <img id="preview" alt="Preview" style="max-width: 100%; border-radius: 0.5rem; display:none;" />
+          <div class="muted" id="fileHint">Supported: PNG, JPG. Clear, well-lit images scan best.</div>
+        </div>
+      </div>
+
+      <!-- Manual Entry Card -->
+      <div class="card stack" style="--gap: 0.75rem;">
+        <h2 style="font-size: 1rem; font-weight: 600;">Manual Ticket Entry</h2>
+        <p class="muted">Type or paste a ticket ID/code if scanning isn’t available.</p>
+        <div class="stack" style="--gap: 0.5rem;">
+          <input class="input" type="text" id="manualCode" placeholder="Enter ticket ID or code" aria-label="Manual ticket ID" autocomplete="one-time-code" />
+          <div class="toolbar">
+            <button class="btn" id="btnValidate">Validate</button>
+            <button class="btn btn--ghost" id="btnPaste">Paste</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Result Display & Live Status -->
+    <section class="row row--2">
+      <!-- Result Card -->
+      <div class="card stack" style="--gap: 0.75rem;">
+        <h2 style="font-size: 1rem; font-weight: 600;">Result</h2>
+        <div class="vis" id="resultVis">
+          <span id="resultBadge" class="badge badge--warn">Waiting for input…</span>
+          <div class="muted" id="resultMeta">No ticket processed yet.</div>
+        </div>
+        <dl class="stack" style="--gap: 0.25rem; margin: 0;">
+          <div style="display:flex; justify-content:space-between; gap: 1rem;">
+            <dt class="muted">Ticket</dt>
+            <dd id="resTicket">—</dd>
+          </div>
+          <div style="display:flex; justify-content:space-between; gap: 1rem;">
+            <dt class="muted">Name</dt>
+            <dd id="resName">—</dd>
+          </div>
+          <div style="display:flex; justify-content:space-between; gap: 1rem;">
+            <dt class="muted">Type</dt>
+            <dd id="resType">—</dd>
+          </div>
+          <div style="display:flex; justify-content:space-between; gap: 1rem;">
+            <dt class="muted">Checked‑in</dt>
+            <dd id="resChecked">—</dd>
+          </div>
+        </dl>
+        <div class="toolbar">
+          <button class="btn" id="btnCheckIn">Check In</button>
+          <button class="btn btn--ghost" id="btnUndo">Undo</button>
+        </div>
+      </div>
+
+      <!-- Running Statistics Card -->
+      <div class="card stack" style="--gap: 0.75rem;">
+        <h2 style="font-size: 1rem; font-weight: 600;">Running Statistics</h2>
+        <ul class="list" aria-live="polite">
+          <li><span class="muted">Total Tickets</span><strong id="statTotal">0</strong></li>
+          <li><span class="muted">Checked‑in</span><strong id="statChecked">0</strong></li>
+          <li><span class="muted">Remaining</span><strong id="statRemaining">0</strong></li>
+          <li><span class="muted">Invalid Attempts</span><strong id="statInvalid">0</strong></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Visual Feedback Areas -->
+    <section class="stack" style="--gap: 0.75rem;">
+      <div class="card">
+        <div class="vis">
+          <span class="badge badge--ok" id="fbSuccess" style="display:none;">Success: Ticket validated</span>
+          <span class="badge badge--err" id="fbError" style="display:none;">Error: Invalid or already checked in</span>
+          <span class="badge badge--warn" id="fbWarn" style="display:none;">Warning: Network issue, retrying…</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // Minimal progressive enhancement; replace with your real logic / API calls.
+    const fileInput = document.getElementById('qrFile');
+    const preview = document.getElementById('preview');
+    const manualCode = document.getElementById('manualCode');
+    const btnValidate = document.getElementById('btnValidate');
+    const btnPaste = document.getElementById('btnPaste');
+    const btnClear = document.getElementById('btnClear');
+    const btnCheckIn = document.getElementById('btnCheckIn');
+    const btnUndo = document.getElementById('btnUndo');
+
+    // New: event selector elements
+    const eventSelect = document.getElementById('eventSelect');
+    const eventTitleEl = document.getElementById('eventTitle');
+    const eventDateEl = document.getElementById('eventDate');
+
+    // Helper to format a date string (expects ISO or yyyy-mm-dd HH:MM:SS)
+    function fmtDate(input) {
+      if (!input) return '—';
+      const d = new Date(input);
+      if (isNaN(d)) return input;
+      return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    // Load events for the currently logged-in organizer and populate the dropdown
+    async function loadOrganizerEvents() {
+      try {
+        // If the app exposes the organizer's events at this endpoint.
+        // Adjust the URL to your real API route if different.
+        const resp = await fetch('/api/organizers/me/events', { credentials: 'include' });
+        if (!resp.ok) throw new Error('Failed to load events');
+        const events = await resp.json(); // expect [{id, title, starts_at, startsAt, name, date,...}]
+
+        // Normalize shape
+        const normalized = events.map(e => ({
+          id: e.id ?? e.event_id ?? e.uuid,
+          title: e.title ?? e.name ?? 'Untitled event',
+          starts: e.starts_at ?? e.event_date ?? e.startsAt ?? e.start_time ?? null
+        }));
+
+        // Populate dropdown
+        eventSelect.innerHTML = '';
+        if (!normalized.length) {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'No events found for your account';
+          eventSelect.appendChild(opt);
+          eventSelect.disabled = true;
+          return;
+        }
+
+        // Preselect from URL if present
+        const params = new URLSearchParams(location.search);
+        const urlEventId = params.get('eventId');
+
+        normalized.forEach(e => {
+          const opt = document.createElement('option');
+          opt.value = String(e.id);
+          opt.textContent = e.title;
+          if (urlEventId && String(urlEventId) === String(e.id)) opt.selected = true;
+          eventSelect.appendChild(opt);
+        });
+
+        // Trigger UI update for selected event
+        updateSelectedEvent();
+      } catch (err) {
+        eventSelect.innerHTML = '<option value="" disabled selected>Unable to load events</option>';
+        console.error(err);
+      }
+    }
+
+    function updateSelectedEvent() {
+      const selectedId = eventSelect.value;
+      const selectedText = eventSelect.options[eventSelect.selectedIndex]?.textContent || '—';
+      eventTitleEl.textContent = selectedText;
+
+      // Optionally fetch the single event to get accurate date/time
+      // If your list already contains starts_at, you can set it without a network call
+      fetch(`/api/events/${selectedId}`, { credentials: 'include' }).then(r => r.ok ? r.json() : null).then(ev => {
+        if (ev) {
+          const when = ev.starts_at ?? ev.event_date ?? ev.startsAt ?? null;
+          eventDateEl.textContent = fmtDate(when);
+        } else {
+          eventDateEl.textContent = '—';
+        }
+      }).catch(() => { eventDateEl.textContent = '—'; });
+    }
+
+    eventSelect?.addEventListener('change', () => {
+      // Keep eventId in the URL so scanner deep-links are shareable
+      const params = new URLSearchParams(location.search);
+      params.set('eventId', eventSelect.value);
+      const newUrl = location.pathname + '?' + params.toString();
+      window.history.replaceState({}, '', newUrl);
+      updateSelectedEvent();
+    });
+
+    // Kick off on load
+    loadOrganizerEvents();
+
+    const resBadge = document.getElementById('resultBadge');
+    const resMeta = document.getElementById('resultMeta');
+    const resTicket = document.getElementById('resTicket');
+    const resName = document.getElementById('resName');
+    const resType = document.getElementById('resType');
+    const resChecked = document.getElementById('resChecked');
+
+    const fbSuccess = document.getElementById('fbSuccess');
+    const fbError = document.getElementById('fbError');
+    const fbWarn = document.getElementById('fbWarn');
+
+    const statTotal = document.getElementById('statTotal');
+    const statChecked = document.getElementById('statChecked');
+    const statRemaining = document.getElementById('statRemaining');
+    const statInvalid = document.getElementById('statInvalid');
+
+    function show(el, on=true) { el.style.display = on ? '' : 'none'; }
+    function setBadge(kind, text) {
+      resBadge.className = 'badge ' + (kind === 'ok' ? 'badge--ok' : kind === 'err' ? 'badge--err' : 'badge--warn');
+      resBadge.textContent = text;
+    }
+
+    // Preview uploaded QR image
+    fileInput?.addEventListener('change', (e) => {
+      const f = e.target.files?.[0];
+      if (!f) { preview.src = ''; show(preview, false); return; }
+      const reader = new FileReader();
+      reader.onload = () => { preview.src = reader.result; show(preview, true); };
+      reader.readAsDataURL(f);
+      setBadge('warn', 'Scanning image…');
+      resMeta.textContent = 'Image uploaded: ' + f.name;
+    });
+
+    // Paste convenience
+    btnPaste?.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        manualCode.value = text.trim();
+      } catch {}
+      manualCode.focus();
+    });
+
+    // Dummy validate to drive UI
+    btnValidate?.addEventListener('click', () => {
+      const code = manualCode.value.trim();
+      if (!code) { setBadge('err', 'No code provided'); resMeta.textContent = 'Enter a ticket ID or code.'; return; }
+      // Example response mapping; replace with real API.
+      const ok = /^[A-Z0-9\-]{6,}$/.test(code);
+      if (ok) {
+        resTicket.textContent = code;
+        resName.textContent = 'John/Jane Doe';
+        resType.textContent = 'GA';
+        resChecked.textContent = 'No';
+        setBadge('ok', 'Valid ticket');
+        resMeta.textContent = 'Ready to check in';
+        show(fbSuccess, true); setTimeout(() => show(fbSuccess, false), 2000);
+        // update stats (demo only)
+        statTotal.textContent = String(Number(statTotal.textContent) + 1);
+        statRemaining.textContent = String(Math.max(0, Number(statTotal.textContent) - Number(statChecked.textContent)));
+      } else {
+        setBadge('err', 'Invalid ticket');
+        resMeta.textContent = 'Code not recognized';
+        show(fbError, true); setTimeout(() => show(fbError, false), 2000);
+        statInvalid.textContent = String(Number(statInvalid.textContent) + 1);
+      }
+    });
+
+    btnCheckIn?.addEventListener('click', () => {
+      if (resTicket.textContent === '—') return;
+      resChecked.textContent = 'Yes';
+      setBadge('ok', 'Checked in');
+      show(fbSuccess, true); setTimeout(() => show(fbSuccess, false), 2000);
+      statChecked.textContent = String(Number(statChecked.textContent) + 1);
+      statRemaining.textContent = String(Math.max(0, Number(statTotal.textContent) - Number(statChecked.textContent)));
+    });
+
+    btnUndo?.addEventListener('click', () => {
+      if (resTicket.textContent === '—') return;
+      resChecked.textContent = 'No';
+      setBadge('warn', 'Check-in reverted');
+      show(fbWarn, true); setTimeout(() => show(fbWarn, false), 1500);
+      statChecked.textContent = String(Math.max(0, Number(statChecked.textContent) - 1));
+      statRemaining.textContent = String(Math.max(0, Number(statTotal.textContent) - Number(statChecked.textContent)));
+    });
+
+    btnClear?.addEventListener('click', () => {
+      manualCode.value = '';
+      resTicket.textContent = '—';
+      resName.textContent = '—';
+      resType.textContent = '—';
+      resChecked.textContent = '—';
+      setBadge('warn', 'Waiting for input…');
+      resMeta.textContent = 'No ticket processed yet.';
+      show(preview, false);
+    });
+
+    // Handle logout
+    async function logout() {
+      try {
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+        if (response.ok) {
+          window.location.href = '/login.html';
+        }
+      } catch (error) {
+        console.error('Logout failed:', error);
+      }
+    }
+  </script>
+  <script>
+    // Bootstrap auth like other pages usually do: check session, redirect to login if needed
+    (async function bootstrapAuth(){
+      const authLinks = document.getElementById('authLinks');
+      const userLinks = document.getElementById('userLinks');
+      const welcomeMessage = document.getElementById('welcomeMessage');
+
+      try {
+        // First check if we have session cookies
+        const cookies = document.cookie.split(';').map(c => c.trim());
+        const hasSessionCookie = cookies.some(c => c.startsWith('session=') || c.startsWith('connect.sid='));
+        
+        if (!hasSessionCookie) {
+          // No session cookie found, show login state
+          if (authLinks && userLinks) {
+            authLinks.style.display = '';
+            userLinks.style.display = 'none';
+          }
+          return; // Don't redirect, just show login button
+        }
+
+        // We have a session cookie, let's verify it
+        const meResp = await fetch('/api/me', { 
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
+          }
+        });
+
+        if (!meResp.ok) {
+          // Session is invalid, clear it
+          document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+          document.cookie = 'connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+          
+          if (authLinks && userLinks) {
+            authLinks.style.display = '';
+            userLinks.style.display = 'none';
+          }
+          return; // Don't redirect, just show login button
+        }
+
+        const me = await meResp.json();
+        
+        // If app distinguishes roles, ensure organizer
+        if (me?.role && me.role !== 'organizer') {
+          if (authLinks && userLinks) {
+            authLinks.style.display = '';
+            userLinks.style.display = 'none';
+          }
+          return; // Don't redirect, just show login button
+        }
+
+        // Valid session and correct role, update UI
+        if (authLinks && userLinks && welcomeMessage) {
+          authLinks.style.display = 'none';
+          userLinks.style.display = '';
+          welcomeMessage.textContent = `Welcome, ${me.name || me.email || 'Organizer'}!`;
+        }
+
+        // Initialize the events loader
+        await loadOrganizerEvents();
+      } catch (e) {
+        console.error('Auth check failed:', e);
+        // On error, just show login state instead of redirecting
+        if (authLinks && userLinks) {
+          authLinks.style.display = '';
+          userLinks.style.display = 'none';
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
