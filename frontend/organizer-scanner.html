@@ -194,7 +194,7 @@
       try {
         // If the app exposes the organizer's events at this endpoint.
         // Adjust the URL to your real API route if different.
-        const resp = await fetch('/api/organizer/events', { credentials: 'include' });
+        const resp = await fetch('/api/organizers/me/events', { credentials: 'include' });
         if (!resp.ok) throw new Error('Failed to load events');
         const events = await resp.json(); // expect [{id, title, starts_at, startsAt, name, date,...}]
 
