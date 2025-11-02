@@ -41,18 +41,30 @@ async function runSqlFile() {
   const sqlPath = path.join(__dirname, '..', 'sql', 'seed_organizers.sql');
   const sql = fs.readFileSync(sqlPath, 'utf8');
 
+  // Remove single-line comments (--) and multi-line comment blocks (/* */)
+  let cleanedSql = sql
+    // Remove lines that are only comments
+    .split('\n')
+    .map(line => {
+      const commentIndex = line.indexOf('--');
+      return commentIndex >= 0 ? line.substring(0, commentIndex) : line;
+    })
+    .join('\n')
+    // Remove block comments /* */
+    .replace(/\/\*[\s\S]*?\*\//g, '');
+
   // Split statements by semicolon and execute them one by one.
-  // This is a simple splitter and assumes the SQL file does not contain
-  // complex semicolons inside strings or stored routines.
-  const statements = sql
+  const statements = cleanedSql
     .split(';')
     .map(s => s.trim())
-    .filter(s => s.length > 0 && !s.startsWith('--'));
+    .filter(s => s.length > 0);
+
+  console.log(`Found ${statements.length} SQL statements to execute`);
 
   for (const stmt of statements) {
     try {
       await query(stmt);
-      // console.log('Executed statement');
+      console.log('✓ Executed:', stmt.slice(0, 60).replace(/\n/g, ' '));
     } catch (err) {
       console.error('Failed to execute statement:', stmt.slice(0, 150), '...', err);
       throw err;
