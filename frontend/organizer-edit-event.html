@@ -87,6 +87,16 @@
       <ul class="navbar-menu">
         <li><a href="index.html">Home</a></li>
         <li><a href="browse.html">Browse</a></li>
+        <li id="organizerMenu" class="dropdown" style="display:none;">
+          <a href="#" class="dropdown-toggle">Organizer</a>
+          <ul class="dropdown-menu">
+           <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+                        <li><a href="organizer-create-event.html">Create Event</a></li>
+                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
+                        <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
+                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
+          </ul>
+        </li>
         <li><a href="about.html">About</a></li>
         <li><a href="profile.html">Profile</a></li>
         <li id="authLinks">
@@ -100,8 +110,19 @@
       </ul>
     </div>
   </nav>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+        const organizerMenu = document.getElementById('organizerMenu');
+        if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+      } catch (e) {}
+    });
+  </script>
 
   <main class="page-wrapper">
+    <div class="breadcrumbs"><span>Organizer</span> <span>›</span> <span>Edit Event</span></div>
     <div class="event-form-card" role="region" aria-labelledby="editEventHeading">
       <header class="event-form-header">
         <h1 id="editEventHeading" class="auth-title" style="margin:0;">Edit Event</h1>
@@ -339,7 +360,7 @@
           const resp = await fetch(`${getApiBase()}/api/events/${encodeURIComponent(eventId)}`, { credentials: 'include', headers });
 
           if (resp.status === 401 || resp.status === 403) {
-            showAlert(['You are not authorized to edit this event. Redirecting to events list...'], true);
+            showAlert(['You are not authorized to edit this event. Redirecting...'], true);
             setTimeout(() => { window.location.href = 'browse.html'; }, 2200);
             return;
           }
@@ -433,7 +454,7 @@
             throw new Error(body.message || 'Failed to update event.');
           }
 
-          showAlert(['Event updated successfully. Redirecting to events list...'], false);
+          showAlert(['Event updated successfully. Redirecting to events...'], false);
           setTimeout(() => { window.location.href = 'browse.html'; }, 1400);
         } catch (error) {
           showAlert([error.message || 'Update failed.'], true);
@@ -443,9 +464,9 @@
       });
 
       $('#cancelButton').addEventListener('click', () => {
-        // confirm cancel if changes were made
-        if (confirm('Discard changes and return to events list?')) {
-          window.location.href = 'browse.html';
+        if (confirm('Discard changes and go back?')) {
+          if (document.referrer) { window.history.back(); }
+          else { window.location.href = 'browse.html'; }
         }
       });
 
