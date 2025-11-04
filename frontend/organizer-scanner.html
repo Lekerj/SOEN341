@@ -1,238 +1,687 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Organizer • QR Scanner</title>
-  <!-- Assumes your global stylesheet is already used across other pages -->
+  <title>Organizer • QR Scanner • ConEvents</title>
+
   <link rel="stylesheet" href="./styles.css" />
-  <!-- Optional: icon font if used elsewhere
-  <link rel="stylesheet" href="./icons.css" />
-  -->
+  <!-- jsQR for client-side QR decoding (global jsQR) -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+
+  <!-- Mirror organizer-create-event: import getApiBase and bootstrap profile/session -->
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
+
+    // Show/hide navbar like create-event does
+    window.addEventListener('DOMContentLoaded', async () => {
+      const stored = localStorage.getItem('user');
+      if (!stored) return;
+
+      try {
+        const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
+        const authLinks = document.getElementById('authLinks');
+        const userLinks = document.getElementById('userLinks');
+        const welcome = document.getElementById('welcomeMessage');
+
+        if (resp.ok) {
+          const user = JSON.parse(stored);
+          if (authLinks) authLinks.style.display = 'none';
+          if (userLinks) {
+            userLinks.style.display = 'flex';
+            userLinks.style.gap = '1rem';
+            userLinks.style.alignItems = 'center';
+          }
+          if (welcome && user?.name) welcome.textContent = `Welcome, ${user.name}!`;
+        } else if (resp.status === 401) {
+          localStorage.removeItem('user');
+        }
+      } catch (error) {
+        console.warn('Profile check failed:', error);
+        localStorage.removeItem('user');
+      }
+    });
+
+    // Same logout behavior as organizer-create-event
+    window.logout = async function logout() {
+      try {
+        const resp = await fetch(`${getApiBase()}/api/auth/logout`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        if (resp.ok) {
+          localStorage.removeItem('user');
+          window.location.href = 'index.html';
+        } else {
+          alert('Logout failed. Please try again.');
+        }
+      } catch (error) {
+        console.warn('Logout failed:', error);
+        localStorage.removeItem('user');
+        window.location.href = 'index.html';
+      }
+    };
+  </script>
+
   <style>
-    /* Keep styles minimal; rely on your existing design system.
-       These are tiny helpers for layout-only, safe to remove if your CSS already covers them. */
-    .stack { display: grid; gap: var(--gap, 1rem); }
-    .row { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-    @media (min-width: 768px) { .row--2 { grid-template-columns: 1fr 1fr; } }
-    .card { background: var(--surface, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 0.75rem; padding: 1rem; }
-    .muted { color: var(--muted, #6b7280); }
-    .badge { display: inline-flex; align-items: center; padding: 0.25rem 0.5rem; border-radius: 999px; font-size: 0.875rem; }
-    .badge--ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-    .badge--warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
-    .badge--err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.625rem 0.9rem; border-radius: 0.625rem; border: 1px solid var(--border, #e5e7eb); background: var(--btn, #111827); color: #fff; cursor: pointer; }
-    .btn--ghost { background: transparent; color: inherit; }
-    .input, .select, .textarea { width: 100%; padding: 0.65rem 0.75rem; border: 1px solid var(--border, #e5e7eb); border-radius: 0.5rem; background: var(--surface, #fff); }
-    .header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; }
-    .header__title { font-size: 1.125rem; font-weight: 600; }
-    .header__meta { font-size: 0.95rem; }
-    .toolbar { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-    .list { list-style: none; padding: 0; margin: 0; }
-    .list li { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed var(--border, #e5e7eb); }
-    .list li:last-child { border-bottom: none; }
-    .vis { min-height: 72px; display:flex; align-items:center; justify-content:space-between; gap: 0.75rem; }
+    /* Scanner page specific styles */
+    .scanner-page-wrapper {
+      min-height: 100vh;
+      padding: var(--spacing-xl) var(--spacing-md);
+      position: relative;
+      z-index: 1;
+    }
+
+    .scanner-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      gap: var(--spacing-lg);
+    }
+
+    .scanner-header {
+      text-align: center;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .scanner-header h1 {
+      font-size: var(--font-size-2xl);
+      font-weight: bold;
+      color: var(--white);
+      margin-bottom: var(--spacing-xs);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .scanner-header p {
+      font-size: var(--font-size-base);
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Event Selection Card */
+    .event-selection-card {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .event-selection-card h2 {
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: var(--primary-maroon);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .event-selection-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--spacing-md);
+    }
+
+    @media (min-width: 768px) {
+      .event-selection-grid {
+        grid-template-columns: 1fr 1fr;
+        align-items: flex-end;
+      }
+    }
+
+    .form-group-wrapper {
+      display: grid;
+      gap: var(--spacing-xs);
+    }
+
+    .form-group-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--dark-gray);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .event-info-display {
+      padding: var(--spacing-md) var(--spacing-md);
+      background: linear-gradient(135deg, rgba(145, 35, 56, 0.05) 0%, rgba(107, 44, 145, 0.05) 100%);
+      border-radius: var(--radius-md);
+      border-left: 4px solid var(--primary-maroon);
+    }
+
+    .event-info-display strong {
+      display: block;
+      color: var(--primary-maroon);
+      font-size: var(--font-size-base);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .event-info-display span {
+      color: var(--medium-gray);
+      font-size: 0.75rem;
+    }
+
+    .staff-key-section {
+      display: grid;
+      gap: var(--spacing-md);
+      margin-top: var(--spacing-md) !important;
+      padding-top: var(--spacing-md) !important;
+    }
+
+    @media (min-width: 768px) {
+      .staff-key-section {
+        grid-template-columns: 1fr auto;
+        align-items: flex-end;
+      }
+    }
+
+    .staff-key-feedback {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      font-size: var(--font-size-sm);
+      color: var(--success);
+      font-weight: 600;
+      display: none;
+    }
+
+    .staff-key-feedback.show {
+      display: inline-flex;
+    }
+
+    /* Main Content Grid */
+    .scanner-content {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--spacing-lg);
+    }
+
+    @media (min-width: 1024px) {
+      .scanner-content {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+
+    /* Scanner Cards */
+    .scanner-card {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      padding: var(--spacing-lg);
+      transition: all var(--transition-base);
+      border: 2px solid transparent;
+    }
+
+    .scanner-card:hover {
+      box-shadow: var(--shadow-xl);
+      border-color: var(--primary-maroon);
+    }
+
+    .scanner-card h2 {
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      color: var(--primary-maroon);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .scanner-card p {
+      color: var(--medium-gray);
+      font-size: 0.875rem;
+      margin-bottom: var(--spacing-md);
+      line-height: 1.4;
+    }
+
+    /* Input Styles */
+    .form-control {
+      width: 100%;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border: 2px solid #e5e7eb;
+      border-radius: var(--radius-md);
+      background: var(--white);
+      font-size: 0.875rem;
+      font-family: var(--font-family);
+      transition: all var(--transition-base);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-maroon);
+      box-shadow: 0 0 0 3px rgba(145, 35, 56, 0.1);
+    }
+
+    .form-control::placeholder {
+      color: #a3a3a3;
+    }
+
+    /* File Input */
+    input[type="file"].form-control {
+      padding: var(--spacing-md);
+      cursor: pointer;
+    }
+
+    /* Preview Image */
+    #preview {
+      max-width: 100%;
+      border-radius: var(--radius-md);
+      margin-top: var(--spacing-md);
+      display: none;
+      border: 2px solid #e5e7eb;
+    }
+
+    /* Action Buttons */
+    .scanner-actions {
+      display: flex;
+      gap: var(--spacing-sm);
+      margin-top: var(--spacing-md);
+      flex-wrap: wrap;
+    }
+
+    .scanner-actions .btn {
+      flex: 1;
+      min-width: 100px;
+      font-weight: 600;
+      transition: all var(--transition-base);
+      font-size: 0.875rem;
+    }
+
+    @media (max-width: 640px) {
+      .scanner-actions {
+        flex-direction: column;
+      }
+
+      .scanner-actions .btn {
+        width: 100%;
+      }
+    }
+
+    /* Result Section */
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      font-size: 0.75rem;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .result-badge.success {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 2px solid #a7f3d0;
+    }
+
+    .result-badge.warning {
+      background: #fffbeb;
+      color: #92400e;
+      border: 2px solid #fde68a;
+    }
+
+    .result-badge.error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 2px solid #fecaca;
+    }
+
+    .result-meta {
+      color: var(--medium-gray);
+      font-size: 0.75rem;
+      margin-bottom: var(--spacing-md);
+      padding: var(--spacing-sm);
+      background: #f8f9fa;
+      border-radius: var(--radius-md);
+      border-left: 4px solid #e5e7eb;
+      line-height: 1.4;
+    }
+
+    .ticket-details {
+      display: grid;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .detail-row {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: var(--spacing-md);
+      padding-bottom: var(--spacing-sm);
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .detail-label {
+      color: var(--medium-gray);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .detail-value {
+      color: var(--dark-gray);
+      font-weight: 500;
+      word-break: break-word;
+      font-size: 0.875rem;
+    }
+
+    /* Statistics Card */
+    .stats-grid {
+      display: grid;
+      gap: var(--spacing-sm);
+      margin-top: var(--spacing-md);
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: #f8f9fa;
+      border-radius: var(--radius-md);
+      border-left: 4px solid var(--primary-maroon);
+    }
+
+    .stat-label {
+      color: var(--medium-gray);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .stat-value {
+      color: var(--primary-maroon);
+      font-size: var(--font-size-xl);
+      font-weight: bold;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .scanner-page-wrapper {
+        padding: var(--spacing-lg) var(--spacing-md);
+      }
+
+      .scanner-header h1 {
+        font-size: var(--font-size-xl);
+      }
+
+      .event-selection-card {
+        padding: var(--spacing-md);
+      }
+
+      .scanner-card {
+        padding: var(--spacing-md);
+      }
+
+      .scanner-card h2 {
+        font-size: var(--font-size-base);
+      }
+
+      .detail-row {
+        grid-template-columns: 70px 1fr;
+      }
+    }
   </style>
 </head>
+
 <body>
-  <div class="container stack" style="--gap: 1.25rem; max-width: 1000px; margin: 0 auto; padding: 1rem;">
-    <!-- Navigation Bar -->
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="index.html" class="navbar-logo">
-                🎫 ConEvents
-            </a>
-            <ul class="navbar-menu">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="browse.html">Browse</a></li>
-                <li><a href="about.html">About</a></li>
-                <li><a href="profile.html">Profile</a></li>
-                <li id="authLinks">
-                    <a href="login.html" class="btn btn-primary btn-sm">Login</a>
-                    <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
-                </li>
-                <li id="userLinks" style="display: none;">
-                    <span id="welcomeMessage" class="text-muted"></span>
-                    <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
-                </li>
-            </ul>
-        </div>
-    </nav>
-    <!-- Page Header -->
-    <header class="header">
-      <div class="header__left stack" style="--gap: 0.25rem;">
-        <a href="./organizer-dashboard.html" class="btn btn--ghost" aria-label="Back to dashboard">← Back</a>
-        <h1 class="header__title">QR Scanner</h1>
-        <div class="header__meta muted" id="eventMeta">
-          <label for="eventSelect" class="muted" style="margin-right: .5rem;">Event:</label>
-          <select id="eventSelect" class="select" aria-label="Select event" style="max-width: 420px;">
-            <option value="" selected disabled>Loading your events…</option>
-          </select>
-          <div class="muted" style="margin-top:.25rem;">
-            <strong id="eventTitle">{{ Event Title }}</strong>
-            <span class="muted">•</span>
-            <span id="eventDate">{{ Date }}</span>
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="index.html#events">Events</a></li>
+        <li><a href="about.html">About</a></li>
+        <li id="authLinks">
+          <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </li>
+        <li id="userLinks" style="display:none;">
+          <span id="welcomeMessage" class="text-muted"></span>
+          <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="scanner-page-wrapper">
+    <div class="scanner-container">
+      <!-- Header -->
+      <header class="scanner-header">
+        <h1>Attendee Check-In Scanner</h1>
+        <p>Verify and check-in attendees using QR codes or ticket codes</p>
+      </header>
+
+      <!-- Event Selection -->
+      <section class="event-selection-card">
+        <h2>Select Event</h2>
+        <div class="event-selection-grid">
+          <div class="form-group-wrapper">
+            <label for="eventSelect" class="form-group-label">Event</label>
+            <select id="eventSelect" class="form-control">
+              <option value="" disabled selected>Loading your events…</option>
+            </select>
+          </div>
+
+          <div class="event-info-display">
+            <strong id="eventTitle">—</strong>
+            <span id="eventDate">—</span>
           </div>
         </div>
-      </div>
-      <div class="toolbar">
-        <button class="btn" id="btnClear">Clear</button>
-      </div>
-    </header>
 
-    <!-- Actions Row: Upload & Manual Entry -->
-    <section class="row row--2">
-      <!-- Upload Card -->
-      <div class="card stack" style="--gap: 0.75rem;">
-        <h2 style="font-size: 1rem; font-weight: 600;">Upload QR Image</h2>
-        <p class="muted">Upload a QR code image to validate a ticket.</p>
-        <input class="input" type="file" id="qrFile" accept="image/*" aria-label="Upload QR code image" />
-        <div class="stack" style="--gap: 0.5rem;">
-          <img id="preview" alt="Preview" style="max-width: 100%; border-radius: 0.5rem; display:none;" />
-          <div class="muted" id="fileHint">Supported: PNG, JPG. Clear, well-lit images scan best.</div>
+        <!-- Staff Key (Optional) -->
+        <div class="staff-key-section" style="border-top: 1px solid #e5e7eb;">
+          <div class="form-group-wrapper">
+            <label for="staffKey" class="form-group-label">Staff Key (Optional)</label>
+            <input id="staffKey" type="password" class="form-control" placeholder="Enter staff key for check-in" autocomplete="current-password" />
+          </div>
+          <button class="btn btn-secondary" id="saveStaffKey" style="white-space: nowrap;">Save Key</button>
+          <span id="staffKeySaved" class="staff-key-feedback">✓ Saved</span>
+        </div>
+      </section>
+
+      <!-- Scanner Content -->
+      <div class="scanner-content">
+        <!-- Left Column: Input Methods -->
+        <div style="display: grid; gap: var(--spacing-lg);">
+          <!-- Upload QR Image Card -->
+          <section class="scanner-card">
+            <h2>📸 Upload QR Image</h2>
+            <p>Upload a QR image from your device. We'll decode and verify it automatically.</p>
+            <input type="file" id="qrFile" class="form-control" accept="image/*" />
+            <canvas id="qrCanvas" hidden></canvas>
+            <img id="preview" alt="QR Image Preview" />
+          </section>
+
+          <!-- Manual Entry Card -->
+          <section class="scanner-card">
+            <h2>⌨️ Manual Ticket Entry</h2>
+            <p>Paste the full ticket URL or ticket code directly.</p>
+            <input type="text" id="manualCode" class="form-control" placeholder="ABC123 or https://.../api/tickets/qr/ABC123" autocomplete="off" />
+            <div class="scanner-actions">
+              <button class="btn btn-primary" id="btnValidate">Verify Ticket</button>
+              <button class="btn btn-secondary" id="btnPaste">Paste</button>
+              <button class="btn btn--ghost" id="btnClear">Clear</button>
+            </div>
+          </section>
+        </div>
+
+        <!-- Right Column: Result & Stats -->
+        <div style="display: grid; gap: var(--spacing-lg);">
+          <!-- Result Card -->
+          <section class="scanner-card">
+            <h2>✓ Ticket Information</h2>
+            <span id="resultBadge" class="result-badge warning">Waiting for input…</span>
+            <div class="result-meta" id="resultMeta">No ticket processed yet.</div>
+
+            <div class="ticket-details">
+              <div class="detail-row">
+                <span class="detail-label">Ticket Code</span>
+                <span class="detail-value" id="resTicket">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Name</span>
+                <span class="detail-value" id="resName">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Email</span>
+                <span class="detail-value" id="resEmail">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Checked-In</span>
+                <span class="detail-value" id="resChecked">—</span>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" id="btnCheckIn" style="width: 100%; margin-top: var(--spacing-md);">Check In Attendee</button>
+          </section>
+
+          <!-- Statistics Card -->
+          <section class="scanner-card">
+            <h2>📊 Session Statistics</h2>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-label">Total Verified</span>
+                <span class="stat-value" id="statTotal">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Checked-In</span>
+                <span class="stat-value" id="statChecked">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Already Checked</span>
+                <span class="stat-value" id="statAlready">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Invalid</span>
+                <span class="stat-value" id="statInvalid">0</span>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
+    </div>
+  </main>
 
-      <!-- Manual Entry Card -->
-      <div class="card stack" style="--gap: 0.75rem;">
-        <h2 style="font-size: 1rem; font-weight: 600;">Manual Ticket Entry</h2>
-        <p class="muted">Type or paste a ticket ID/code if scanning isn’t available.</p>
-        <div class="stack" style="--gap: 0.5rem;">
-          <input class="input" type="text" id="manualCode" placeholder="Enter ticket ID or code" aria-label="Manual ticket ID" autocomplete="one-time-code" />
-          <div class="toolbar">
-            <button class="btn" id="btnValidate">Validate</button>
-            <button class="btn btn--ghost" id="btnPaste">Paste</button>
-          </div>
-        </div>
-      </div>
-    </section>
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="about.html">About Us</a>
+      <a href="index.html#events">Events</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+  </footer>
 
-    <!-- Result Display & Live Status -->
-    <section class="row row--2">
-      <!-- Result Card -->
-      <div class="card stack" style="--gap: 0.75rem;">
-        <h2 style="font-size: 1rem; font-weight: 600;">Result</h2>
-        <div class="vis" id="resultVis">
-          <span id="resultBadge" class="badge badge--warn">Waiting for input…</span>
-          <div class="muted" id="resultMeta">No ticket processed yet.</div>
-        </div>
-        <dl class="stack" style="--gap: 0.25rem; margin: 0;">
-          <div style="display:flex; justify-content:space-between; gap: 1rem;">
-            <dt class="muted">Ticket</dt>
-            <dd id="resTicket">—</dd>
-          </div>
-          <div style="display:flex; justify-content:space-between; gap: 1rem;">
-            <dt class="muted">Name</dt>
-            <dd id="resName">—</dd>
-          </div>
-          <div style="display:flex; justify-content:space-between; gap: 1rem;">
-            <dt class="muted">Type</dt>
-            <dd id="resType">—</dd>
-          </div>
-          <div style="display:flex; justify-content:space-between; gap: 1rem;">
-            <dt class="muted">Checked‑in</dt>
-            <dd id="resChecked">—</dd>
-          </div>
-        </dl>
-        <div class="toolbar">
-          <button class="btn" id="btnCheckIn">Check In</button>
-          <button class="btn btn--ghost" id="btnUndo">Undo</button>
-        </div>
-      </div>
+  <!-- Scanner logic that matches create-event API handling -->
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
 
-      <!-- Running Statistics Card -->
-      <div class="card stack" style="--gap: 0.75rem;">
-        <h2 style="font-size: 1rem; font-weight: 600;">Running Statistics</h2>
-        <ul class="list" aria-live="polite">
-          <li><span class="muted">Total Tickets</span><strong id="statTotal">0</strong></li>
-          <li><span class="muted">Checked‑in</span><strong id="statChecked">0</strong></li>
-          <li><span class="muted">Remaining</span><strong id="statRemaining">0</strong></li>
-          <li><span class="muted">Invalid Attempts</span><strong id="statInvalid">0</strong></li>
-        </ul>
-      </div>
-    </section>
+    // ====== Helpers matching organizer-create-event ======
+    function getAuthToken() {
+      const stored = localStorage.getItem('authToken');
+      if (stored) return stored;
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user && user.token) return user.token;
+      } catch (_) { }
+      return '';
+    }
+    function authHeaders(base = {}) {
+      const token = getAuthToken();
+      return token ? { ...base, Authorization: `Bearer ${token}` } : base;
+    }
 
-    <!-- Visual Feedback Areas -->
-    <section class="stack" style="--gap: 0.75rem;">
-      <div class="card">
-        <div class="vis">
-          <span class="badge badge--ok" id="fbSuccess" style="display:none;">Success: Ticket validated</span>
-          <span class="badge badge--err" id="fbError" style="display:none;">Error: Invalid or already checked in</span>
-          <span class="badge badge--warn" id="fbWarn" style="display:none;">Warning: Network issue, retrying…</span>
-        </div>
-      </div>
-    </section>
+    // ====== Elements ======
+    const CHECK_IN_HEADER = 'X-Staff-Key';
 
-  </div>
+    const eventSelect = document.getElementById('eventSelect');
+    const eventTitleEl = document.getElementById('eventTitle');
+    const eventDateEl = document.getElementById('eventDate');
 
-  <script>
-    // Minimal progressive enhancement; replace with your real logic / API calls.
-    const fileInput = document.getElementById('qrFile');
-    const preview = document.getElementById('preview');
+    const staffKeyEl = document.getElementById('staffKey');
+    const saveStaffKeyBtn = document.getElementById('saveStaffKey');
+    const staffKeySaved = document.getElementById('staffKeySaved');
+
     const manualCode = document.getElementById('manualCode');
     const btnValidate = document.getElementById('btnValidate');
     const btnPaste = document.getElementById('btnPaste');
     const btnClear = document.getElementById('btnClear');
     const btnCheckIn = document.getElementById('btnCheckIn');
-    const btnUndo = document.getElementById('btnUndo');
 
-    // New: event selector elements
-    const eventSelect = document.getElementById('eventSelect');
-    const eventTitleEl = document.getElementById('eventTitle');
-    const eventDateEl = document.getElementById('eventDate');
+    const fileInput = document.getElementById('qrFile');
+    const preview = document.getElementById('preview');
+    const qrCanvas = document.getElementById('qrCanvas');
+    const ctx = qrCanvas.getContext('2d');
 
-    // Helper to format a date string (expects ISO or yyyy-mm-dd HH:MM:SS)
+    const resBadge = document.getElementById('resultBadge');
+    const resMeta = document.getElementById('resultMeta');
+    const resTicket = document.getElementById('resTicket');
+    const resName = document.getElementById('resName');
+    const resEmail = document.getElementById('resEmail');
+    const resChecked = document.getElementById('resChecked');
+
+    const statTotal = document.getElementById('statTotal');
+    const statChecked = document.getElementById('statChecked');
+    const statAlready = document.getElementById('statAlready');
+    const statInvalid = document.getElementById('statInvalid');
+
+    // ====== Utils ======
+    function show(el, on = true) { el.style.display = on ? '' : 'none'; }
+    function setBadge(kind, text) {
+      resBadge.className = 'result-badge ' + (kind === 'ok' ? 'success' : kind === 'err' ? 'error' : 'warning');
+      resBadge.textContent = text;
+    }
     function fmtDate(input) {
       if (!input) return '—';
       const d = new Date(input);
       if (isNaN(d)) return input;
       return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
     }
+    function parseTicketCode(text) {
+      if (!text) return '';
+      const m = text.trim().match(/\/api\/tickets\/qr\/([A-Za-z0-9_-]+)/);
+      return m ? m[1] : text.trim();
+    }
 
-    // Load events for the currently logged-in organizer and populate the dropdown
+    // ====== Load organizer events (mirror create-event base/middleware) ======
     async function loadOrganizerEvents() {
       try {
-        // If the app exposes the organizer's events at this endpoint.
-        // Adjust the URL to your real API route if different.
-        const resp = await fetch('/api/organizer/events', { credentials: 'include' });
-        if (!resp.ok) throw new Error('Failed to load events');
-        const events = await resp.json(); // expect [{id, title, starts_at, startsAt, name, date,...}]
-
-        // Normalize shape
-        const normalized = events.map(e => ({
-          id: e.id ?? e.event_id ?? e.uuid,
-          title: e.title ?? e.name ?? 'Untitled event',
-          starts: e.starts_at ?? e.event_date ?? e.startsAt ?? e.start_time ?? null
-        }));
-
-        // Populate dropdown
+        // Organizer's events — pick the route your backend exposes.
+        // If your backend uses /api/organizer/events for read, reuse it (same as create-event POST base path).
+        const resp = await fetch(`${getApiBase()}/api/organizer/events`, {
+          credentials: 'include',
+          headers: authHeaders({ 'Accept': 'application/json' })
+        });
+        const data = resp.ok ? await resp.json() : { success: false, events: [] };
+        const events = data.success ? data.events : [];
         eventSelect.innerHTML = '';
-        if (!normalized.length) {
-          const opt = document.createElement('option');
-          opt.value = '';
-          opt.textContent = 'No events found for your account';
-          eventSelect.appendChild(opt);
+
+        if (!Array.isArray(events) || !events.length) {
+          eventSelect.innerHTML = '<option value="">No events found</option>';
           eventSelect.disabled = true;
           return;
         }
 
-        // Preselect from URL if present
         const params = new URLSearchParams(location.search);
         const urlEventId = params.get('eventId');
 
-        normalized.forEach(e => {
+        events.forEach(e => {
           const opt = document.createElement('option');
-          opt.value = String(e.id);
-          opt.textContent = e.title;
-          if (urlEventId && String(urlEventId) === String(e.id)) opt.selected = true;
+          opt.value = String(e.id ?? e.event_id ?? e.uuid);
+          opt.textContent = e.title ?? e.name ?? 'Untitled event';
+          if (urlEventId && String(urlEventId) === opt.value) opt.selected = true;
           eventSelect.appendChild(opt);
         });
 
-        // Trigger UI update for selected event
         updateSelectedEvent();
       } catch (err) {
-        eventSelect.innerHTML = '<option value="" disabled selected>Unable to load events</option>';
-        console.error(err);
+        console.warn('Failed to load events', err);
+        eventSelect.innerHTML = '<option value="">Unable to load events</option>';
       }
     }
 
@@ -241,212 +690,190 @@
       const selectedText = eventSelect.options[eventSelect.selectedIndex]?.textContent || '—';
       eventTitleEl.textContent = selectedText;
 
-      // Optionally fetch the single event to get accurate date/time
-      // If your list already contains starts_at, you can set it without a network call
-      fetch(`/api/events/${selectedId}`, { credentials: 'include' }).then(r => r.ok ? r.json() : null).then(ev => {
-        if (ev) {
-          const when = ev.starts_at ?? ev.event_date ?? ev.startsAt ?? null;
-          eventDateEl.textContent = fmtDate(when);
-        } else {
-          eventDateEl.textContent = '—';
-        }
-      }).catch(() => { eventDateEl.textContent = '—'; });
+      fetch(`${getApiBase()}/api/events/${selectedId}`, {
+        credentials: 'include',
+        headers: authHeaders({ 'Accept': 'application/json' })
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(j => {
+          const ev = j?.event || j || {};
+          eventDateEl.textContent = fmtDate(ev.starts_at ?? ev.event_date ?? ev.startsAt ?? null);
+        })
+        .catch(() => eventDateEl.textContent = '—');
     }
 
     eventSelect?.addEventListener('change', () => {
-      // Keep eventId in the URL so scanner deep-links are shareable
       const params = new URLSearchParams(location.search);
       params.set('eventId', eventSelect.value);
-      const newUrl = location.pathname + '?' + params.toString();
-      window.history.replaceState({}, '', newUrl);
+      history.replaceState({}, '', location.pathname + '?' + params.toString());
       updateSelectedEvent();
     });
 
-    // Kick off on load
-    loadOrganizerEvents();
+    // ====== Staff key save ======
+    saveStaffKeyBtn.addEventListener('click', () => {
+      const key = staffKeyEl.value.trim();
+      if (!key) return;
+      localStorage.setItem('staffKey', key);
+      staffKeySaved.classList.add('show');
+      setTimeout(() => staffKeySaved.classList.remove('show'), 1200);
+    });
 
-    const resBadge = document.getElementById('resultBadge');
-    const resMeta = document.getElementById('resultMeta');
-    const resTicket = document.getElementById('resTicket');
-    const resName = document.getElementById('resName');
-    const resType = document.getElementById('resType');
-    const resChecked = document.getElementById('resChecked');
+    // Prefill staff key
+    (function prefillStaffKey() { const saved = localStorage.getItem('staffKey'); if (saved) staffKeyEl.value = saved; })();
 
-    const fbSuccess = document.getElementById('fbSuccess');
-    const fbError = document.getElementById('fbError');
-    const fbWarn = document.getElementById('fbWarn');
-
-    const statTotal = document.getElementById('statTotal');
-    const statChecked = document.getElementById('statChecked');
-    const statRemaining = document.getElementById('statRemaining');
-    const statInvalid = document.getElementById('statInvalid');
-
-    function show(el, on=true) { el.style.display = on ? '' : 'none'; }
-    function setBadge(kind, text) {
-      resBadge.className = 'badge ' + (kind === 'ok' ? 'badge--ok' : kind === 'err' ? 'badge--err' : 'badge--warn');
-      resBadge.textContent = text;
-    }
-
-    // Preview uploaded QR image
+    // ====== QR upload + decode (client-side) ======
     fileInput?.addEventListener('change', (e) => {
       const f = e.target.files?.[0];
       if (!f) { preview.src = ''; show(preview, false); return; }
       const reader = new FileReader();
-      reader.onload = () => { preview.src = reader.result; show(preview, true); };
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const { width, height } = img;
+          qrCanvas.width = width; qrCanvas.height = height;
+          ctx.drawImage(img, 0, 0);
+          const data = ctx.getImageData(0, 0, width, height);
+          const result = jsQR(data.data, width, height);
+          if (result && result.data) {
+            let raw = (result && result.data ? result.data : '').trim();
+            let short = raw;
+
+            try {
+              const u = new URL(raw);
+              // Prefer ?code=... if present
+              short = u.searchParams.get('code')
+                || (u.pathname.match(/\/api\/tickets\/qr\/([^/]+)/)?.[1])
+                || u.pathname.split('/').filter(Boolean).pop(); // last path segment
+            } catch {
+              // Not a URL string: try regex fallbacks
+              short = raw.match(/[?&]code=([^&]+)/)?.[1]
+                || raw.match(/\/api\/tickets\/qr\/([^/]+)/)?.[1]
+                || raw;
+            }
+
+            manualCode.value = short;
+            verifyNow();
+          } else {
+            setBadge('err', 'No QR found');
+            resMeta.textContent = 'Unable to decode QR image.';
+          }
+        };
+        img.src = reader.result;
+        preview.src = reader.result; show(preview, true);
+      };
       reader.readAsDataURL(f);
-      setBadge('warn', 'Scanning image…');
-      resMeta.textContent = 'Image uploaded: ' + f.name;
     });
 
-    // Paste convenience
     btnPaste?.addEventListener('click', async () => {
-      try {
-        const text = await navigator.clipboard.readText();
-        manualCode.value = text.trim();
-      } catch {}
+      try { manualCode.value = (await navigator.clipboard.readText()).trim(); } catch { }
       manualCode.focus();
     });
 
-    // Dummy validate to drive UI
-    btnValidate?.addEventListener('click', () => {
-      const code = manualCode.value.trim();
-      if (!code) { setBadge('err', 'No code provided'); resMeta.textContent = 'Enter a ticket ID or code.'; return; }
-      // Example response mapping; replace with real API.
-      const ok = /^[A-Z0-9\-]{6,}$/.test(code);
-      if (ok) {
-        resTicket.textContent = code;
-        resName.textContent = 'John/Jane Doe';
-        resType.textContent = 'GA';
-        resChecked.textContent = 'No';
-        setBadge('ok', 'Valid ticket');
-        resMeta.textContent = 'Ready to check in';
-        show(fbSuccess, true); setTimeout(() => show(fbSuccess, false), 2000);
-        // update stats (demo only)
-        statTotal.textContent = String(Number(statTotal.textContent) + 1);
-        statRemaining.textContent = String(Math.max(0, Number(statTotal.textContent) - Number(statChecked.textContent)));
-      } else {
-        setBadge('err', 'Invalid ticket');
-        resMeta.textContent = 'Code not recognized';
-        show(fbError, true); setTimeout(() => show(fbError, false), 2000);
-        statInvalid.textContent = String(Number(statInvalid.textContent) + 1);
-      }
-    });
+    // ====== Verify flow (uses same base/middleware as create-event) ======
+    btnValidate?.addEventListener('click', () => verifyNow());
 
-    btnCheckIn?.addEventListener('click', () => {
-      if (resTicket.textContent === '—') return;
-      resChecked.textContent = 'Yes';
-      setBadge('ok', 'Checked in');
-      show(fbSuccess, true); setTimeout(() => show(fbSuccess, false), 2000);
-      statChecked.textContent = String(Number(statChecked.textContent) + 1);
-      statRemaining.textContent = String(Math.max(0, Number(statTotal.textContent) - Number(statChecked.textContent)));
-    });
+    async function verifyNow() {
+      const raw = manualCode.value.trim();
+      if (!raw) { setBadge('err', 'No input'); resMeta.textContent = 'Paste ticket URL or code.'; return; }
+      const code = parseTicketCode(raw);
 
-    btnUndo?.addEventListener('click', () => {
-      if (resTicket.textContent === '—') return;
-      resChecked.textContent = 'No';
-      setBadge('warn', 'Check-in reverted');
-      show(fbWarn, true); setTimeout(() => show(fbWarn, false), 1500);
-      statChecked.textContent = String(Math.max(0, Number(statChecked.textContent) - 1));
-      statRemaining.textContent = String(Math.max(0, Number(statTotal.textContent) - Number(statChecked.textContent)));
-    });
+      setBadge('warn', 'Verifying…');
+      resMeta.textContent = 'Checking ticket status…';
 
-    btnClear?.addEventListener('click', () => {
-      manualCode.value = '';
-      resTicket.textContent = '—';
-      resName.textContent = '—';
-      resType.textContent = '—';
-      resChecked.textContent = '—';
-      setBadge('warn', 'Waiting for input…');
-      resMeta.textContent = 'No ticket processed yet.';
-      show(preview, false);
-    });
-
-    // Handle logout
-    async function logout() {
       try {
-        const response = await fetch('/api/auth/logout', {
+        const resp = await fetch(`${getApiBase()}/api/tickets/verify`, {
           method: 'POST',
-          credentials: 'include'
+          credentials: 'include',
+          headers: authHeaders({ 'Content-Type': 'application/json', 'Accept': 'application/json' }),
+          body: JSON.stringify({ ticket_code: code, eventId: eventSelect.value || undefined })
         });
-        if (response.ok) {
-          window.location.href = '/login.html';
+
+        statTotal.textContent = String(+statTotal.textContent + 1);
+
+        if (!resp.ok) {
+          setBadge('err', 'Invalid ticket');
+          resMeta.textContent = 'Ticket not found or invalid.';
+          statInvalid.textContent = String(+statInvalid.textContent + 1);
+          return;
         }
-      } catch (error) {
-        console.error('Logout failed:', error);
+
+        const data = await resp.json();
+        const t = data.ticket || data || {};
+        const checked = Boolean(
+          t.already_checked_in ?? t.checked_in ?? t.checkedIn ?? false
+        );
+        resTicket.textContent = t.qr_code || t.code || code;
+        resName.textContent = t.attendee_name || t.attendeeName || t.name || '—';
+        resEmail.textContent = t.attendee_email || t.attendeeEmail || t.email || '—';
+        resChecked.textContent = checked ? 'Yes' : 'No';
+
+        if (checked) {
+          setBadge('warn', 'Already checked-in');
+          resMeta.textContent = t.message || data.message || 'This ticket is already checked in.';
+          statAlready.textContent = String(+statAlready.textContent + 1);
+        } else {
+          setBadge('ok', 'Valid ticket');
+          resMeta.textContent = t.message || data.message || 'Ready to check in';
+        }
+      } catch (err) {
+        console.error(err);
+        setBadge('err', 'Network error');
+        resMeta.textContent = 'Please try again.';
       }
     }
-  </script>
-  <script>
-    // Bootstrap auth like other pages usually do: check session, redirect to login if needed
-    (async function bootstrapAuth(){
-      const authLinks = document.getElementById('authLinks');
-      const userLinks = document.getElementById('userLinks');
-      const welcomeMessage = document.getElementById('welcomeMessage');
+
+    // ====== Check-in (same middleware + optional staff key header) ======
+    btnCheckIn?.addEventListener('click', async () => {
+      const code = resTicket.textContent;
+      if (!code || code === '—') return;
+
+      const staffKey = staffKeyEl.value.trim() || localStorage.getItem('staffKey') || '';
+      const baseHeaders = authHeaders({ 'Content-Type': 'application/json', 'Accept': 'application/json' });
+      const headers = staffKey ? { ...baseHeaders, [CHECK_IN_HEADER]: staffKey } : baseHeaders;
+
+      setBadge('warn', 'Checking in…');
 
       try {
-        // First check if we have session cookies
-        const cookies = document.cookie.split(';').map(c => c.trim());
-        const hasSessionCookie = cookies.some(c => c.startsWith('session=') || c.startsWith('connect.sid='));
-        
-        if (!hasSessionCookie) {
-          // No session cookie found, show login state
-          if (authLinks && userLinks) {
-            authLinks.style.display = '';
-            userLinks.style.display = 'none';
-          }
-          return; // Don't redirect, just show login button
-        }
-
-        // We have a session cookie, let's verify it
-        const meResp = await fetch('/api/me', { 
+        const resp = await fetch(`${getApiBase()}/api/tickets/check-in`, {
+          method: 'POST',
           credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
-            'Cache-Control': 'no-cache'
-          }
+          headers,
+          body: JSON.stringify({ ticket_code: code, eventId: eventSelect.value || undefined })
         });
 
-        if (!meResp.ok) {
-          // Session is invalid, clear it
-          document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-          document.cookie = 'connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-          
-          if (authLinks && userLinks) {
-            authLinks.style.display = '';
-            userLinks.style.display = 'none';
-          }
-          return; // Don't redirect, just show login button
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => '');
+          setBadge('err', 'Check-in failed');
+          resMeta.textContent = text || 'Unauthorized or invalid ticket.';
+          return;
         }
 
-        const me = await meResp.json();
-        
-        // If app distinguishes roles, ensure organizer
-        if (me?.role && me.role !== 'organizer') {
-          if (authLinks && userLinks) {
-            authLinks.style.display = '';
-            userLinks.style.display = 'none';
-          }
-          return; // Don't redirect, just show login button
-        }
-
-        // Valid session and correct role, update UI
-        if (authLinks && userLinks && welcomeMessage) {
-          authLinks.style.display = 'none';
-          userLinks.style.display = '';
-          welcomeMessage.textContent = `Welcome, ${me.name || me.email || 'Organizer'}!`;
-        }
-
-        // Initialize the events loader
-        await loadOrganizerEvents();
-      } catch (e) {
-        console.error('Auth check failed:', e);
-        // On error, just show login state instead of redirecting
-        if (authLinks && userLinks) {
-          authLinks.style.display = '';
-          userLinks.style.display = 'none';
-        }
+        const data = await resp.json();
+        const checked = Boolean(data.checked_in ?? data.checkedIn ?? false);
+        resChecked.textContent = checked ? 'Yes' : 'No';
+        setBadge('ok', 'Checked in');
+        resMeta.textContent = data.message || 'Attendee checked in successfully';
+        statChecked.textContent = String(+statChecked.textContent + 1);
+      } catch (err) {
+        console.error(err);
+        setBadge('err', 'Network error');
+        resMeta.textContent = 'Please try again.';
       }
-    })();
+    });
+
+    // ====== Clear ======
+    btnClear?.addEventListener('click', () => {
+      manualCode.value = '';
+      preview.src = ''; show(preview, false);
+      resBadge.className = 'result-badge warning';
+      resBadge.textContent = 'Waiting for input…';
+      resMeta.textContent = 'No ticket processed yet.';
+      resTicket.textContent = resName.textContent = resEmail.textContent = resChecked.textContent = '—';
+    });
+
+    // ====== Bootstrap events ======
+    await loadOrganizerEvents();
   </script>
 </body>
+
 </html>
