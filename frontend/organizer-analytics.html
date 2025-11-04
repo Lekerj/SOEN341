@@ -151,8 +151,9 @@
 
     // Helpers
     const $ = (sel) => document.querySelector(sel);
-    const params = new URLSearchParams(window.location.search);
-    const eventId = params.get('eventId');
+  const params = new URLSearchParams(window.location.search);
+  // Accept both eventId and legacy id
+  const eventId = params.get('eventId') || params.get('id');
 
     if (!eventId) {
       $('#eventTitle').textContent = 'Event Analytics';
@@ -167,16 +168,27 @@
 
     async function fetchAnalytics() {
       try {
-        const resp = await fetch(`${getApiBase()}/api/organizer/events/${encodeURIComponent(eventId)}/analytics`, { credentials: 'include' });
-        if (resp.status === 401 || resp.status === 403) {
+        // Fetch metrics + timeline
+        const metricsResp = await fetch(`${getApiBase()}/api/organizer/events/${encodeURIComponent(eventId)}/analytics`, { credentials: 'include' });
+        if (metricsResp.status === 401 || metricsResp.status === 403) {
           alert('Not authorized to view analytics for this event.');
-          window.location.href = 'organizer-dashboard.html';
+          window.location.href = 'browse.html';
           return;
         }
-        if (!resp.ok) throw new Error('Failed to fetch analytics');
-        const data = await resp.json();
-        // Expected shape: { success: true, metrics: {...}, attendees: [...], event: {...}, claims_timeline: [...] }
-        renderAnalytics(data);
+        if (!metricsResp.ok) throw new Error('Failed to fetch analytics');
+        const metricsDataRaw = await metricsResp.json();
+        // Backend returns { success: true, analytics: { event, metrics, timeline } }
+        const metricsData = metricsDataRaw.analytics || metricsDataRaw;
+
+        // Fetch attendees separately (this endpoint returns attendee details)
+        const attendeesResp = await fetch(`${getApiBase()}/api/organizer/events/${encodeURIComponent(eventId)}/attendees`, { credentials: 'include' });
+        let attendeesData = [];
+        if (attendeesResp.ok) {
+          const attendeesJson = await attendeesResp.json().catch(() => ({}));
+          attendeesData = attendeesJson.attendees || [];
+        }
+
+        renderAnalytics({ ...metricsData, attendees: attendeesData });
       } catch (err) {
         console.error(err);
         document.getElementById('eventSub').textContent = 'Unable to load analytics';
@@ -185,20 +197,23 @@
     }
 
     function renderAnalytics(data) {
-      const metrics = data.metrics || {};
+      // Support both shapes: { analytics: { event, metrics, timeline } } and flattened { event, metrics, timeline }
+      const metrics = (data.metrics || (data.analytics && data.analytics.metrics)) || {};
       const attendees = data.attendees || data.attending || [];
-      const event = data.event || {};
-      const timeline = data.claims_timeline || data.timeline || [];
+      const event = data.event || (data.analytics && data.analytics.event) || {};
+      const timeline = data.timeline || (data.analytics && data.analytics.timeline) || [];
 
       $('#eventTitle').textContent = event.title || `Event ${eventId}`;
       $('#eventSub').textContent = event.event_date ? `${event.event_date} ${event.event_time || ''}` : '';
 
-      const total = Number(metrics.capacity ?? event.capacity ?? 0);
-      const issued = Number(metrics.tickets_issued ?? metrics.tickets_available ? (total - metrics.tickets_available) : (metrics.tickets_issued ?? 0));
+      const total = Number(event.capacity ?? metrics.capacity ?? 0);
+      const issued = Number(metrics.tickets_issued ?? (total - (event.tickets_available ?? 0)) ?? 0);
       const checkedIn = Number(metrics.tickets_checked_in ?? 0);
-      const remaining = Number(metrics.tickets_available ?? (total - issued));
-      const revenue = Number(metrics.revenue ?? metrics.total_revenue ?? 0);
-      const attendanceRate = total > 0 ? ((checkedIn / total) * 100) : 0;
+      const remaining = Number(metrics.remaining_capacity ?? (event.tickets_available ?? 0) ?? 0);
+      const revenue = Number(metrics.total_revenue ?? metrics.revenue ?? 0);
+      const attendanceRate = (metrics.attendance_rate !== undefined && metrics.attendance_rate !== null)
+        ? Number(metrics.attendance_rate)
+        : (total > 0 ? ((checkedIn / total) * 100) : 0);
 
       $('#totalCapacity').textContent = total;
       $('#ticketsIssued').textContent = issued;
@@ -208,11 +223,23 @@
       $('#totalRevenue').textContent = revenue ? `$${revenue.toFixed(2)}` : '$0.00';
 
       renderDonut(issued, remaining);
-      renderLine(timeline);
-      renderAttendeeTable(attendees);
+  renderLine(timeline);
 
-      // Export CSV button
+  // Normalize attendee shape: backend may return claimed_at while UI expects claim_date
+  const normalizedAttendees = (attendees || []).map(a => ({ ...a, claim_date: a.claimed_at || a.claim_date || a.claimedAt }));
+  renderAttendeeTable(normalizedAttendees);
+
+      // Export CSV button (attach once)
+      const exportBtn = $('#exportCsvBtn');
+      exportBtn.replaceWith(exportBtn.cloneNode(true)); // remove previous listeners
       $('#exportCsvBtn').addEventListener('click', () => exportCsv(attendees, event));
+    }
+
+    // Auto-refresh analytics every 8 seconds to reflect new claims/check-ins
+    let refreshInterval = null;
+    function startAutoRefresh() {
+      if (refreshInterval) clearInterval(refreshInterval);
+      refreshInterval = setInterval(fetchAnalytics, 8000);
     }
 
     function renderDonut(issued, remaining) {
@@ -229,10 +256,10 @@
     }
 
     function renderLine(timeline) {
-      // timeline expected: [{ date: '2025-10-10', count: 3 }, ...]
+      // timeline expected: [{ date: '2025-10-10', claims: 3 }, ...]
       const sorted = (timeline || []).slice().sort((a,b)=> new Date(a.date)-new Date(b.date));
       const labels = sorted.map(s=>s.date);
-      const dataPoints = sorted.map(s=>s.count);
+      const dataPoints = sorted.map(s=>s.claims ?? s.count ?? 0);
       if (lineChart) lineChart.destroy();
       lineChart = new Chart(claimsLineCtx, {
         type: 'line',
@@ -323,8 +350,16 @@
       try { await fetch(`${getApiBase()}/api/auth/logout`, { method:'POST', credentials:'include' }); localStorage.removeItem('user'); window.location.href='index.html'; } catch(e){}
     }
 
-    // Kick off
-    fetchAnalytics();
+  // Add a manual refresh button next to Export CSV
+  const refreshBtn = document.createElement('button');
+  refreshBtn.className = 'btn btn-secondary';
+  refreshBtn.textContent = 'Refresh';
+  refreshBtn.addEventListener('click', () => fetchAnalytics());
+  document.querySelector('.hero-buttons').insertBefore(refreshBtn, document.querySelector('.hero-buttons').firstChild);
+
+  // Kick off
+  fetchAnalytics();
+  startAutoRefresh();
   </script>
 </body>
 </html>
