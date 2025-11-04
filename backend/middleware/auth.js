@@ -30,8 +30,11 @@ function requireRole(role) {
 
       const userRole = rows[0].role; // Getting the role from the DB
       
-      if (userRole !== role) { // Authorization Check -- Comparing the user's role to the actual role with the required role
-        return res.status(403).json({ error: "Forbidden - Insufficient permissions" });
+      if (userRole !== role) { 
+    
+      console.error(`AUDIT: Forbidden access attempt. User ID: ${req.session.userId}, Role: ${userRole}, Endpoint: ${req.originalUrl}, Required Role: ${role}`);
+
+      return res.status(403).json({ error: "Forbidden - Insufficient permissions" });
       }
 
       req.userRole = userRole; 
