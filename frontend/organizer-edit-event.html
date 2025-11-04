@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Event - ConEvents</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const stored = localStorage.getItem('user');
+      if (!stored) return;
+
+      try {
+        const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
+        if (resp.ok) {
+          const user = JSON.parse(stored);
+          const authLinks = document.getElementById('authLinks');
+          const userLinks = document.getElementById('userLinks');
+          if (authLinks) authLinks.style.display = 'none';
+          if (userLinks) {
+            userLinks.style.display = 'flex';
+            userLinks.style.gap = '1rem';
+            userLinks.style.alignItems = 'center';
+          }
+          const welcome = document.getElementById('welcomeMessage');
+          if (welcome && user?.name) welcome.textContent = `Welcome, ${user.name}!`;
+        } else if (resp.status === 401) {
+          localStorage.removeItem('user');
+        }
+      } catch (error) {
+        console.warn('Profile check failed:', error);
+        localStorage.removeItem('user');
+      }
+    });
+
+    window.logout = async function logout() {
+      try {
+        const resp = await fetch(`${getApiBase()}/api/auth/logout`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        if (resp.ok) {
+          localStorage.removeItem('user');
+          window.location.href = 'index.html';
+        } else {
+          alert('Logout failed. Please try again.');
+        }
+      } catch (error) {
+        console.warn('Logout failed:', error);
+        localStorage.removeItem('user');
+        window.location.href = 'index.html';
+      }
+    };
+  </script>
+  <style>
+    /* Reuse same styles as create page for layout and validation visuals */
+    .page-wrapper { min-height: 100vh; display:flex; justify-content:center; align-items:center; padding:48px 16px }
+    .event-form-card { background: rgba(255,255,255,0.96); border-radius:var(--radius-xl); box-shadow:var(--shadow-lg); width:100%; max-width:720px; padding:var(--spacing-2xl); display:grid; gap:var(--spacing-xl)}
+    .form-grid { display:grid; gap:var(--spacing-lg) }
+    .form-grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(220px,1fr)) }
+  .form-actions { display:flex; gap:var(--spacing-md); justify-content:flex-end; flex-wrap:wrap }
+  /* Button styles (match create event page) */
+  .form-actions .btn { display: inline-flex; align-items: center; justify-content: center; text-align: center; transition: background 0.3s ease, color 0.3s ease, opacity 0.3s ease; gap: 10px; }
+  .form-actions .btn[disabled] { cursor: not-allowed; opacity: 0.65; background: linear-gradient(135deg, #b0b0b0 0%, #d4d4d4 100%); color: rgba(255,255,255,0.85) !important; border: none; box-shadow: none; }
+    .button-spinner { width:18px; height:18px; border:2px solid rgba(255,255,255,0.4); border-top-color:var(--white); border-radius:50%; animation:spin 0.6s linear infinite; display:none }
+    .btn.loading .button-spinner { display:inline-block }
+    .form-group { position:relative }
+    .field-error { color:var(--danger); font-size:var(--font-size-sm); margin-top:6px; display:none }
+    .form-group.error .field-error { display:block }
+    .form-group.error .form-control { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(220,38,38,0.15) }
+    .form-group.valid .form-control { border-color: #15803d; box-shadow: 0 0 0 3px rgba(21,128,61,0.16) }
+    .validation-icon { position:absolute; top:50%; right:16px; transform:translateY(-50%); color:#15803d; font-size:1rem; display:none }
+    .form-group.valid .validation-icon { display:inline-flex }
+    .form-group.error .validation-icon { display:none }
+  /* Match create event ticket indicator styles */
+  .ticket-indicator { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; background: rgba(107,44,145,0.12); color: var(--accent-purple); font-weight: 600; font-size: var(--font-size-sm); }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="browse.html">Browse</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="profile.html">Profile</a></li>
+        <li id="authLinks">
+          <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </li>
+        <li id="userLinks" style="display:none;">
+          <span id="welcomeMessage" class="text-muted"></span>
+          <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="page-wrapper">
+    <div class="event-form-card" role="region" aria-labelledby="editEventHeading">
+      <header class="event-form-header">
+        <h1 id="editEventHeading" class="auth-title" style="margin:0;">Edit Event</h1>
+        <p>Edit details and save changes for your event.</p>
+      </header>
+
+      <div id="formAlert" class="alert alert-error" role="alert" style="display:none;"></div>
+
+      <form id="editEventForm" novalidate aria-describedby="formAlert">
+        <div class="form-group">
+          <label class="form-label" for="title">Event Title *</label>
+          <input type="text" id="title" name="title" class="form-control" placeholder="Campus Hackathon Kickoff" minlength="3" maxlength="255" required>
+          <span class="validation-icon" aria-hidden="true">✔</span>
+          <small class="field-error" id="titleError" aria-live="polite"></small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="description">Description *</label>
+          <textarea id="description" name="description" class="form-control" rows="4" placeholder="Outline the schedule, speakers, and any other details attendees should know." required></textarea>
+          <span class="validation-icon" aria-hidden="true">✔</span>
+          <small class="field-error" id="descriptionError" aria-live="polite"></small>
+        </div>
+
+        <div class="form-grid cols-2">
+          <div class="form-group">
+            <label class="form-label" for="eventDate">Event Date *</label>
+            <input type="date" id="eventDate" name="eventDate" class="form-control" required>
+            <span class="validation-icon" aria-hidden="true">✔</span>
+            <small class="field-error" id="eventDateError" aria-live="polite"></small>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="eventTime">Event Time *</label>
+            <input type="time" id="eventTime" name="eventTime" class="form-control" required>
+            <span class="validation-icon" aria-hidden="true">✔</span>
+            <small class="field-error" id="eventTimeError" aria-live="polite"></small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="location">Location *</label>
+          <input type="text" id="location" name="location" class="form-control" maxlength="255" placeholder="Henry F. Hall Building, H-110" required>
+          <span class="validation-icon" aria-hidden="true">✔</span>
+          <small class="field-error" id="locationError" aria-live="polite"></small>
+        </div>
+
+        <div class="form-grid cols-2">
+          <div class="form-group">
+            <label class="form-label" for="capacity">Capacity *</label>
+            <input type="number" id="capacity" name="capacity" class="form-control" min="1" step="1" placeholder="150" required>
+            <span class="validation-icon" aria-hidden="true">✔</span>
+            <small class="field-error" id="capacityError" aria-live="polite"></small>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="organization">Organization *</label>
+            <input type="text" id="organization" name="organization" class="form-control" maxlength="255" placeholder="Concordia Tech Society" required>
+            <span class="validation-icon" aria-hidden="true">✔</span>
+            <small class="field-error" id="organizationError" aria-live="polite"></small>
+          </div>
+        </div>
+
+        <div class="form-grid cols-2">
+          <div class="form-group">
+            <label class="form-label" for="category">Category *</label>
+            <select id="category" name="category" class="form-control" required>
+              <option value="">Select a category</option>
+              <option value="sports">Sports</option>
+              <option value="academic">Academic</option>
+              <option value="social">Social</option>
+              <option value="club">Club</option>
+            </select>
+            <span class="validation-icon" aria-hidden="true">✔</span>
+            <small class="field-error" id="categoryError" aria-live="polite"></small>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="price">Ticket Price *</label>
+            <input type="number" id="price" name="price" class="form-control" min="0" step="0.01" placeholder="0" required>
+            <small class="form-text">Set to 0 if the event is free.</small>
+            <span class="validation-icon" aria-hidden="true">✔</span>
+            <small class="field-error" id="priceError" aria-live="polite"></small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <span class="ticket-indicator" id="ticketIndicator" aria-live="polite">Ticket Type: Free</span>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="cancelButton" class="btn btn-secondary btn-lg">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-lg" id="submitButton" disabled>
+            <span class="button-spinner" aria-hidden="true"></span>
+            <span class="button-text">Update Event</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="about.html">About Us</a>
+      <a href="index.html#events">Events</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+  </footer>
+
+  <script>
+    (function () {
+      function getApiBase() {
+        try {
+          return getApiBase ? getApiBase() : `http://${window.location.hostname}:3000`;
+        } catch (e) {
+          return `http://${window.location.hostname}:3000`;
+        }
+      }
+
+      function getAuthToken() {
+        const stored = localStorage.getItem('authToken');
+        if (stored) return stored;
+        try {
+          const user = JSON.parse(localStorage.getItem('user'));
+          if (user && user.token) return user.token;
+        } catch (error) {
+          console.warn('Unable to parse stored user token.');
+        }
+        return '';
+      }
+
+      const $ = (selector) => document.querySelector(selector);
+      const form = $('#editEventForm');
+      const alertBox = $('#formAlert');
+      const ticketIndicator = $('#ticketIndicator');
+      const priceInput = $('#price');
+      const submitButton = $('#submitButton');
+      const buttonSpinner = submitButton.querySelector('.button-spinner');
+      const buttonText = submitButton.querySelector('.button-text');
+      const formControls = form.querySelectorAll('input, select, textarea, button');
+
+  const params = new URLSearchParams(window.location.search);
+  // Accept both `eventId` (preferred) and legacy `id` query param for compatibility
+  const eventId = params.get('eventId') || params.get('id');
+
+      if (!eventId) {
+        showAlert(['Missing eventId in URL.'], true);
+      }
+
+      const fieldConfigs = [
+        { id: 'title', label: 'Event Title', validators: [ required('Event Title is required.'), maxLength(255, 'Event Title cannot exceed 255 characters.') ] },
+        { id: 'description', label: 'Description', validators: [ required('Description is required.') ] },
+        { id: 'eventDate', label: 'Event Date', validators: [ required('Event Date is required.'), dateNotPast('Event date cannot be in the past.') ] },
+        { id: 'eventTime', label: 'Event Time', validators: [ required('Event Time is required.') ] },
+        { id: 'location', label: 'Location', validators: [ required('Location is required.'), maxLength(255, 'Location cannot exceed 255 characters.') ] },
+        { id: 'capacity', label: 'Capacity', validators: [ required('Capacity is required.'), positiveInteger('Capacity must be a positive whole number.') ] },
+        { id: 'organization', label: 'Organization', validators: [ required('Organization is required.'), maxLength(255, 'Organization cannot exceed 255 characters.') ] },
+        { id: 'category', label: 'Category', validators: [ required('Category is required.') ] },
+        { id: 'price', label: 'Ticket Price', validators: [ required('Ticket price is required.'), nonNegativeNumber('Ticket price must be zero or higher.') ] }
+      ].map(config => ({ ...config, input: document.getElementById(config.id), errorEl: document.getElementById(`${config.id}Error`), group: document.getElementById(config.id)?.closest('.form-group'), touched:false, valid:false, lastError:null }));
+
+      function required(message) { return (value) => { if (value === null || value === undefined) return message; if (typeof value === 'string' && !value.trim()) return message; return null; }; }
+      function maxLength(limit, message) { return (value = '') => (value && value.length > limit ? message : null); }
+      function dateNotPast(message) { return (value) => { if (!value) return null; const selected = new Date(`${value}T00:00:00`); const today = new Date(); today.setHours(0,0,0,0); return selected < today ? message : null; }; }
+      function positiveInteger(message) { return (value) => { if (!value && value !== 0) return null; const num = Number(value); if (!Number.isFinite(num) || !Number.isInteger(num) || num < 1) { return message; } return null; }; }
+      function nonNegativeNumber(message) { return (value) => { if (!value && value !== 0) return null; const num = Number(value); if (!Number.isFinite(num) || num < 0) { return message; } return null; }; }
+
+      function updateTicketIndicator() { const price = parseFloat(priceInput.value || '0'); ticketIndicator.textContent = `Ticket Type: ${price > 0 ? 'Paid' : 'Free'}`; }
+
+      function validateField(config, { force = false } = {}) {
+        const value = config.input.value;
+        const errors = [];
+        config.validators.forEach((validator) => { const error = validator(value); if (error) errors.push(error); });
+        config.valid = errors.length === 0;
+        config.lastError = errors[0] || null;
+        const shouldDisplay = config.touched || force;
+        if (config.valid) { config.group?.classList.remove('error'); if (shouldDisplay) config.group?.classList.add('valid'); config.errorEl.textContent = ''; } else { config.group?.classList.remove('valid'); if (shouldDisplay) { config.group?.classList.add('error'); config.errorEl.textContent = errors[0]; } else { config.group?.classList.remove('error'); config.errorEl.textContent = ''; } }
+        return config.valid;
+      }
+
+      function validateAll(force = false) { return fieldConfigs.every((config) => validateField(config, { force })); }
+
+      function updateSubmitState() { const isValid = fieldConfigs.every((config) => config.valid); submitButton.disabled = !isValid; if (!isValid) submitButton.classList.remove('loading'); }
+
+      function showAlert(messages, isError = true) {
+        if (!messages || messages.length === 0) { alertBox.style.display = 'none'; alertBox.textContent = ''; return; }
+        alertBox.classList.toggle('alert-error', isError);
+        alertBox.classList.toggle('alert-info', !isError);
+        alertBox.innerHTML = `<strong>${isError ? 'Error' : 'Info'}</strong>${isError ? '<ul>' + messages.map(msg => `<li>${msg}</li>`).join('') + '</ul>' : ` ${messages[0]}`}`;
+        alertBox.style.display = 'block';
+      }
+
+      function handleFieldEvent(config, force = false) { validateField(config, { force }); updateSubmitState(); if (alertBox.style.display === 'block' && config.lastError === null) { const remainingErrors = fieldConfigs.filter((f) => !f.valid).map((f) => f.lastError).filter(Boolean); if (remainingErrors.length) { showAlert(remainingErrors, true); } else { showAlert([], true); } } }
+
+      fieldConfigs.forEach((config) => {
+        const eventNames = new Set(['input','change']);
+        eventNames.forEach((eventName) => {
+          config.input.addEventListener(eventName, () => {
+            if (eventName === 'change') config.touched = true;
+            if (config.touched) handleFieldEvent(config);
+            updateTicketIndicator();
+          });
+        });
+        config.input.addEventListener('blur', () => { config.touched = true; handleFieldEvent(config, true); });
+      });
+
+      function setLoading(isLoading, text = 'Updating…') {
+        formControls.forEach((control) => { if (control !== submitButton) control.disabled = isLoading; });
+        submitButton.disabled = isLoading || !fieldConfigs.every((config) => config.valid);
+        submitButton.classList.toggle('loading', isLoading);
+        if (isLoading) buttonText.textContent = text; else buttonText.textContent = 'Update Event';
+      }
+
+      function setFetching(isFetching) {
+        formControls.forEach((control) => { if (control !== submitButton) control.disabled = isFetching; });
+        submitButton.disabled = isFetching || !fieldConfigs.every((config) => config.valid);
+        if (isFetching) showAlert(['Loading event data…'], false); else showAlert([], false);
+      }
+
+      function normalizeTime(value) {
+        if (!value) return '';
+        if (/^\d{2}:\d{2}:\d{2}$/.test(value)) return value;
+        if (/^\d{1,2}:\d{2}$/.test(value)) { const parts = value.split(':'); return `${parts[0].padStart(2,'0')}:${parts[1]}:00`; }
+        return value;
+      }
+
+      async function fetchEventAndPopulate() {
+        if (!eventId) return;
+        setFetching(true);
+        const token = getAuthToken();
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        try {
+          // Fetch event details from public endpoint
+          const resp = await fetch(`${getApiBase()}/api/events/${encodeURIComponent(eventId)}`, { credentials: 'include', headers });
+
+          if (resp.status === 401 || resp.status === 403) {
+            showAlert(['You are not authorized to edit this event. Redirecting to events list...'], true);
+            setTimeout(() => { window.location.href = 'browse.html'; }, 2200);
+            return;
+          }
+
+          if (!resp.ok) {
+            const body = await resp.json().catch(() => ({}));
+            throw new Error(body.message || 'Failed to load event data.');
+          }
+
+          const json = await resp.json().catch(() => ({}));
+          const event = json.event || json;
+          if (!event) throw new Error('Event data missing from response.');
+
+          // Populate fields
+          $('#title').value = event.title || '';
+          $('#description').value = event.description || '';
+          if (event.event_date) $('#eventDate').value = event.event_date;
+          if (event.event_time) {
+            // convert HH:MM:SS to HH:MM for input[type=time]
+            $('#eventTime').value = event.event_time.substring(0,5);
+          }
+          $('#location').value = event.location || '';
+          $('#capacity').value = event.capacity || '';
+          $('#organization').value = event.organization || event.organizer_name || '';
+          $('#category').value = event.category || '';
+          $('#price').value = (event.price !== undefined && event.price !== null) ? event.price : '';
+
+          // Mark fields as touched/valid state recalculation
+          fieldConfigs.forEach((config) => { config.touched = false; validateField(config, { force: true }); });
+          updateTicketIndicator();
+          updateSubmitState();
+          showAlert([], false);
+        } catch (error) {
+          showAlert([error.message || 'Unable to fetch event.'], true);
+        } finally {
+          setFetching(false);
+        }
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        fieldConfigs.forEach((config) => { config.touched = true; });
+        const isValid = validateAll(true);
+        updateSubmitState();
+        if (!isValid) {
+          const messages = fieldConfigs.filter((c) => !c.valid).map((c) => c.lastError).filter(Boolean);
+          showAlert(messages, true);
+          return;
+        }
+
+        if (!confirm('Save changes to this event?')) return;
+
+        const formData = Object.fromEntries(new FormData(form));
+        const normalizedTime = normalizeTime(formData.eventTime);
+        const payload = {
+          title: formData.title,
+          description: formData.description,
+          event_date: formData.eventDate,
+          event_time: normalizedTime,
+          location: formData.location,
+          capacity: Number(formData.capacity),
+          organization: formData.organization,
+          category: formData.category,
+          price: Number(formData.price),
+          ticketType: Number(formData.price) > 0 ? 'paid' : 'free'
+        };
+
+        setLoading(true, 'Updating…');
+        showAlert(['Updating event…'], false);
+
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          const token = getAuthToken();
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+
+          const resp = await fetch(`${getApiBase()}/api/organizer/events/${encodeURIComponent(eventId)}`, {
+            method: 'PUT',
+            headers,
+            credentials: 'include',
+            body: JSON.stringify(payload)
+          });
+
+          if (resp.status === 401 || resp.status === 403) {
+            showAlert(['You are not authorized to perform this action. Redirecting...'], true);
+            setTimeout(() => { window.location.href = 'browse.html'; }, 2000);
+            return;
+          }
+
+          if (!resp.ok) {
+            const body = await resp.json().catch(() => ({}));
+            throw new Error(body.message || 'Failed to update event.');
+          }
+
+          showAlert(['Event updated successfully. Redirecting to events list...'], false);
+          setTimeout(() => { window.location.href = 'browse.html'; }, 1400);
+        } catch (error) {
+          showAlert([error.message || 'Update failed.'], true);
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      $('#cancelButton').addEventListener('click', () => {
+        // confirm cancel if changes were made
+        if (confirm('Discard changes and return to events list?')) {
+          window.location.href = 'browse.html';
+        }
+      });
+
+      // Kick off fetch
+      fetchEventAndPopulate();
+
+    })();
+  </script>
+</body>
+
+</html>

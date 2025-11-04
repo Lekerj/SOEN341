@@ -1201,6 +1201,31 @@
         detailsPanel.style.display = detailsPanel.style.display === 'none' ? 'block' : 'none';
       });
 
+      // If the current user is the organizer of this event, show Edit and Analytics buttons
+      try {
+        const userRaw = localStorage.getItem('user');
+        if (userRaw) {
+          const currentUser = JSON.parse(userRaw);
+          if (currentUser && currentUser.id && Number(currentUser.id) === Number(event.organizer_id)) {
+            const editLink = document.createElement('a');
+            editLink.href = `organizer-edit-event.html?id=${event.id}`;
+            editLink.className = 'btn btn-secondary';
+            editLink.style.marginLeft = '0.5rem';
+            editLink.textContent = 'Edit';
+            footer.appendChild(editLink);
+
+            const analyticsLink = document.createElement('a');
+            analyticsLink.href = `organizer-analytics.html?eventId=${event.id}`;
+            analyticsLink.className = 'btn btn-secondary';
+            analyticsLink.style.marginLeft = '0.5rem';
+            analyticsLink.textContent = 'Analytics';
+            footer.appendChild(analyticsLink);
+          }
+        }
+      } catch (e) {
+        // ignore JSON parse errors
+      }
+
 
       content.appendChild(date);
       content.appendChild(title);
