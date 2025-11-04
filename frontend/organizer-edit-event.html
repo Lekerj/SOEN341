@@ -85,10 +85,10 @@
     <div class="navbar-container">
       <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
       <ul class="navbar-menu">
-        <a href="index.html">Home</a></li>
-            <li><a href="browse.html">Browse</a></li>
-            <li><a href="about.html">About</a></li>
-            <li><a href="profile.html">Profile</a></li>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="browse.html">Browse</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="profile.html">Profile</a></li>
         <li id="authLinks">
           <a href="login.html" class="btn btn-primary btn-sm">Login</a>
           <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
@@ -335,12 +335,8 @@
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
         try {
-          // Try organizer endpoint first (requires auth/ownership), fallback to public events endpoint
-          let resp = await fetch(`${getApiBase()}/api/organizer/events/${encodeURIComponent(eventId)}`, { credentials: 'include', headers });
-          if (resp.status === 404) {
-            // fallback to public event endpoint
-            resp = await fetch(`${getApiBase()}/api/events/${encodeURIComponent(eventId)}`, { credentials: 'include', headers });
-          }
+          // Fetch event details from public endpoint
+          const resp = await fetch(`${getApiBase()}/api/events/${encodeURIComponent(eventId)}`, { credentials: 'include', headers });
 
           if (resp.status === 401 || resp.status === 403) {
             showAlert(['You are not authorized to edit this event. Redirecting to events list...'], true);
