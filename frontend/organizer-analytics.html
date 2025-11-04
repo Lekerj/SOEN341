@@ -65,7 +65,7 @@
             <p class="hero-subtitle small-muted" id="eventSub" style="margin:6px 0 0; color:rgba(255,255,255,0.9);">Loading…</p>
           </div>
           <div class="hero-buttons" style="display:flex; gap:8px; align-items:center;">
-            <a id="qrScannerLink" class="btn btn-secondary" href="verify-ticket.html">Open QR Scanner</a>
+            <a id="qrScannerLink" class="btn btn-secondary" href="">Open QR Scanner</a>
             <button id="exportCsvBtn" class="btn btn-primary">Export CSV</button>
           </div>
         </div>
@@ -151,16 +151,27 @@
 
     // Helpers
     const $ = (sel) => document.querySelector(sel);
-  const params = new URLSearchParams(window.location.search);
-  // Accept both eventId and legacy id
-  const eventId = params.get('eventId') || params.get('id');
+
+    const params = new URLSearchParams(window.location.search);
+    // Accept both eventId and legacy id
+    const eventId = params.get('eventId') || params.get('id');
 
     if (!eventId) {
-      $('#eventTitle').textContent = 'Event Analytics';
-      $('#eventSub').textContent = 'Missing eventId in URL';
-      alert('Missing eventId in URL. Use organizer-analytics.html?eventId=ID');
+      window.addEventListener('DOMContentLoaded', () => {
+        $('#eventTitle').textContent = 'Event Analytics';
+        $('#eventSub').textContent = 'Missing eventId in URL';
+        alert('Missing eventId in URL. Use organizer-analytics.html?eventId=ID');
+      });
       throw new Error('Missing eventId');
     }
+
+    // Set up QR Scanner link on DOM ready
+    window.addEventListener('DOMContentLoaded', () => {
+      const qrScannerLink = document.getElementById('qrScannerLink');
+      if (qrScannerLink) {
+        qrScannerLink.href = `organizer-scanner.html?eventId=${encodeURIComponent(eventId)}`;
+      }
+    });
 
     const ticketsDonutCtx = document.getElementById('ticketsDonut').getContext('2d');
     const claimsLineCtx = document.getElementById('claimsLine').getContext('2d');
