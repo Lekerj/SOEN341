@@ -572,6 +572,16 @@
       <ul class="navbar-menu">
         <li><a href="index.html">Home</a></li>
         <li><a href="index.html#events">Events</a></li>
+        <li id="organizerMenu" class="dropdown" style="display:none;">
+          <a href="#" class="dropdown-toggle">Organizer</a>
+          <ul class="dropdown-menu">
+          <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+                        <li><a href="organizer-create-event.html">Create Event</a></li>
+                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
+                        <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
+                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
+          </ul>
+        </li>
         <li><a href="about.html">About</a></li>
         <li id="authLinks">
           <a href="login.html" class="btn btn-primary btn-sm">Login</a>
@@ -584,13 +594,25 @@
       </ul>
     </div>
   </nav>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+        const organizerMenu = document.getElementById('organizerMenu');
+        if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+      } catch (e) {}
+    });
+  </script>
 
   <main class="scanner-page-wrapper">
+    <div class="breadcrumbs"><span>Organizer</span> <span>›</span> <span>QR Scanner</span></div>
     <div class="scanner-container">
       <!-- Header -->
       <header class="scanner-header">
         <h1>Attendee Check-In Scanner</h1>
         <p>Verify and check-in attendees using QR codes or ticket codes</p>
+        <div style="margin-top: 8px;"><a class="btn" href="javascript:history.back()">Go Back</a></div>
       </header>
 
       <!-- Event Selection -->

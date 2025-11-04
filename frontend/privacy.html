@@ -49,6 +49,16 @@
         <!-- These take you back to the homepage and its sections -->
         <li><a href="index.html">Home</a></li>
         <li><a href="browse.html">Browse</a></li>
+        <li id="organizerMenu" class="dropdown" style="display:none;">
+          <a href="#" class="dropdown-toggle">Organizer</a>
+          <ul class="dropdown-menu">
+           <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+                        <li><a href="organizer-create-event.html">Create Event</a></li>
+                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
+                        <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
+                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
+          </ul>
+        </li>
         <li><a href="profile.html">Profile</a></li>
 
         <!-- Go to the About page -->
@@ -68,6 +78,16 @@
       </ul>
     </div>
   </nav>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+        const organizerMenu = document.getElementById('organizerMenu');
+        if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+      } catch (e) {}
+    });
+  </script>
 
 
   <!-- Main Content -->

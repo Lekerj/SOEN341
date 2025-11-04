@@ -277,6 +277,81 @@ body::before {
   width: 100%;
 }
 
+/* Organizer dropdown */
+.navbar-menu .dropdown {
+  position: relative;
+}
+
+.navbar-menu .dropdown > a.dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.navbar-menu .dropdown > a.dropdown-toggle::after {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid var(--dark-gray);
+  transform: translateY(2px);
+}
+
+.navbar-menu .dropdown .dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--white);
+  border: 1px solid #e9ecef;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  min-width: 220px;
+  padding: 8px 0;
+  display: none;
+  z-index: 1000;
+}
+
+.navbar-menu .dropdown:hover .dropdown-menu,
+.navbar-menu .dropdown:focus-within .dropdown-menu {
+  display: block;
+}
+
+.navbar-menu .dropdown .dropdown-menu li {
+  list-style: none;
+}
+
+.navbar-menu .dropdown .dropdown-menu a {
+  display: block;
+  padding: 10px 14px;
+  color: var(--dark-gray);
+  text-decoration: none;
+}
+
+.navbar-menu .dropdown .dropdown-menu a:hover {
+  background: var(--light-gray);
+  color: var(--primary-maroon);
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+  font-size: 0.95rem;
+  color: var(--medium-gray);
+  margin: 8px auto 0;
+  max-width: 1200px;
+  padding: 0 var(--spacing-lg);
+}
+
+.breadcrumbs a {
+  color: var(--dark-gray);
+  text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}
+
 /* === Container & Layout === */
 .container {
   max-width: 1200px;
@@ -1250,6 +1325,20 @@ select.form-control {
 *:focus-visible {
   outline: 3px solid var(--primary-maroon);
   outline-offset: 2px;
+}
+
+/* Mobile-friendly dropdown layout */
+@media (max-width: 768px) {
+  .navbar-menu .dropdown .dropdown-menu {
+    position: static;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    margin-top: 4px;
+  }
+  .navbar-menu .dropdown .dropdown-menu a {
+    padding-left: 0;
+  }
 }
 
 /* Pulse animation for special elements */
