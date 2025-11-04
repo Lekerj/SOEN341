@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Organizer • QR Scanner</title>
+  <title>Organizer • QR Scanner • ConEvents</title>
 
   <link rel="stylesheet" href="./styles.css" />
   <!-- jsQR for client-side QR decoding (global jsQR) -->
@@ -65,238 +65,517 @@
   </script>
 
   <style>
-    /* Minimal helpers (your design system handles most styling) */
-    .stack {
-      display: grid;
-      gap: var(--gap, 1rem);
+    /* Scanner page specific styles */
+    .scanner-page-wrapper {
+      min-height: 100vh;
+      padding: var(--spacing-xl) var(--spacing-md);
+      position: relative;
+      z-index: 1;
     }
 
-    .row {
+    .scanner-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      gap: var(--spacing-lg);
+    }
+
+    .scanner-header {
+      text-align: center;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .scanner-header h1 {
+      font-size: var(--font-size-2xl);
+      font-weight: bold;
+      color: var(--white);
+      margin-bottom: var(--spacing-xs);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .scanner-header p {
+      font-size: var(--font-size-base);
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Event Selection Card */
+    .event-selection-card {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .event-selection-card h2 {
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: var(--primary-maroon);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .event-selection-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 1rem;
+      gap: var(--spacing-md);
     }
 
     @media (min-width: 768px) {
-      .row--2 {
+      .event-selection-grid {
         grid-template-columns: 1fr 1fr;
+        align-items: flex-end;
       }
     }
 
-    .card {
-      background: var(--surface, #fff);
-      border: 1px solid var(--border, #e5e7eb);
-      border-radius: 0.75rem;
-      padding: 1rem;
+    .form-group-wrapper {
+      display: grid;
+      gap: var(--spacing-xs);
     }
 
-    .muted {
-      color: var(--muted, #6b7280);
+    .form-group-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--dark-gray);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    .badge {
+    .event-info-display {
+      padding: var(--spacing-md) var(--spacing-md);
+      background: linear-gradient(135deg, rgba(145, 35, 56, 0.05) 0%, rgba(107, 44, 145, 0.05) 100%);
+      border-radius: var(--radius-md);
+      border-left: 4px solid var(--primary-maroon);
+    }
+
+    .event-info-display strong {
+      display: block;
+      color: var(--primary-maroon);
+      font-size: var(--font-size-base);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .event-info-display span {
+      color: var(--medium-gray);
+      font-size: 0.75rem;
+    }
+
+    .staff-key-section {
+      display: grid;
+      gap: var(--spacing-md);
+      margin-top: var(--spacing-md) !important;
+      padding-top: var(--spacing-md) !important;
+    }
+
+    @media (min-width: 768px) {
+      .staff-key-section {
+        grid-template-columns: 1fr auto;
+        align-items: flex-end;
+      }
+    }
+
+    .staff-key-feedback {
       display: inline-flex;
       align-items: center;
-      padding: 0.25rem 0.5rem;
-      border-radius: 999px;
+      gap: var(--spacing-sm);
+      font-size: var(--font-size-sm);
+      color: var(--success);
+      font-weight: 600;
+      display: none;
+    }
+
+    .staff-key-feedback.show {
+      display: inline-flex;
+    }
+
+    /* Main Content Grid */
+    .scanner-content {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--spacing-lg);
+    }
+
+    @media (min-width: 1024px) {
+      .scanner-content {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+
+    /* Scanner Cards */
+    .scanner-card {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      padding: var(--spacing-lg);
+      transition: all var(--transition-base);
+      border: 2px solid transparent;
+    }
+
+    .scanner-card:hover {
+      box-shadow: var(--shadow-xl);
+      border-color: var(--primary-maroon);
+    }
+
+    .scanner-card h2 {
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      color: var(--primary-maroon);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .scanner-card p {
+      color: var(--medium-gray);
+      font-size: 0.875rem;
+      margin-bottom: var(--spacing-md);
+      line-height: 1.4;
+    }
+
+    /* Input Styles */
+    .form-control {
+      width: 100%;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border: 2px solid #e5e7eb;
+      border-radius: var(--radius-md);
+      background: var(--white);
+      font-size: 0.875rem;
+      font-family: var(--font-family);
+      transition: all var(--transition-base);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-maroon);
+      box-shadow: 0 0 0 3px rgba(145, 35, 56, 0.1);
+    }
+
+    .form-control::placeholder {
+      color: #a3a3a3;
+    }
+
+    /* File Input */
+    input[type="file"].form-control {
+      padding: var(--spacing-md);
+      cursor: pointer;
+    }
+
+    /* Preview Image */
+    #preview {
+      max-width: 100%;
+      border-radius: var(--radius-md);
+      margin-top: var(--spacing-md);
+      display: none;
+      border: 2px solid #e5e7eb;
+    }
+
+    /* Action Buttons */
+    .scanner-actions {
+      display: flex;
+      gap: var(--spacing-sm);
+      margin-top: var(--spacing-md);
+      flex-wrap: wrap;
+    }
+
+    .scanner-actions .btn {
+      flex: 1;
+      min-width: 100px;
+      font-weight: 600;
+      transition: all var(--transition-base);
       font-size: 0.875rem;
     }
 
-    .badge--ok {
+    @media (max-width: 640px) {
+      .scanner-actions {
+        flex-direction: column;
+      }
+
+      .scanner-actions .btn {
+        width: 100%;
+      }
+    }
+
+    /* Result Section */
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      font-size: 0.75rem;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .result-badge.success {
       background: #ecfdf5;
       color: #065f46;
-      border: 1px solid #a7f3d0;
+      border: 2px solid #a7f3d0;
     }
 
-    .badge--warn {
+    .result-badge.warning {
       background: #fffbeb;
       color: #92400e;
-      border: 1px solid #fde68a;
+      border: 2px solid #fde68a;
     }
 
-    .badge--err {
+    .result-badge.error {
       background: #fef2f2;
       color: #991b1b;
-      border: 1px solid #fecaca;
+      border: 2px solid #fecaca;
     }
 
-    .input,
-    .select {
-      width: 100%;
-      padding: 0.65rem 0.75rem;
-      border: 1px solid var(--border, #e5e7eb);
-      border-radius: 0.5rem;
-      background: var(--surface, #fff);
+    .result-meta {
+      color: var(--medium-gray);
+      font-size: 0.75rem;
+      margin-bottom: var(--spacing-md);
+      padding: var(--spacing-sm);
+      background: #f8f9fa;
+      border-radius: var(--radius-md);
+      border-left: 4px solid #e5e7eb;
+      line-height: 1.4;
     }
 
-    .header {
+    .ticket-details {
+      display: grid;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .detail-row {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: var(--spacing-md);
+      padding-bottom: var(--spacing-sm);
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .detail-label {
+      color: var(--medium-gray);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .detail-value {
+      color: var(--dark-gray);
+      font-weight: 500;
+      word-break: break-word;
+      font-size: 0.875rem;
+    }
+
+    /* Statistics Card */
+    .stats-grid {
+      display: grid;
+      gap: var(--spacing-sm);
+      margin-top: var(--spacing-md);
+    }
+
+    .stat-item {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 1rem;
-      padding: 1rem 0;
+      align-items: center;
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: #f8f9fa;
+      border-radius: var(--radius-md);
+      border-left: 4px solid var(--primary-maroon);
     }
 
-    .header__title {
-      font-size: 1.125rem;
+    .stat-label {
+      color: var(--medium-gray);
+      font-size: 0.75rem;
       font-weight: 600;
     }
 
-    .toolbar {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-      flex-wrap: wrap;
+    .stat-value {
+      color: var(--primary-maroon);
+      font-size: var(--font-size-xl);
+      font-weight: bold;
     }
 
-    .list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .scanner-page-wrapper {
+        padding: var(--spacing-lg) var(--spacing-md);
+      }
 
-    .list li {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.5rem 0;
-      border-bottom: 1px dashed var(--border, #e5e7eb);
-    }
+      .scanner-header h1 {
+        font-size: var(--font-size-xl);
+      }
 
-    .list li:last-child {
-      border-bottom: none;
-    }
+      .event-selection-card {
+        padding: var(--spacing-md);
+      }
 
-    .vis {
-      min-height: 72px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-    }
+      .scanner-card {
+        padding: var(--spacing-md);
+      }
 
-    .inline {
-      display: flex;
-      gap: .5rem;
-      align-items: center;
-      flex-wrap: wrap;
-    }
+      .scanner-card h2 {
+        font-size: var(--font-size-base);
+      }
 
-    .small {
-      font-size: .875rem;
+      .detail-row {
+        grid-template-columns: 70px 1fr;
+      }
     }
   </style>
 </head>
 
 <body>
-  <div class="container stack" style="--gap: 1.25rem; max-width: 1000px; margin: 0 auto; padding: 1rem;">
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="index.html#events">Events</a></li>
+        <li><a href="about.html">About</a></li>
+        <li id="authLinks">
+          <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </li>
+        <li id="userLinks" style="display:none;">
+          <span id="welcomeMessage" class="text-muted"></span>
+          <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+        </li>
+      </ul>
+    </div>
+  </nav>
 
-    <!-- Navigation (same structure used across pages) -->
-    <nav class="navbar">
-      <div class="navbar-container">
-        <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
-        <ul class="navbar-menu">
-          <li><a href="index.html">Home</a></li>
-          <li><a href="index.html#events">Events</a></li>
-          <li><a href="about.html">About</a></li>
-          <li id="authLinks">
-            <a href="login.html" class="btn btn-primary btn-sm">Login</a>
-            <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
-          </li>
-          <li id="userLinks" style="display:none;">
-            <span id="welcomeMessage" class="text-muted"></span>
-            <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
-          </li>
-        </ul>
-      </div>
-    </nav>
+  <main class="scanner-page-wrapper">
+    <div class="scanner-container">
+      <!-- Header -->
+      <header class="scanner-header">
+        <h1>Attendee Check-In Scanner</h1>
+        <p>Verify and check-in attendees using QR codes or ticket codes</p>
+      </header>
 
+      <!-- Event Selection -->
+      <section class="event-selection-card">
+        <h2>Select Event</h2>
+        <div class="event-selection-grid">
+          <div class="form-group-wrapper">
+            <label for="eventSelect" class="form-group-label">Event</label>
+            <select id="eventSelect" class="form-control">
+              <option value="" disabled selected>Loading your events…</option>
+            </select>
+          </div>
 
-    <!-- Header -->
-    <header class="header">
-      <div class="stack" style="--gap: 0.25rem;">
-
-        <!-- Event picker -->
-        <div class="inline small">
-          <label for="eventSelect" class="muted">Event:</label>
-          <select id="eventSelect" class="select" style="max-width: 420px;">
-            <option value="" selected disabled>Loading your events…</option>
-          </select>
-          <div class="muted">
+          <div class="event-info-display">
             <strong id="eventTitle">—</strong>
-            <span class="muted">•</span>
             <span id="eventDate">—</span>
           </div>
         </div>
 
-        <!-- Staff key (optional) -->
-        <div class="inline small">
-          <input id="staffKey" class="input" type="password" placeholder="Enter staff key for check-in"
-            style="max-width:260px;">
-          <button class="btn btn--ghost small" id="saveStaffKey">Save</button>
-          <span id="staffKeySaved" class="muted" style="display:none;">Saved</span>
-        </div>
-      </div>
-
-      <div class="toolbar">
-        <button class="btn" id="btnClear">Clear</button>
-      </div>
-    </header>
-
-    <!-- Upload / Manual -->
-    <section class="row row--2">
-      <div class="card stack" style="--gap: 0.75rem;">
-        <h2 style="font-size: 1rem; font-weight: 600;">Upload QR Image</h2>
-        <p class="muted small">Upload a QR image; we’ll decode and verify it automatically.</p>
-        <input class="input" type="file" id="qrFile" accept="image/*" />
-        <canvas id="qrCanvas" hidden></canvas>
-        <img id="preview" alt="Preview" style="max-width: 100%; border-radius: 0.5rem; display:none;" />
-      </div>
-
-      <div class="card stack" style="--gap: 0.75rem;">
-        <h2 style="font-size: 1rem; font-weight: 600;">Manual Ticket Entry</h2>
-        <p class="muted small">Paste the full ticket URL or the ticket code itself.</p>
-        <div class="stack" style="--gap: 0.5rem;">
-          <input class="input" type="text" id="manualCode" placeholder="https://.../api/tickets/qr/ABC123 or ABC123"
-            autocomplete="one-time-code" />
-          <div class="toolbar">
-            <button class="btn" id="btnValidate">Verify</button>
-            <button class="btn btn--ghost" id="btnPaste">Paste</button>
+        <!-- Staff Key (Optional) -->
+        <div class="staff-key-section" style="border-top: 1px solid #e5e7eb;">
+          <div class="form-group-wrapper">
+            <label for="staffKey" class="form-group-label">Staff Key (Optional)</label>
+            <input id="staffKey" type="password" class="form-control" placeholder="Enter staff key for check-in" autocomplete="current-password" />
           </div>
+          <button class="btn btn-secondary" id="saveStaffKey" style="white-space: nowrap;">Save Key</button>
+          <span id="staffKeySaved" class="staff-key-feedback">✓ Saved</span>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Result & Stats -->
-    <section class="row row--2">
-      <div class="card stack" style="--gap: 0.75rem;">
-        <h2 class="small" style="font-weight: 600;">Result</h2>
-        <div class="vis">
-          <span id="resultBadge" class="badge badge--warn">Waiting for input…</span>
-          <div class="muted" id="resultMeta">No ticket processed yet.</div>
-        </div>
-        <dl class="stack small" style="--gap: 0.25rem; margin: 0;">
-          <div class="inline"><span class="muted">Ticket:</span><strong id="resTicket">—</strong></div>
-          <div class="inline"><span class="muted">Name:</span><strong id="resName">—</strong></div>
-          <div class="inline"><span class="muted">Email:</span><strong id="resEmail">—</strong></div>
-          <div class="inline"><span class="muted">Checked-in:</span><strong id="resChecked">—</strong></div>
-        </dl>
-        <div class="toolbar">
-          <button class="btn" id="btnCheckIn">Check In</button>
-        </div>
-      </div>
+      <!-- Scanner Content -->
+      <div class="scanner-content">
+        <!-- Left Column: Input Methods -->
+        <div style="display: grid; gap: var(--spacing-lg);">
+          <!-- Upload QR Image Card -->
+          <section class="scanner-card">
+            <h2>📸 Upload QR Image</h2>
+            <p>Upload a QR image from your device. We'll decode and verify it automatically.</p>
+            <input type="file" id="qrFile" class="form-control" accept="image/*" />
+            <canvas id="qrCanvas" hidden></canvas>
+            <img id="preview" alt="QR Image Preview" />
+          </section>
 
-      <div class="card stack" style="--gap: 0.75rem;">
-        <h2 class="small" style="font-weight: 600;">Running Statistics</h2>
-        <ul class="list" aria-live="polite">
-          <li><span class="muted">Total Verified</span><strong id="statTotal">0</strong></li>
-          <li><span class="muted">Checked-in</span><strong id="statChecked">0</strong></li>
-          <li><span class="muted">Already Checked</span><strong id="statAlready">0</strong></li>
-          <li><span class="muted">Invalid</span><strong id="statInvalid">0</strong></li>
-        </ul>
+          <!-- Manual Entry Card -->
+          <section class="scanner-card">
+            <h2>⌨️ Manual Ticket Entry</h2>
+            <p>Paste the full ticket URL or ticket code directly.</p>
+            <input type="text" id="manualCode" class="form-control" placeholder="ABC123 or https://.../api/tickets/qr/ABC123" autocomplete="off" />
+            <div class="scanner-actions">
+              <button class="btn btn-primary" id="btnValidate">Verify Ticket</button>
+              <button class="btn btn-secondary" id="btnPaste">Paste</button>
+              <button class="btn btn--ghost" id="btnClear">Clear</button>
+            </div>
+          </section>
+        </div>
+
+        <!-- Right Column: Result & Stats -->
+        <div style="display: grid; gap: var(--spacing-lg);">
+          <!-- Result Card -->
+          <section class="scanner-card">
+            <h2>✓ Ticket Information</h2>
+            <span id="resultBadge" class="result-badge warning">Waiting for input…</span>
+            <div class="result-meta" id="resultMeta">No ticket processed yet.</div>
+
+            <div class="ticket-details">
+              <div class="detail-row">
+                <span class="detail-label">Ticket Code</span>
+                <span class="detail-value" id="resTicket">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Name</span>
+                <span class="detail-value" id="resName">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Email</span>
+                <span class="detail-value" id="resEmail">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Checked-In</span>
+                <span class="detail-value" id="resChecked">—</span>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" id="btnCheckIn" style="width: 100%; margin-top: var(--spacing-md);">Check In Attendee</button>
+          </section>
+
+          <!-- Statistics Card -->
+          <section class="scanner-card">
+            <h2>📊 Session Statistics</h2>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-label">Total Verified</span>
+                <span class="stat-value" id="statTotal">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Checked-In</span>
+                <span class="stat-value" id="statChecked">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Already Checked</span>
+                <span class="stat-value" id="statAlready">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Invalid</span>
+                <span class="stat-value" id="statInvalid">0</span>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
-    </section>
-  </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="about.html">About Us</a>
+      <a href="index.html#events">Events</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+  </footer>
 
   <!-- Scanner logic that matches create-event API handling -->
   <script type="module">
@@ -354,7 +633,7 @@
     // ====== Utils ======
     function show(el, on = true) { el.style.display = on ? '' : 'none'; }
     function setBadge(kind, text) {
-      resBadge.className = 'badge ' + (kind === 'ok' ? 'badge--ok' : kind === 'err' ? 'badge--err' : 'badge--warn');
+      resBadge.className = 'result-badge ' + (kind === 'ok' ? 'success' : kind === 'err' ? 'error' : 'warning');
       resBadge.textContent = text;
     }
     function fmtDate(input) {
@@ -416,7 +695,10 @@
         headers: authHeaders({ 'Accept': 'application/json' })
       })
         .then(r => r.ok ? r.json() : null)
-        .then(ev => eventDateEl.textContent = fmtDate(ev?.starts_at ?? ev?.event_date ?? ev?.startsAt ?? null))
+        .then(j => {
+          const ev = j?.event || j || {};
+          eventDateEl.textContent = fmtDate(ev.starts_at ?? ev.event_date ?? ev.startsAt ?? null);
+        })
         .catch(() => eventDateEl.textContent = '—');
     }
 
@@ -432,8 +714,8 @@
       const key = staffKeyEl.value.trim();
       if (!key) return;
       localStorage.setItem('staffKey', key);
-      show(staffKeySaved, true);
-      setTimeout(() => show(staffKeySaved, false), 1200);
+      staffKeySaved.classList.add('show');
+      setTimeout(() => staffKeySaved.classList.remove('show'), 1200);
     });
 
     // Prefill staff key
@@ -516,18 +798,22 @@
         }
 
         const data = await resp.json();
-        resTicket.textContent = data.code || code;
-        resName.textContent = data.attendeeName || data.name || '—';
-        resEmail.textContent = data.attendeeEmail || data.email || '—';
-        resChecked.textContent = data.checkedIn ? 'Yes' : 'No';
+        const t = data.ticket || data || {};
+        const checked = Boolean(
+          t.already_checked_in ?? t.checked_in ?? t.checkedIn ?? false
+        );
+        resTicket.textContent = t.qr_code || t.code || code;
+        resName.textContent = t.attendee_name || t.attendeeName || t.name || '—';
+        resEmail.textContent = t.attendee_email || t.attendeeEmail || t.email || '—';
+        resChecked.textContent = checked ? 'Yes' : 'No';
 
-        if (data.checkedIn) {
+        if (checked) {
           setBadge('warn', 'Already checked-in');
-          resMeta.textContent = data.message || 'This ticket is already checked in.';
+          resMeta.textContent = t.message || data.message || 'This ticket is already checked in.';
           statAlready.textContent = String(+statAlready.textContent + 1);
         } else {
           setBadge('ok', 'Valid ticket');
-          resMeta.textContent = data.message || 'Ready to check in';
+          resMeta.textContent = t.message || data.message || 'Ready to check in';
         }
       } catch (err) {
         console.error(err);
@@ -563,7 +849,8 @@
         }
 
         const data = await resp.json();
-        resChecked.textContent = data.checkedIn ? 'Yes' : 'No';
+        const checked = Boolean(data.checked_in ?? data.checkedIn ?? false);
+        resChecked.textContent = checked ? 'Yes' : 'No';
         setBadge('ok', 'Checked in');
         resMeta.textContent = data.message || 'Attendee checked in successfully';
         statChecked.textContent = String(+statChecked.textContent + 1);
@@ -578,7 +865,7 @@
     btnClear?.addEventListener('click', () => {
       manualCode.value = '';
       preview.src = ''; show(preview, false);
-      resBadge.className = 'badge badge--warn';
+      resBadge.className = 'result-badge warning';
       resBadge.textContent = 'Waiting for input…';
       resMeta.textContent = 'No ticket processed yet.';
       resTicket.textContent = resName.textContent = resEmail.textContent = resChecked.textContent = '—';
