@@ -41,6 +41,11 @@ function requireRole(role) {
   };
 }
 
+//#202
+const requireAdmin = requireRole('admin');
+const requireModerator = requireAdmin; // Modertion uses the same high level admin check
 const requireOrganizer = requireRole('organizer');
 
-module.exports = { requireAuth, requireRole, requireOrganizer };
+module.exports = { requireAuth, requireRole, requireOrganizer, requireAdmin, requireModerator};
+// Exporting the new Admin Middleware
+// Exporting  the new Moderator alias. 
