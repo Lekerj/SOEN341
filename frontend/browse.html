@@ -1201,7 +1201,7 @@
         detailsPanel.style.display = detailsPanel.style.display === 'none' ? 'block' : 'none';
       });
 
-      // If the current user is the organizer of this event, show an Edit button
+      // If the current user is the organizer of this event, show Edit and Analytics buttons
       try {
         const userRaw = localStorage.getItem('user');
         if (userRaw) {
@@ -1213,6 +1213,13 @@
             editLink.style.marginLeft = '0.5rem';
             editLink.textContent = 'Edit';
             footer.appendChild(editLink);
+
+            const analyticsLink = document.createElement('a');
+            analyticsLink.href = `organizer-analytics.html?eventId=${event.id}`;
+            analyticsLink.className = 'btn btn-secondary';
+            analyticsLink.style.marginLeft = '0.5rem';
+            analyticsLink.textContent = 'Analytics';
+            footer.appendChild(analyticsLink);
           }
         }
       } catch (e) {
