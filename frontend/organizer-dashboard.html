@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organizer Dashboard - ConEvents</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Page header (similar to browse.html) */
+    .dashboard-header {
+      text-align: center;
+      padding: var(--spacing-2xl) var(--spacing-lg) var(--spacing-md);
+      color: var(--white);
+      background: transparent;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .dashboard-title {
+      font-size: var(--font-size-4xl);
+      font-weight: 800;
+      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .dashboard-subtitle {
+      font-size: var(--font-size-lg);
+      opacity: 0.95;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .create-btn {
+      background: linear-gradient(90deg, #912338, #6B2C91);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    .create-btn:hover {
+      background: linear-gradient(90deg, #6B2C91, #912338);
+      transform: translateY(-2px);
+    }
+
+    /* Dashboard layout */
+    .dashboard-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--spacing-lg);
+    }
+
+    .dashboard-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .dashboard-controls .filter-select {
+      padding: 10px 14px;
+      border: 2px solid var(--medium-gray);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-base);
+    }
+
+    /* Event grid */
+    .events-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .event-card {
+      background: var(--white);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .event-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .event-card img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+    }
+
+    .event-card-content {
+      padding: 1rem;
+    }
+
+    .event-card-content h3 {
+      color: var(--primary-maroon);
+      margin-bottom: 0.25rem;
+    }
+
+    .event-meta {
+      font-size: 0.9rem;
+      color: var(--medium-gray);
+      margin-bottom: 0.75rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: #eee;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 0.75rem;
+    }
+
+    .progress {
+      height: 100%;
+      background: linear-gradient(90deg, #6B2C91, #912338);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .card-actions {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .btn-small {
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1.5px solid var(--primary-maroon);
+      background: transparent;
+      color: var(--primary-maroon);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-small:hover {
+      background: var(--primary-maroon);
+      color: white;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--medium-gray);
+    }
+
+    @media (max-width: 768px) {
+      .dashboard-controls {
+        flex-direction: column;
+        gap: var(--spacing-md);
+      }
+    }
+
+    /* === Fix floating footer === */
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .dashboard-container {
+      flex: 1;
+    }
+
+    footer {
+      margin-top: auto;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Navbar (same as browse.html) -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="browse.html">Browse</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="profile.html">Profile</a></li>
+        <li id="authLinks">
+          <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </li>
+        <li id="userLinks" style="display: none;">
+          <span id="welcomeMessage" class="text-muted"></span>
+          <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <div class="dashboard-header">
+    <h1 class="dashboard-title">Organizer Dashboard</h1>
+    <p class="dashboard-subtitle">Manage and track all your events in one place</p>
+    <button class="create-btn">+ Create New Event</button>
+  </div>
+
+  <!-- Dashboard Controls -->
+  <div class="dashboard-container">
+    <div class="dashboard-controls">
+      <h2 style="color: white;">Your Events</h2>
+      <select class="filter-select" id="sortBy">
+        <option value="date">Sort by Date</option>
+        <option value="tickets">Sort by Tickets Sold</option>
+        <option value="name">Sort by Name</option>
+      </select>
+    </div>
+
+    <!-- Events Grid -->
+    <div class="events-grid" id="eventsGrid">
+      <!-- Cards will be loaded here dynamically -->
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <p>No events found. Start by creating your first event!</p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="about.html">About Us</a>
+      <a href="browse.html">Events</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+  </footer>
+
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
+
+    // --- Temporary Sample Data ---
+    const sampleEvents = [
+      {
+        id: 1,
+        title: "ConUHacks X",
+        date: "2025-02-15",
+        time: "09:00 AM",
+        location: "Concordia SGW Campus",
+        tickets_sold: 180,
+        capacity: 250,
+        image_url: "assets/hackathon.jpg"
+      },
+      {
+        id: 2,
+        title: "Women in Tech Mixer",
+        date: "2025-03-10",
+        time: "06:30 PM",
+        location: "EV Building Lounge",
+        tickets_sold: 75,
+        capacity: 100,
+        image_url: "assets/meetup.jpg"
+      }
+    ];
+
+    const grid = document.getElementById("eventsGrid");
+    const emptyState = document.getElementById("emptyState");
+    const sortBy = document.getElementById("sortBy");
+
+    // --- Render Events ---
+    function renderEvents(events) {
+      grid.innerHTML = "";
+      if (events.length === 0) {
+        emptyState.style.display = "block";
+        return;
+      }
+      emptyState.style.display = "none";
+
+      events.forEach(ev => {
+        const card = document.createElement("div");
+        card.className = "event-card";
+
+        const img = document.createElement("img");
+        img.src = ev.image_url || "assets/default-event.jpg";
+
+        const content = document.createElement("div");
+        content.className = "event-card-content";
+
+        const title = document.createElement("h3");
+        title.textContent = ev.title;
+
+        const meta = document.createElement("div");
+        meta.className = "event-meta";
+        meta.textContent = `${ev.date} • ${ev.time} • ${ev.location}`;
+
+        const progressBar = document.createElement("div");
+        progressBar.className = "progress-bar";
+        const progress = document.createElement("div");
+        progress.className = "progress";
+        const percent = (ev.tickets_sold / ev.capacity) * 100;
+        progress.style.width = `${percent}%`;
+        progressBar.appendChild(progress);
+
+        const actions = document.createElement("div");
+        actions.className = "card-actions";
+
+        const analyticsBtn = document.createElement("button");
+        analyticsBtn.className = "btn-small";
+        analyticsBtn.textContent = "View Analytics";
+
+        const editBtn = document.createElement("button");
+        editBtn.className = "btn-small";
+        editBtn.textContent = "Edit Event";
+
+        actions.appendChild(analyticsBtn);
+        actions.appendChild(editBtn);
+
+        content.appendChild(title);
+        content.appendChild(meta);
+        content.appendChild(progressBar);
+        content.appendChild(actions);
+
+        card.appendChild(img);
+        card.appendChild(content);
+        grid.appendChild(card);
+      });
+    }
+
+    renderEvents(sampleEvents);
+
+    // --- Sorting ---
+    sortBy.addEventListener("change", () => {
+      let sorted = [...sampleEvents];
+      if (sortBy.value === "name") {
+        sorted.sort((a, b) => a.title.localeCompare(b.title));
+      } else if (sortBy.value === "tickets") {
+        sorted.sort((a, b) => b.tickets_sold - a.tickets_sold);
+      } else {
+        sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
+      }
+      renderEvents(sorted);
+    });
+  </script>
+</body>
+
+</html>
