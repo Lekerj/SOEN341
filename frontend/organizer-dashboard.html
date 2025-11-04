@@ -1,34 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Organizer Dashboard - ConEvents</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css" />
   <style>
-    /* Page header (similar to browse.html) */
     .dashboard-header {
       text-align: center;
       padding: var(--spacing-2xl) var(--spacing-lg) var(--spacing-md);
       color: var(--white);
-      background: transparent;
       margin-bottom: var(--spacing-md);
     }
-
     .dashboard-title {
       font-size: var(--font-size-4xl);
       font-weight: 800;
       text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
-      margin-bottom: var(--spacing-sm);
     }
-
-    .dashboard-subtitle {
-      font-size: var(--font-size-lg);
-      opacity: 0.95;
-      margin-bottom: var(--spacing-lg);
-    }
-
     .create-btn {
       background: linear-gradient(90deg, #912338, #6B2C91);
       color: white;
@@ -40,40 +28,36 @@
       cursor: pointer;
       transition: background 0.3s ease, transform 0.2s ease;
     }
-
     .create-btn:hover {
       background: linear-gradient(90deg, #6B2C91, #912338);
       transform: translateY(-2px);
     }
-
-    /* Dashboard layout */
     .dashboard-container {
       max-width: 1200px;
       margin: 0 auto;
       padding: var(--spacing-lg);
+      flex: 1;
     }
-
     .dashboard-controls {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: var(--spacing-lg);
     }
-
+    .dashboard-controls h2 {
+      color: white;
+    }
     .dashboard-controls .filter-select {
       padding: 10px 14px;
       border: 2px solid var(--medium-gray);
       border-radius: var(--radius-md);
       font-size: var(--font-size-base);
     }
-
-    /* Event grid */
     .events-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 1.5rem;
     }
-
     .event-card {
       background: var(--white);
       border-radius: 12px;
@@ -81,33 +65,27 @@
       overflow: hidden;
       transition: transform 0.2s, box-shadow 0.2s;
     }
-
     .event-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     }
-
     .event-card img {
       width: 100%;
       height: 160px;
       object-fit: cover;
     }
-
     .event-card-content {
       padding: 1rem;
     }
-
     .event-card-content h3 {
       color: var(--primary-maroon);
       margin-bottom: 0.25rem;
     }
-
     .event-meta {
       font-size: 0.9rem;
       color: var(--medium-gray);
       margin-bottom: 0.75rem;
     }
-
     .progress-bar {
       width: 100%;
       height: 6px;
@@ -116,19 +94,16 @@
       overflow: hidden;
       margin-bottom: 0.75rem;
     }
-
     .progress {
       height: 100%;
       background: linear-gradient(90deg, #6B2C91, #912338);
       width: 0%;
       transition: width 0.3s ease;
     }
-
     .card-actions {
       display: flex;
       justify-content: space-between;
     }
-
     .btn-small {
       padding: 8px 14px;
       border-radius: 6px;
@@ -139,36 +114,20 @@
       cursor: pointer;
       transition: all 0.3s ease;
     }
-
     .btn-small:hover {
       background: var(--primary-maroon);
       color: white;
     }
-
     .empty-state {
       text-align: center;
       padding: 3rem 1rem;
       color: var(--medium-gray);
     }
-
-    @media (max-width: 768px) {
-      .dashboard-controls {
-        flex-direction: column;
-        gap: var(--spacing-md);
-      }
-    }
-
-    /* === Fix floating footer === */
     body {
       display: flex;
       flex-direction: column;
       min-height: 100vh;
     }
-
-    .dashboard-container {
-      flex: 1;
-    }
-
     footer {
       margin-top: auto;
     }
@@ -176,8 +135,7 @@
 </head>
 
 <body>
-
-  <!-- Navbar (same as browse.html) -->
+  <!-- Navbar -->
   <nav class="navbar">
     <div class="navbar-container">
       <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
@@ -190,7 +148,7 @@
           <a href="login.html" class="btn btn-primary btn-sm">Login</a>
           <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
         </li>
-        <li id="userLinks" style="display: none;">
+        <li id="userLinks" style="display:none;">
           <span id="welcomeMessage" class="text-muted"></span>
           <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
         </li>
@@ -198,17 +156,20 @@
     </div>
   </nav>
 
-  <!-- Page Header -->
+  <!-- Header -->
   <div class="dashboard-header">
     <h1 class="dashboard-title">Organizer Dashboard</h1>
     <p class="dashboard-subtitle">Manage and track all your events in one place</p>
-    <button class="create-btn">+ Create New Event</button>
+    <button class="create-btn" onclick="window.location.href='organizer-create-event.html'">
+        + Create New Event
+      </button>
+      
   </div>
 
   <!-- Dashboard Controls -->
   <div class="dashboard-container">
     <div class="dashboard-controls">
-      <h2 style="color: white;">Your Events</h2>
+      <h2>Your Events</h2>
       <select class="filter-select" id="sortBy">
         <option value="date">Sort by Date</option>
         <option value="tickets">Sort by Tickets Sold</option>
@@ -217,9 +178,7 @@
     </div>
 
     <!-- Events Grid -->
-    <div class="events-grid" id="eventsGrid">
-      <!-- Cards will be loaded here dynamically -->
-    </div>
+    <div class="events-grid" id="eventsGrid"></div>
 
     <!-- Empty State -->
     <div class="empty-state" id="emptyState" style="display:none;">
@@ -242,35 +201,39 @@
   <script type="module">
     import { getApiBase } from './utils/api.js';
 
-    // --- Temporary Sample Data ---
-    const sampleEvents = [
-      {
-        id: 1,
-        title: "ConUHacks X",
-        date: "2025-02-15",
-        time: "09:00 AM",
-        location: "Concordia SGW Campus",
-        tickets_sold: 180,
-        capacity: 250,
-        image_url: "assets/hackathon.jpg"
-      },
-      {
-        id: 2,
-        title: "Women in Tech Mixer",
-        date: "2025-03-10",
-        time: "06:30 PM",
-        location: "EV Building Lounge",
-        tickets_sold: 75,
-        capacity: 100,
-        image_url: "assets/meetup.jpg"
-      }
-    ];
-
     const grid = document.getElementById("eventsGrid");
     const emptyState = document.getElementById("emptyState");
     const sortBy = document.getElementById("sortBy");
+    let allEvents = [];
 
-    // --- Render Events ---
+    // Fetch organizer's events from backend
+    async function loadEvents() {
+      try {
+        const resp = await fetch(`${getApiBase()}/api/organizer/events`, { credentials: 'include' });
+        const data = await resp.json();
+
+        if (data.success && Array.isArray(data.events)) {
+          allEvents = data.events.map(ev => ({
+            id: ev.id,
+            title: ev.title,
+            date: ev.event_date,
+            time: ev.event_time,
+            location: ev.location,
+            tickets_sold: ev.tickets_issued,
+            capacity: ev.capacity,
+            image_url: "assets/default-event.jpg"
+          }));
+          renderEvents(allEvents);
+        } else {
+          emptyState.style.display = "block";
+        }
+      } catch (error) {
+        console.error("Failed to load events:", error);
+        emptyState.style.display = "block";
+      }
+    }
+
+    // Display events in cards
     function renderEvents(events) {
       grid.innerHTML = "";
       if (events.length === 0) {
@@ -284,7 +247,7 @@
         card.className = "event-card";
 
         const img = document.createElement("img");
-        img.src = ev.image_url || "assets/default-event.jpg";
+        img.src = ev.image_url;
 
         const content = document.createElement("div");
         content.className = "event-card-content";
@@ -294,14 +257,13 @@
 
         const meta = document.createElement("div");
         meta.className = "event-meta";
-        meta.textContent = `${ev.date} • ${ev.time} • ${ev.location}`;
+        meta.textContent = `${ev.date} • ${ev.time} • ${ev.location} • ${ev.tickets_sold}/${ev.capacity} tickets`;
 
         const progressBar = document.createElement("div");
         progressBar.className = "progress-bar";
         const progress = document.createElement("div");
         progress.className = "progress";
-        const percent = (ev.tickets_sold / ev.capacity) * 100;
-        progress.style.width = `${percent}%`;
+        progress.style.width = `${(ev.tickets_sold / ev.capacity) * 100}%`;
         progressBar.appendChild(progress);
 
         const actions = document.createElement("div");
@@ -310,40 +272,29 @@
         const analyticsBtn = document.createElement("button");
         analyticsBtn.className = "btn-small";
         analyticsBtn.textContent = "View Analytics";
+        analyticsBtn.onclick = () => window.location.href = `analytics.html?event=${ev.id}`;
 
         const editBtn = document.createElement("button");
         editBtn.className = "btn-small";
         editBtn.textContent = "Edit Event";
+        editBtn.onclick = () => window.location.href = `edit-event.html?event=${ev.id}`;
 
-        actions.appendChild(analyticsBtn);
-        actions.appendChild(editBtn);
-
-        content.appendChild(title);
-        content.appendChild(meta);
-        content.appendChild(progressBar);
-        content.appendChild(actions);
-
-        card.appendChild(img);
-        card.appendChild(content);
+        actions.append(analyticsBtn, editBtn);
+        content.append(title, meta, progressBar, actions);
+        card.append(img, content);
         grid.appendChild(card);
       });
     }
 
-    renderEvents(sampleEvents);
-
-    // --- Sorting ---
     sortBy.addEventListener("change", () => {
-      let sorted = [...sampleEvents];
-      if (sortBy.value === "name") {
-        sorted.sort((a, b) => a.title.localeCompare(b.title));
-      } else if (sortBy.value === "tickets") {
-        sorted.sort((a, b) => b.tickets_sold - a.tickets_sold);
-      } else {
-        sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
-      }
+      let sorted = [...allEvents];
+      if (sortBy.value === "name") sorted.sort((a, b) => a.title.localeCompare(b.title));
+      else if (sortBy.value === "tickets") sorted.sort((a, b) => b.tickets_sold - a.tickets_sold);
+      else sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
       renderEvents(sorted);
     });
+
+    window.addEventListener("DOMContentLoaded", loadEvents);
   </script>
 </body>
-
 </html>
