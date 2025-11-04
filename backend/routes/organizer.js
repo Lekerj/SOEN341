@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const { requireOrganizer } = require('../middleware/auth'); 
+const { attendeesToCsv } = require('../utils/csv');
 
 // Utility function for basic validation 
 const validateEventData = (data) => {
@@ -462,6 +463,7 @@ router.get('/events/:id/analytics', requireOrganizer, async (req, res) => {
 
 router.get('/events', requireOrganizer, (req, res) => {
     const organizerId = req.session.userId;
+    console.log('Fetching events for organizer:', organizerId);
     const sql = `
         SELECT e.*, 
             (e.capacity - e.tickets_available) AS tickets_issued,
@@ -473,13 +475,15 @@ router.get('/events', requireOrganizer, (req, res) => {
         LEFT JOIN tickets t ON e.id = t.event_id
         WHERE e.organizer_id = ?
         GROUP BY e.id
-        ORDER BY e.event_date DESC, e.event_time DESC
+        ORDER BY e.event_date ASC, e.event_time ASC
     `;
     db.query(sql, [organizerId], async (err, results) => {
         if (err) {
             console.error('DB error fetching organizer events:', err);
             return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to fetch events.' });
         }
+        console.log('Found events:', results.length);
+        console.log('Events:', JSON.stringify(results, null, 2));
 
         // For each event, fetch timeline data
         const eventsWithTimeline = await Promise.all(results.map(event => {
@@ -513,6 +517,57 @@ router.get('/events', requireOrganizer, (req, res) => {
     });
 });
 
+
+/**
+ * Route: GET /api/organizer/events/:id/export-csv
+ * Function: Provides attendee list CSV download for organizer-owned event.
+ * Middleware: requireOrganizer
+ */
+router.get('/events/:id/export-csv', requireOrganizer, (req, res) => {
+    const eventId = req.params.id;
+    const organizerId = req.session.userId;
+
+    const ownershipSql = 'SELECT organizer_id FROM events WHERE id = ?';
+    db.query(ownershipSql, [eventId], (err, eventResults) => {
+        if (err) {
+            console.error('DB error during event ownership check:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to verify event ownership.' });
+        }
+        if (eventResults.length === 0) {
+            return res.status(404).json({ success: false, error: 'Event not found.' });
+        }
+        if (eventResults[0].organizer_id !== organizerId) {
+            return res.status(403).json({ success: false, error: 'Unauthorized', message: 'You do not own this event.' });
+        }
+
+        const attendeeSql = `
+            SELECT 
+              u.name, u.email,
+              t.ticket_type, t.qr_code,
+              t.checked_in, t.created_at as claimed_at
+            FROM tickets t
+            JOIN users u ON t.user_id = u.id
+            WHERE t.event_id = ?
+            ORDER BY t.created_at DESC
+        `;
+
+        db.query(attendeeSql, [eventId], (err, attendeeResults) => {
+            if (err) {
+                console.error('DB error during attendee query:', err);
+                return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to fetch attendees.' });
+            }
+
+            const csvContent = '\uFEFF' + attendeesToCsv(attendeeResults);
+
+            const today = new Date().toISOString().split('T')[0];
+            const filename = `event-${eventId}-attendees-${today}.csv`;
+
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            return res.status(200).send(csvContent);
+        });
+    });
+});
 
 /**
  * Route: GET /api/organizer/events/:id/attendees
