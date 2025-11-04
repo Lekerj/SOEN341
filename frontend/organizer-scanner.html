@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -65,25 +66,125 @@
 
   <style>
     /* Minimal helpers (your design system handles most styling) */
-    .stack { display: grid; gap: var(--gap, 1rem); }
-    .row { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-    @media (min-width: 768px) { .row--2 { grid-template-columns: 1fr 1fr; } }
-    .card { background: var(--surface, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 0.75rem; padding: 1rem; }
-    .muted { color: var(--muted, #6b7280); }
-    .badge { display: inline-flex; align-items: center; padding: 0.25rem 0.5rem; border-radius: 999px; font-size: 0.875rem; }
-    .badge--ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-    .badge--warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
-    .badge--err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    .input, .select { width: 100%; padding: 0.65rem 0.75rem; border: 1px solid var(--border, #e5e7eb); border-radius: 0.5rem; background: var(--surface, #fff); }
-    .header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; }
-    .header__title { font-size: 1.125rem; font-weight: 600; }
-    .toolbar { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-    .list { list-style: none; padding: 0; margin: 0; }
-    .list li { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed var(--border, #e5e7eb); }
-    .list li:last-child { border-bottom: none; }
-    .vis { min-height: 72px; display:flex; align-items:center; justify-content:space-between; gap: 0.75rem; }
-    .inline { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
-    .small { font-size:.875rem; }
+    .stack {
+      display: grid;
+      gap: var(--gap, 1rem);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .row--2 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .card {
+      background: var(--surface, #fff);
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: 0.75rem;
+      padding: 1rem;
+    }
+
+    .muted {
+      color: var(--muted, #6b7280);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.875rem;
+    }
+
+    .badge--ok {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    .badge--warn {
+      background: #fffbeb;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+
+    .badge--err {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    .input,
+    .select {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: 0.5rem;
+      background: var(--surface, #fff);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 0;
+    }
+
+    .header__title {
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px dashed var(--border, #e5e7eb);
+    }
+
+    .list li:last-child {
+      border-bottom: none;
+    }
+
+    .vis {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .inline {
+      display: flex;
+      gap: .5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .small {
+      font-size: .875rem;
+    }
   </style>
 </head>
 
@@ -91,30 +192,30 @@
   <div class="container stack" style="--gap: 1.25rem; max-width: 1000px; margin: 0 auto; padding: 1rem;">
 
     <!-- Navigation (same structure used across pages) -->
-  <nav class="navbar">
-    <div class="navbar-container">
-      <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
-      <ul class="navbar-menu">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="index.html#events">Events</a></li>
-        <li><a href="about.html">About</a></li>
-        <li id="authLinks">
-          <a href="login.html" class="btn btn-primary btn-sm">Login</a>
-          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
-        </li>
-        <li id="userLinks" style="display:none;">
-          <span id="welcomeMessage" class="text-muted"></span>
-          <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
-        </li>
-      </ul>
-    </div>
-  </nav>
+    <nav class="navbar">
+      <div class="navbar-container">
+        <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+        <ul class="navbar-menu">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="index.html#events">Events</a></li>
+          <li><a href="about.html">About</a></li>
+          <li id="authLinks">
+            <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+            <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+          </li>
+          <li id="userLinks" style="display:none;">
+            <span id="welcomeMessage" class="text-muted"></span>
+            <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+          </li>
+        </ul>
+      </div>
+    </nav>
 
 
     <!-- Header -->
     <header class="header">
-      <div class="stack" style="--gap: 0.25rem;">        
-        
+      <div class="stack" style="--gap: 0.25rem;">
+
         <!-- Event picker -->
         <div class="inline small">
           <label for="eventSelect" class="muted">Event:</label>
@@ -129,8 +230,9 @@
         </div>
 
         <!-- Staff key (optional) -->
-        <div class="inline small">          
-          <input id="staffKey" class="input" type="password" placeholder="Enter staff key for check-in" style="max-width:260px;">
+        <div class="inline small">
+          <input id="staffKey" class="input" type="password" placeholder="Enter staff key for check-in"
+            style="max-width:260px;">
           <button class="btn btn--ghost small" id="saveStaffKey">Save</button>
           <span id="staffKeySaved" class="muted" style="display:none;">Saved</span>
         </div>
@@ -155,7 +257,8 @@
         <h2 style="font-size: 1rem; font-weight: 600;">Manual Ticket Entry</h2>
         <p class="muted small">Paste the full ticket URL or the ticket code itself.</p>
         <div class="stack" style="--gap: 0.5rem;">
-          <input class="input" type="text" id="manualCode" placeholder="https://.../api/tickets/qr/ABC123 or ABC123" autocomplete="one-time-code" />
+          <input class="input" type="text" id="manualCode" placeholder="https://.../api/tickets/qr/ABC123 or ABC123"
+            autocomplete="one-time-code" />
           <div class="toolbar">
             <button class="btn" id="btnValidate">Verify</button>
             <button class="btn btn--ghost" id="btnPaste">Paste</button>
@@ -206,7 +309,7 @@
       try {
         const user = JSON.parse(localStorage.getItem('user'));
         if (user && user.token) return user.token;
-      } catch (_) {}
+      } catch (_) { }
       return '';
     }
     function authHeaders(base = {}) {
@@ -219,11 +322,11 @@
 
     const eventSelect = document.getElementById('eventSelect');
     const eventTitleEl = document.getElementById('eventTitle');
-    const eventDateEl  = document.getElementById('eventDate');
+    const eventDateEl = document.getElementById('eventDate');
 
-    const staffKeyEl   = document.getElementById('staffKey');
+    const staffKeyEl = document.getElementById('staffKey');
     const saveStaffKeyBtn = document.getElementById('saveStaffKey');
-    const staffKeySaved   = document.getElementById('staffKeySaved');
+    const staffKeySaved = document.getElementById('staffKeySaved');
 
     const manualCode = document.getElementById('manualCode');
     const btnValidate = document.getElementById('btnValidate');
@@ -236,20 +339,20 @@
     const qrCanvas = document.getElementById('qrCanvas');
     const ctx = qrCanvas.getContext('2d');
 
-    const resBadge   = document.getElementById('resultBadge');
-    const resMeta    = document.getElementById('resultMeta');
-    const resTicket  = document.getElementById('resTicket');
-    const resName    = document.getElementById('resName');
-    const resEmail   = document.getElementById('resEmail');
+    const resBadge = document.getElementById('resultBadge');
+    const resMeta = document.getElementById('resultMeta');
+    const resTicket = document.getElementById('resTicket');
+    const resName = document.getElementById('resName');
+    const resEmail = document.getElementById('resEmail');
     const resChecked = document.getElementById('resChecked');
 
-    const statTotal   = document.getElementById('statTotal');
+    const statTotal = document.getElementById('statTotal');
     const statChecked = document.getElementById('statChecked');
     const statAlready = document.getElementById('statAlready');
     const statInvalid = document.getElementById('statInvalid');
 
     // ====== Utils ======
-    function show(el, on=true) { el.style.display = on ? '' : 'none'; }
+    function show(el, on = true) { el.style.display = on ? '' : 'none'; }
     function setBadge(kind, text) {
       resBadge.className = 'badge ' + (kind === 'ok' ? 'badge--ok' : kind === 'err' ? 'badge--err' : 'badge--warn');
       resBadge.textContent = text;
@@ -334,7 +437,7 @@
     });
 
     // Prefill staff key
-    (function prefillStaffKey(){ const saved = localStorage.getItem('staffKey'); if (saved) staffKeyEl.value = saved; })();
+    (function prefillStaffKey() { const saved = localStorage.getItem('staffKey'); if (saved) staffKeyEl.value = saved; })();
 
     // ====== QR upload + decode (client-side) ======
     fileInput?.addEventListener('change', (e) => {
@@ -350,7 +453,23 @@
           const data = ctx.getImageData(0, 0, width, height);
           const result = jsQR(data.data, width, height);
           if (result && result.data) {
-            manualCode.value = result.data;
+            let raw = (result && result.data ? result.data : '').trim();
+            let short = raw;
+
+            try {
+              const u = new URL(raw);
+              // Prefer ?code=... if present
+              short = u.searchParams.get('code')
+                || (u.pathname.match(/\/api\/tickets\/qr\/([^/]+)/)?.[1])
+                || u.pathname.split('/').filter(Boolean).pop(); // last path segment
+            } catch {
+              // Not a URL string: try regex fallbacks
+              short = raw.match(/[?&]code=([^&]+)/)?.[1]
+                || raw.match(/\/api\/tickets\/qr\/([^/]+)/)?.[1]
+                || raw;
+            }
+
+            manualCode.value = short;
             verifyNow();
           } else {
             setBadge('err', 'No QR found');
@@ -364,7 +483,7 @@
     });
 
     btnPaste?.addEventListener('click', async () => {
-      try { manualCode.value = (await navigator.clipboard.readText()).trim(); } catch {}
+      try { manualCode.value = (await navigator.clipboard.readText()).trim(); } catch { }
       manualCode.focus();
     });
 
@@ -397,9 +516,9 @@
         }
 
         const data = await resp.json();
-        resTicket.textContent  = data.code || code;
-        resName.textContent    = data.attendeeName || data.name || '—';
-        resEmail.textContent   = data.attendeeEmail || data.email || '—';
+        resTicket.textContent = data.code || code;
+        resName.textContent = data.attendeeName || data.name || '—';
+        resEmail.textContent = data.attendeeEmail || data.email || '—';
         resChecked.textContent = data.checkedIn ? 'Yes' : 'No';
 
         if (data.checkedIn) {
@@ -437,7 +556,7 @@
         });
 
         if (!resp.ok) {
-          const text = await resp.text().catch(()=>'');
+          const text = await resp.text().catch(() => '');
           setBadge('err', 'Check-in failed');
           resMeta.textContent = text || 'Unauthorized or invalid ticket.';
           return;
@@ -469,4 +588,5 @@
     await loadOrganizerEvents();
   </script>
 </body>
+
 </html>
