@@ -286,6 +286,8 @@ body::before {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  line-height: 1.5;
+  vertical-align: middle;
 }
 
 .navbar-menu .dropdown > a.dropdown-toggle::after {
@@ -296,7 +298,6 @@ body::before {
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
   border-top: 6px solid var(--dark-gray);
-  transform: translateY(2px);
 }
 
 .navbar-menu .dropdown .dropdown-menu {
@@ -337,19 +338,42 @@ body::before {
 /* Breadcrumbs */
 .breadcrumbs {
   font-size: 0.95rem;
-  color: var(--medium-gray);
+  color: var(--white);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
   margin: 8px auto 0;
   max-width: 1200px;
   padding: 0 var(--spacing-lg);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+}
+
+.breadcrumbs a,
+.breadcrumbs span {
+  color: var(--white);
+  font-weight: 700;
 }
 
 .breadcrumbs a {
-  color: var(--dark-gray);
   text-decoration: none;
 }
 
 .breadcrumbs a:hover {
   text-decoration: underline;
+}
+
+/* Directory-style separators */
+.breadcrumbs > * + *::before {
+  content: "/";
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0.35rem 0 0.25rem;
+}
+
+/* Hide legacy inline separator span in existing markup */
+.breadcrumbs > span:nth-child(2) {
+  display: none;
 }
 
 /* === Container & Layout === */
@@ -1336,6 +1360,35 @@ select.form-control {
   }
   .navbar-menu .dropdown .dropdown-menu a {
     padding-left: 0;
+  }
+}
+
+/* Desktop hover enhancements and stacking */
+.navbar {
+  position: relative;
+  z-index: 2000;
+}
+
+.navbar-menu .dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* align all navbar list items consistently */
+.navbar-menu > li {
+  display: flex;
+  align-items: center;
+}
+
+@media (hover: hover) {
+  .navbar-menu .dropdown .dropdown-menu {
+    top: 100% !important; /* remove any gap between toggle and menu */
+    margin-top: 0;
+  }
+  .navbar-menu .dropdown:hover .dropdown-menu,
+  .navbar-menu .dropdown:focus-within .dropdown-menu {
+    display: block;
   }
 }
 
