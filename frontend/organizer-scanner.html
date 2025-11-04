@@ -275,7 +275,8 @@
           credentials: 'include',
           headers: authHeaders({ 'Accept': 'application/json' })
         });
-        const events = resp.ok ? await resp.json() : [];
+        const data = resp.ok ? await resp.json() : { success: false, events: [] };
+        const events = data.success ? data.events : [];
         eventSelect.innerHTML = '';
 
         if (!Array.isArray(events) || !events.length) {
@@ -383,7 +384,7 @@
           method: 'POST',
           credentials: 'include',
           headers: authHeaders({ 'Content-Type': 'application/json', 'Accept': 'application/json' }),
-          body: JSON.stringify({ code, eventId: eventSelect.value || undefined })
+          body: JSON.stringify({ ticket_code: code, eventId: eventSelect.value || undefined })
         });
 
         statTotal.textContent = String(+statTotal.textContent + 1);
@@ -432,7 +433,7 @@
           method: 'POST',
           credentials: 'include',
           headers,
-          body: JSON.stringify({ code, eventId: eventSelect.value || undefined })
+          body: JSON.stringify({ ticket_code: code, eventId: eventSelect.value || undefined })
         });
 
         if (!resp.ok) {

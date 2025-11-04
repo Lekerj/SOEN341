@@ -462,6 +462,7 @@ router.get('/events/:id/analytics', requireOrganizer, async (req, res) => {
 
 router.get('/events', requireOrganizer, (req, res) => {
     const organizerId = req.session.userId;
+    console.log('Fetching events for organizer:', organizerId);
     const sql = `
         SELECT e.*, 
             (e.capacity - e.tickets_available) AS tickets_issued,
@@ -473,13 +474,15 @@ router.get('/events', requireOrganizer, (req, res) => {
         LEFT JOIN tickets t ON e.id = t.event_id
         WHERE e.organizer_id = ?
         GROUP BY e.id
-        ORDER BY e.event_date DESC, e.event_time DESC
+        ORDER BY e.event_date ASC, e.event_time ASC
     `;
     db.query(sql, [organizerId], async (err, results) => {
         if (err) {
             console.error('DB error fetching organizer events:', err);
             return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to fetch events.' });
         }
+        console.log('Found events:', results.length);
+        console.log('Events:', JSON.stringify(results, null, 2));
 
         // For each event, fetch timeline data
         const eventsWithTimeline = await Promise.all(results.map(event => {
