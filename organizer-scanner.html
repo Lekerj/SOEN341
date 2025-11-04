@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Organizer • QR Scanner • ConEvents</title>
+
+  <link rel="stylesheet" href="./styles.css" />
+  <!-- jsQR for client-side QR decoding (global jsQR) -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+
+  <!-- Mirror organizer-create-event: import getApiBase and bootstrap profile/session -->
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
+
+    // Show/hide navbar like create-event does
+    window.addEventListener('DOMContentLoaded', async () => {
+      const stored = localStorage.getItem('user');
+      if (!stored) return;
+
+      try {
+        const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
+        const authLinks = document.getElementById('authLinks');
+        const userLinks = document.getElementById('userLinks');
+        const welcome = document.getElementById('welcomeMessage');
+
+        if (resp.ok) {
+          const user = JSON.parse(stored);
+          if (authLinks) authLinks.style.display = 'none';
+          if (userLinks) {
+            userLinks.style.display = 'flex';
+            userLinks.style.gap = '1rem';
+            userLinks.style.alignItems = 'center';
+          }
+          if (welcome && user?.name) welcome.textContent = `Welcome, ${user.name}!`;
+        } else if (resp.status === 401) {
+          localStorage.removeItem('user');
+        }
+      } catch (error) {
+        console.warn('Profile check failed:', error);
+        localStorage.removeItem('user');
+      }
+    });
+
+    // Same logout behavior as organizer-create-event
+    window.logout = async function logout() {
+      try {
+        const resp = await fetch(`${getApiBase()}/api/auth/logout`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        if (resp.ok) {
+          localStorage.removeItem('user');
+          window.location.href = 'index.html';
+        } else {
+          alert('Logout failed. Please try again.');
+        }
+      } catch (error) {
+        console.warn('Logout failed:', error);
+        localStorage.removeItem('user');
+        window.location.href = 'index.html';
+      }
+    };
+  </script>
+
+  <style>
+    /* Scanner page specific styles */
+    .scanner-page-wrapper {
+      min-height: 100vh;
+      padding: var(--spacing-xl) var(--spacing-md);
+      position: relative;
+      z-index: 1;
+    }
+
+    .scanner-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      gap: var(--spacing-lg);
+    }
+
+    .scanner-header {
+      text-align: center;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .scanner-header h1 {
+      font-size: var(--font-size-2xl);
+      font-weight: bold;
+      color: var(--white);
+      margin-bottom: var(--spacing-xs);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .scanner-header p {
+      font-size: var(--font-size-base);
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Event Selection Card */
+    .event-selection-card {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .event-selection-card h2 {
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: var(--primary-maroon);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .event-selection-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--spacing-md);
+    }
+
+    .attendee-table-card {
+      margin-top: var(--spacing-lg);
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      padding: var(--spacing-lg);
+      display: grid;
+      gap: var(--spacing-md);
+    }
+
+    .attendee-table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacing-md);
+      flex-wrap: wrap;
+    }
+
+    .attendee-table-header h2 {
+      margin: 0;
+      font-size: var(--font-size-lg);
+      color: var(--primary-maroon);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+
+    .attendee-table-header h2 span {
+      font-size: 1.4rem;
+    }
+
+    #exportCsvBtn {
+      min-width: 180px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+
+    #exportCsvBtn .loading-text {
+      display: none;
+    }
+
+    #exportCsvBtn[data-loading="true"] {
+      pointer-events: none;
+      opacity: 0.75;
+    }
+
+    #exportCsvBtn[data-loading="true"] .default-text {
+      display: none;
+    }
+
+    #exportCsvBtn[data-loading="true"] .loading-text {
+      display: inline;
+    }
+
+    .export-status {
+      font-size: 0.75rem;
+      color: var(--medium-gray);
+    }
+
+    .export-status.success {
+      color: #047857;
+      font-weight: 600;
+    }
+
+    .export-status.error {
+      color: #b91c1c;
+      font-weight: 600;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 0.75rem;
+      height: 0.75rem;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .attendee-table-wrapper {
+      overflow-x: auto;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(145, 35, 56, 0.12);
+    }
+
+    table.attendee-table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+    }
+
+    table.attendee-table thead {
+      background: rgba(145, 35, 56, 0.08);
+    }
+
+    table.attendee-table th,
+    table.attendee-table td {
+      padding: var(--spacing-sm) var(--spacing-md);
+      text-align: left;
+      border-bottom: 1px solid rgba(229, 231, 235, 0.7);
+      font-size: 0.85rem;
+    }
+
+    table.attendee-table th {
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.75rem;
+      color: var(--medium-gray);
+    }
+
+    table.attendee-table tbody tr:hover {
+      background: rgba(145, 35, 56, 0.05);
+    }
+
+    .attendee-table-empty {
+      text-align: center;
+      padding: var(--spacing-lg);
+      color: var(--medium-gray);
+      font-style: italic;
+    }
+
+    @media (min-width: 768px) {
+      .event-selection-grid {
+        grid-template-columns: 1fr 1fr;
+        align-items: flex-end;
+      }
+    }
+
+    .form-group-wrapper {
+      display: grid;
+      gap: var(--spacing-xs);
+    }
+
+    .form-group-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--dark-gray);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .event-info-display {
+      padding: var(--spacing-md) var(--spacing-md);
+      background: linear-gradient(135deg, rgba(145, 35, 56, 0.05) 0%, rgba(107, 44, 145, 0.05) 100%);
+      border-radius: var(--radius-md);
+      border-left: 4px solid var(--primary-maroon);
+    }
+
+    .event-info-display strong {
+      display: block;
+      color: var(--primary-maroon);
+      font-size: var(--font-size-base);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .event-info-display span {
+      color: var(--medium-gray);
+      font-size: 0.75rem;
+    }
+
+    .staff-key-section {
+      display: grid;
+      gap: var(--spacing-md);
+      margin-top: var(--spacing-md) !important;
+      padding-top: var(--spacing-md) !important;
+    }
+
+    @media (min-width: 768px) {
+      .staff-key-section {
+        grid-template-columns: 1fr auto;
+        align-items: flex-end;
+      }
+    }
+
+    .staff-key-feedback {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      font-size: var(--font-size-sm);
+      color: var(--success);
+      font-weight: 600;
+      display: none;
+    }
+
+    .staff-key-feedback.show {
+      display: inline-flex;
+    }
+
+    /* Main Content Grid */
+    .scanner-content {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--spacing-lg);
+    }
+
+    @media (min-width: 1024px) {
+      .scanner-content {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+
+    /* Scanner Cards */
+    .scanner-card {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      padding: var(--spacing-lg);
+      transition: all var(--transition-base);
+      border: 2px solid transparent;
+    }
+
+    .scanner-card:hover {
+      box-shadow: var(--shadow-xl);
+      border-color: var(--primary-maroon);
+    }
+
+    .scanner-card h2 {
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      color: var(--primary-maroon);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .scanner-card p {
+      color: var(--medium-gray);
+      font-size: 0.875rem;
+      margin-bottom: var(--spacing-md);
+      line-height: 1.4;
+    }
+
+    /* Input Styles */
+    .form-control {
+      width: 100%;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border: 2px solid #e5e7eb;
+      border-radius: var(--radius-md);
+      background: var(--white);
+      font-size: 0.875rem;
+      font-family: var(--font-family);
+      transition: all var(--transition-base);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-maroon);
+      box-shadow: 0 0 0 3px rgba(145, 35, 56, 0.1);
+    }
+
+    .form-control::placeholder {
+      color: #a3a3a3;
+    }
+
+    /* File Input */
+    input[type="file"].form-control {
+      padding: var(--spacing-md);
+      cursor: pointer;
+    }
+
+    /* Preview Image */
+    #preview {
+      max-width: 100%;
+      border-radius: var(--radius-md);
+      margin-top: var(--spacing-md);
+      display: none;
+      border: 2px solid #e5e7eb;
+    }
+
+    /* Action Buttons */
+    .scanner-actions {
+      display: flex;
+      gap: var(--spacing-sm);
+      margin-top: var(--spacing-md);
+      flex-wrap: wrap;
+    }
+
+    .scanner-actions .btn {
+      flex: 1;
+      min-width: 100px;
+      font-weight: 600;
+      transition: all var(--transition-base);
+      font-size: 0.875rem;
+    }
+
+    @media (max-width: 640px) {
+      .scanner-actions {
+        flex-direction: column;
+      }
+
+      .scanner-actions .btn {
+        width: 100%;
+      }
+    }
+
+    /* Result Section */
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      font-size: 0.75rem;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .result-badge.success {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 2px solid #a7f3d0;
+    }
+
+    .result-badge.warning {
+      background: #fffbeb;
+      color: #92400e;
+      border: 2px solid #fde68a;
+    }
+
+    .result-badge.error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 2px solid #fecaca;
+    }
+
+    .result-meta {
+      color: var(--medium-gray);
+      font-size: 0.75rem;
+      margin-bottom: var(--spacing-md);
+      padding: var(--spacing-sm);
+      background: #f8f9fa;
+      border-radius: var(--radius-md);
+      border-left: 4px solid #e5e7eb;
+      line-height: 1.4;
+    }
+
+    .ticket-details {
+      display: grid;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .detail-row {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: var(--spacing-md);
+      padding-bottom: var(--spacing-sm);
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .detail-label {
+      color: var(--medium-gray);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .detail-value {
+      color: var(--dark-gray);
+      font-weight: 500;
+      word-break: break-word;
+      font-size: 0.875rem;
+    }
+
+    /* Statistics Card */
+    .stats-grid {
+      display: grid;
+      gap: var(--spacing-sm);
+      margin-top: var(--spacing-md);
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: #f8f9fa;
+      border-radius: var(--radius-md);
+      border-left: 4px solid var(--primary-maroon);
+    }
+
+    .stat-label {
+      color: var(--medium-gray);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .stat-value {
+      color: var(--primary-maroon);
+      font-size: var(--font-size-xl);
+      font-weight: bold;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .scanner-page-wrapper {
+        padding: var(--spacing-lg) var(--spacing-md);
+      }
+
+      .scanner-header h1 {
+        font-size: var(--font-size-xl);
+      }
+
+      .event-selection-card {
+        padding: var(--spacing-md);
+      }
+
+      .scanner-card {
+        padding: var(--spacing-md);
+      }
+
+      .scanner-card h2 {
+        font-size: var(--font-size-base);
+      }
+
+      .attendee-table-card {
+        padding: var(--spacing-md);
+      }
+
+      #exportCsvBtn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .detail-row {
+        grid-template-columns: 70px 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="index.html#events">Events</a></li>
+        <li><a href="about.html">About</a></li>
+        <li id="authLinks">
+          <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </li>
+        <li id="userLinks" style="display:none;">
+          <span id="welcomeMessage" class="text-muted"></span>
+          <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="scanner-page-wrapper">
+    <div class="scanner-container">
+      <!-- Header -->
+      <header class="scanner-header">
+        <h1>Attendee Check-In Scanner</h1>
+        <p>Verify and check-in attendees using QR codes or ticket codes</p>
+      </header>
+
+      <!-- Event Selection -->
+      <section class="event-selection-card">
+        <h2>Select Event</h2>
+        <div class="event-selection-grid">
+          <div class="form-group-wrapper">
+            <label for="eventSelect" class="form-group-label">Event</label>
+            <select id="eventSelect" class="form-control">
+              <option value="" disabled selected>Loading your events…</option>
+            </select>
+          </div>
+
+          <div class="event-info-display">
+            <strong id="eventTitle">—</strong>
+            <span id="eventDate">—</span>
+          </div>
+        </div>
+
+        <!-- Staff Key (Optional) -->
+        <div class="staff-key-section" style="border-top: 1px solid #e5e7eb;">
+          <div class="form-group-wrapper">
+            <label for="staffKey" class="form-group-label">Staff Key (Optional)</label>
+            <input id="staffKey" type="password" class="form-control" placeholder="Enter staff key for check-in" autocomplete="current-password" />
+          </div>
+          <button class="btn btn-secondary" id="saveStaffKey" style="white-space: nowrap;">Save Key</button>
+          <span id="staffKeySaved" class="staff-key-feedback">✓ Saved</span>
+        </div>
+      </section>
+
+      <section class="attendee-table-card" aria-labelledby="attendeeTableTitle">
+        <div class="attendee-table-header">
+          <h2 id="attendeeTableTitle"><span>📊</span> Attendee Overview</h2>
+          <button type="button" class="btn btn-secondary" id="exportCsvBtn" title="Download attendee list as CSV" data-loading="false" aria-label="Export attendee list">
+            <span>📥</span>
+            <span class="default-text">Export CSV</span>
+            <span class="loading-text"><span class="loading-spinner" aria-hidden="true"></span> Exporting...</span>
+          </button>
+        </div>
+        <p id="exportStatus" class="export-status" role="status" aria-live="polite"></p>
+        <div class="attendee-table-wrapper">
+          <table class="attendee-table">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">Ticket Type</th>
+                <th scope="col">Checked In</th>
+                <th scope="col">Claim Date</th>
+              </tr>
+            </thead>
+            <tbody id="attendeeTableBody">
+              <tr>
+                <td colspan="5" class="attendee-table-empty">Select an event to load attendees.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Scanner Content -->
+      <div class="scanner-content">
+        <!-- Left Column: Input Methods -->
+        <div style="display: grid; gap: var(--spacing-lg);">
+          <!-- Upload QR Image Card -->
+          <section class="scanner-card">
+            <h2>📸 Upload QR Image</h2>
+            <p>Upload a QR image from your device. We'll decode and verify it automatically.</p>
+            <input type="file" id="qrFile" class="form-control" accept="image/*" />
+            <canvas id="qrCanvas" hidden></canvas>
+            <img id="preview" alt="QR Image Preview" />
+          </section>
+
+          <!-- Manual Entry Card -->
+          <section class="scanner-card">
+            <h2>⌨️ Manual Ticket Entry</h2>
+            <p>Paste the full ticket URL or ticket code directly.</p>
+            <input type="text" id="manualCode" class="form-control" placeholder="ABC123 or https://.../api/tickets/qr/ABC123" autocomplete="off" />
+            <div class="scanner-actions">
+              <button class="btn btn-primary" id="btnValidate">Verify Ticket</button>
+              <button class="btn btn-secondary" id="btnPaste">Paste</button>
+              <button class="btn btn--ghost" id="btnClear">Clear</button>
+            </div>
+          </section>
+        </div>
+
+        <!-- Right Column: Result & Stats -->
+        <div style="display: grid; gap: var(--spacing-lg);">
+          <!-- Result Card -->
+          <section class="scanner-card">
+            <h2>✓ Ticket Information</h2>
+            <span id="resultBadge" class="result-badge warning">Waiting for input…</span>
+            <div class="result-meta" id="resultMeta">No ticket processed yet.</div>
+
+            <div class="ticket-details">
+              <div class="detail-row">
+                <span class="detail-label">Ticket Code</span>
+                <span class="detail-value" id="resTicket">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Name</span>
+                <span class="detail-value" id="resName">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Email</span>
+                <span class="detail-value" id="resEmail">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Checked-In</span>
+                <span class="detail-value" id="resChecked">—</span>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" id="btnCheckIn" style="width: 100%; margin-top: var(--spacing-md);">Check In Attendee</button>
+          </section>
+
+          <!-- Statistics Card -->
+          <section class="scanner-card">
+            <h2>📊 Session Statistics</h2>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-label">Total Verified</span>
+                <span class="stat-value" id="statTotal">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Checked-In</span>
+                <span class="stat-value" id="statChecked">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Already Checked</span>
+                <span class="stat-value" id="statAlready">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Invalid</span>
+                <span class="stat-value" id="statInvalid">0</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="about.html">About Us</a>
+      <a href="index.html#events">Events</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+  </footer>
+
+  <!-- Scanner logic that matches create-event API handling -->
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
+
+    // ====== Helpers matching organizer-create-event ======
+    function getAuthToken() {
+      const stored = localStorage.getItem('authToken');
+      if (stored) return stored;
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user && user.token) return user.token;
+      } catch (_) { }
+      return '';
+    }
+    function authHeaders(base = {}) {
+      const token = getAuthToken();
+      return token ? { ...base, Authorization: `Bearer ${token}` } : base;
+    }
+
+    // ====== Elements ======
+    const CHECK_IN_HEADER = 'X-Staff-Key';
+
+    const eventSelect = document.getElementById('eventSelect');
+    const eventTitleEl = document.getElementById('eventTitle');
+    const eventDateEl = document.getElementById('eventDate');
+    const exportBtn = document.getElementById('exportCsvBtn');
+    const exportStatus = document.getElementById('exportStatus');
+    const attendeeTableBody = document.getElementById('attendeeTableBody');
+
+    const staffKeyEl = document.getElementById('staffKey');
+    const saveStaffKeyBtn = document.getElementById('saveStaffKey');
+    const staffKeySaved = document.getElementById('staffKeySaved');
+
+    const manualCode = document.getElementById('manualCode');
+    const btnValidate = document.getElementById('btnValidate');
+    const btnPaste = document.getElementById('btnPaste');
+    const btnClear = document.getElementById('btnClear');
+    const btnCheckIn = document.getElementById('btnCheckIn');
+
+    const fileInput = document.getElementById('qrFile');
+    const preview = document.getElementById('preview');
+    const qrCanvas = document.getElementById('qrCanvas');
+    const ctx = qrCanvas.getContext('2d');
+
+    const resBadge = document.getElementById('resultBadge');
+    const resMeta = document.getElementById('resultMeta');
+    const resTicket = document.getElementById('resTicket');
+    const resName = document.getElementById('resName');
+    const resEmail = document.getElementById('resEmail');
+    const resChecked = document.getElementById('resChecked');
+
+    const statTotal = document.getElementById('statTotal');
+    const statChecked = document.getElementById('statChecked');
+    const statAlready = document.getElementById('statAlready');
+    const statInvalid = document.getElementById('statInvalid');
+
+    // ====== Utils ======
+    function show(el, on = true) { el.style.display = on ? '' : 'none'; }
+    function setBadge(kind, text) {
+      resBadge.className = 'result-badge ' + (kind === 'ok' ? 'success' : kind === 'err' ? 'error' : 'warning');
+      resBadge.textContent = text;
+    }
+    function fmtDate(input) {
+      if (!input) return '—';
+      const d = new Date(input);
+      if (isNaN(d)) return input;
+      return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    }
+    function parseTicketCode(text) {
+      if (!text) return '';
+      const m = text.trim().match(/\/api\/tickets\/qr\/([A-Za-z0-9_-]+)/);
+      return m ? m[1] : text.trim();
+    }
+
+    function setExportStatus(state, message) {
+      if (!exportStatus) return;
+      exportStatus.textContent = message || '';
+      exportStatus.classList.remove('success', 'error');
+      if (!message) return;
+      if (state === 'success') exportStatus.classList.add('success');
+      if (state === 'error') exportStatus.classList.add('error');
+    }
+
+    function syncExportButtonAvailability() {
+      if (!exportBtn) return;
+      const hasEvent = Boolean(eventSelect?.value);
+      const isLoading = exportBtn.getAttribute('data-loading') === 'true';
+      exportBtn.disabled = !hasEvent || isLoading;
+      exportBtn.setAttribute('aria-disabled', exportBtn.disabled ? 'true' : 'false');
+    }
+
+    function setExportLoading(isLoading) {
+      if (!exportBtn) return;
+      exportBtn.setAttribute('data-loading', isLoading ? 'true' : 'false');
+      if (isLoading) {
+        exportBtn.disabled = true;
+        exportBtn.setAttribute('aria-disabled', 'true');
+        exportBtn.setAttribute('aria-busy', 'true');
+      } else {
+        exportBtn.removeAttribute('aria-busy');
+        syncExportButtonAvailability();
+      }
+    }
+
+    function setAttendeeTableMessage(message) {
+      if (!attendeeTableBody) return;
+      attendeeTableBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="attendee-table-empty">${message}</td>
+        </tr>
+      `;
+    }
+
+    function renderAttendeeRows(attendees) {
+      if (!attendeeTableBody) return;
+      if (!Array.isArray(attendees) || attendees.length === 0) {
+        setAttendeeTableMessage('No attendees found for this event.');
+        return;
+      }
+
+      attendeeTableBody.innerHTML = attendees.map(att => `
+        <tr>
+          <td>${att.name || '—'}</td>
+          <td>${att.email || '—'}</td>
+          <td>${att.ticket_type || '—'}</td>
+          <td>${att.checked_in ? 'Yes' : 'No'}</td>
+          <td>${fmtDate(att.claimed_at)}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadAttendeeTable(eventId) {
+      if (!eventId) {
+        setAttendeeTableMessage('Select an event to load attendees.');
+        return;
+      }
+
+      setAttendeeTableMessage('Loading attendees...');
+
+      try {
+        const resp = await fetch(`${getApiBase()}/api/organizer/events/${eventId}/attendees`, {
+          credentials: 'include',
+          headers: authHeaders({ 'Accept': 'application/json' })
+        });
+
+        if (!resp.ok) {
+          throw new Error(`Failed with status ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        renderAttendeeRows(data?.attendees || []);
+      } catch (error) {
+        console.error('Failed to load attendees:', error);
+        setAttendeeTableMessage('Unable to load attendees. Please try again.');
+      }
+    }
+
+    function getFilenameFromDisposition(header, fallback) {
+      if (!header) return fallback;
+      const utfMatch = header.match(/filename\*=UTF-8''([^;]+)/i);
+      if (utfMatch && utfMatch[1]) {
+        try { return decodeURIComponent(utfMatch[1]); } catch (_) { return utfMatch[1]; }
+      }
+      const simpleMatch = header.match(/filename="?([^\";]+)"?/i);
+      if (simpleMatch && simpleMatch[1]) {
+        return simpleMatch[1];
+      }
+      return fallback;
+    }
+
+    // ====== Load organizer events (mirror create-event base/middleware) ======
+    async function loadOrganizerEvents() {
+      try {
+        // Organizer's events — pick the route your backend exposes.
+        // If your backend uses /api/organizer/events for read, reuse it (same as create-event POST base path).
+        const resp = await fetch(`${getApiBase()}/api/organizer/events`, {
+          credentials: 'include',
+          headers: authHeaders({ 'Accept': 'application/json' })
+        });
+        const data = resp.ok ? await resp.json() : { success: false, events: [] };
+        const events = data.success ? data.events : [];
+        eventSelect.innerHTML = '';
+
+        if (!Array.isArray(events) || !events.length) {
+          eventSelect.innerHTML = '<option value="">No events found</option>';
+          eventSelect.disabled = true;
+          setExportStatus('', 'No events available to export.');
+          setAttendeeTableMessage('No events available to display.');
+          syncExportButtonAvailability();
+          return;
+        }
+
+        const params = new URLSearchParams(location.search);
+        const urlEventId = params.get('eventId');
+
+        events.forEach(e => {
+          const opt = document.createElement('option');
+          opt.value = String(e.id ?? e.event_id ?? e.uuid);
+          opt.textContent = e.title ?? e.name ?? 'Untitled event';
+          if (urlEventId && String(urlEventId) === opt.value) opt.selected = true;
+          eventSelect.appendChild(opt);
+        });
+
+        updateSelectedEvent();
+        syncExportButtonAvailability();
+      } catch (err) {
+        console.warn('Failed to load events', err);
+        eventSelect.innerHTML = '<option value="">Unable to load events</option>';
+        setExportStatus('error', 'Unable to load events for export.');
+        setAttendeeTableMessage('Unable to load events.');
+        syncExportButtonAvailability();
+      }
+    }
+
+    function updateSelectedEvent() {
+      const selectedId = eventSelect.value;
+      const selectedText = eventSelect.options[eventSelect.selectedIndex]?.textContent || '—';
+      eventTitleEl.textContent = selectedText;
+      setExportStatus('', '');
+      syncExportButtonAvailability();
+
+      if (!selectedId) {
+        eventDateEl.textContent = '—';
+        setAttendeeTableMessage('Select an event to load attendees.');
+        return;
+      }
+
+      fetch(`${getApiBase()}/api/events/${selectedId}`, {
+        credentials: 'include',
+        headers: authHeaders({ 'Accept': 'application/json' })
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(j => {
+          const ev = j?.event || j || {};
+          eventDateEl.textContent = fmtDate(ev.starts_at ?? ev.event_date ?? ev.startsAt ?? null);
+        })
+        .catch(() => eventDateEl.textContent = '—');
+
+      loadAttendeeTable(selectedId);
+    }
+
+    eventSelect?.addEventListener('change', () => {
+      const params = new URLSearchParams(location.search);
+      if (eventSelect.value) {
+        params.set('eventId', eventSelect.value);
+      } else {
+        params.delete('eventId');
+      }
+      const newSearch = params.toString();
+      history.replaceState({}, '', newSearch ? `${location.pathname}?${newSearch}` : location.pathname);
+      updateSelectedEvent();
+    });
+
+    async function exportAttendeesCsv() {
+      if (!eventSelect?.value) {
+        setExportStatus('error', 'Select an event to export attendees.');
+        return;
+      }
+
+      setExportStatus('', '');
+      setExportLoading(true);
+
+      const eventId = eventSelect.value;
+      const endpoint = `${getApiBase()}/api/organizer/events/${eventId}/export-csv`;
+
+      try {
+        const resp = await fetch(endpoint, {
+          method: 'GET',
+          credentials: 'include',
+          headers: authHeaders({ 'Accept': 'text/csv' })
+        });
+
+        if (!resp.ok) {
+          let message = `Unable to export attendees (status ${resp.status})`;
+          const contentType = resp.headers.get('Content-Type') || '';
+          if (contentType.includes('application/json')) {
+            const body = await resp.json().catch(() => null);
+            message = body?.message || body?.error || message;
+          } else {
+            const text = await resp.text().catch(() => '');
+            if (text) message = text;
+          }
+          throw new Error(message);
+        }
+
+        const blob = await resp.blob();
+        const disposition = resp.headers.get('Content-Disposition');
+        const fallbackName = `event-${eventId}-attendees-${new Date().toISOString().split('T')[0]}.csv`;
+        const filename = getFilenameFromDisposition(disposition, fallbackName);
+
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 1500);
+
+        setExportStatus('success', 'CSV download started.');
+      } catch (error) {
+        console.error('Export CSV failed:', error);
+        setExportStatus('error', error?.message || 'Failed to export attendees.');
+      } finally {
+        setExportLoading(false);
+      }
+    }
+
+    exportBtn?.addEventListener('click', exportAttendeesCsv);
+
+    // ====== Staff key save ======
+    saveStaffKeyBtn.addEventListener('click', () => {
+      const key = staffKeyEl.value.trim();
+      if (!key) return;
+      localStorage.setItem('staffKey', key);
+      staffKeySaved.classList.add('show');
+      setTimeout(() => staffKeySaved.classList.remove('show'), 1200);
+    });
+
+    // Prefill staff key
+    (function prefillStaffKey() { const saved = localStorage.getItem('staffKey'); if (saved) staffKeyEl.value = saved; })();
+
+    setAttendeeTableMessage('Loading events...');
+    syncExportButtonAvailability();
+
+    // ====== QR upload + decode (client-side) ======
+    fileInput?.addEventListener('change', (e) => {
+      const f = e.target.files?.[0];
+      if (!f) { preview.src = ''; show(preview, false); return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const { width, height } = img;
+          qrCanvas.width = width; qrCanvas.height = height;
+          ctx.drawImage(img, 0, 0);
+          const data = ctx.getImageData(0, 0, width, height);
+          const result = jsQR(data.data, width, height);
+          if (result && result.data) {
+            let raw = (result && result.data ? result.data : '').trim();
+            let short = raw;
+
+            try {
+              const u = new URL(raw);
+              // Prefer ?code=... if present
+              short = u.searchParams.get('code')
+                || (u.pathname.match(/\/api\/tickets\/qr\/([^/]+)/)?.[1])
+                || u.pathname.split('/').filter(Boolean).pop(); // last path segment
+            } catch {
+              // Not a URL string: try regex fallbacks
+              short = raw.match(/[?&]code=([^&]+)/)?.[1]
+                || raw.match(/\/api\/tickets\/qr\/([^/]+)/)?.[1]
+                || raw;
+            }
+
+            manualCode.value = short;
+            verifyNow();
+          } else {
+            setBadge('err', 'No QR found');
+            resMeta.textContent = 'Unable to decode QR image.';
+          }
+        };
+        img.src = reader.result;
+        preview.src = reader.result; show(preview, true);
+      };
+      reader.readAsDataURL(f);
+    });
+
+    btnPaste?.addEventListener('click', async () => {
+      try { manualCode.value = (await navigator.clipboard.readText()).trim(); } catch { }
+      manualCode.focus();
+    });
+
+    // ====== Verify flow (uses same base/middleware as create-event) ======
+    btnValidate?.addEventListener('click', () => verifyNow());
+
+    async function verifyNow() {
+      const raw = manualCode.value.trim();
+      if (!raw) { setBadge('err', 'No input'); resMeta.textContent = 'Paste ticket URL or code.'; return; }
+      const code = parseTicketCode(raw);
+
+      setBadge('warn', 'Verifying…');
+      resMeta.textContent = 'Checking ticket status…';
+
+      try {
+        const resp = await fetch(`${getApiBase()}/api/tickets/verify`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: authHeaders({ 'Content-Type': 'application/json', 'Accept': 'application/json' }),
+          body: JSON.stringify({ ticket_code: code, eventId: eventSelect.value || undefined })
+        });
+
+        statTotal.textContent = String(+statTotal.textContent + 1);
+
+        if (!resp.ok) {
+          setBadge('err', 'Invalid ticket');
+          resMeta.textContent = 'Ticket not found or invalid.';
+          statInvalid.textContent = String(+statInvalid.textContent + 1);
+          return;
+        }
+
+        const data = await resp.json();
+        const t = data.ticket || data || {};
+        const checked = Boolean(
+          t.already_checked_in ?? t.checked_in ?? t.checkedIn ?? false
+        );
+        resTicket.textContent = t.qr_code || t.code || code;
+        resName.textContent = t.attendee_name || t.attendeeName || t.name || '—';
+        resEmail.textContent = t.attendee_email || t.attendeeEmail || t.email || '—';
+        resChecked.textContent = checked ? 'Yes' : 'No';
+
+        if (checked) {
+          setBadge('warn', 'Already checked-in');
+          resMeta.textContent = t.message || data.message || 'This ticket is already checked in.';
+          statAlready.textContent = String(+statAlready.textContent + 1);
+        } else {
+          setBadge('ok', 'Valid ticket');
+          resMeta.textContent = t.message || data.message || 'Ready to check in';
+        }
+      } catch (err) {
+        console.error(err);
+        setBadge('err', 'Network error');
+        resMeta.textContent = 'Please try again.';
+      }
+    }
+
+    // ====== Check-in (same middleware + optional staff key header) ======
+    btnCheckIn?.addEventListener('click', async () => {
+      const code = resTicket.textContent;
+      if (!code || code === '—') return;
+
+      const staffKey = staffKeyEl.value.trim() || localStorage.getItem('staffKey') || '';
+      const baseHeaders = authHeaders({ 'Content-Type': 'application/json', 'Accept': 'application/json' });
+      const headers = staffKey ? { ...baseHeaders, [CHECK_IN_HEADER]: staffKey } : baseHeaders;
+
+      setBadge('warn', 'Checking in…');
+
+      try {
+        const resp = await fetch(`${getApiBase()}/api/tickets/check-in`, {
+          method: 'POST',
+          credentials: 'include',
+          headers,
+          body: JSON.stringify({ ticket_code: code, eventId: eventSelect.value || undefined })
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => '');
+          setBadge('err', 'Check-in failed');
+          resMeta.textContent = text || 'Unauthorized or invalid ticket.';
+          return;
+        }
+
+        const data = await resp.json();
+        const checked = Boolean(data.checked_in ?? data.checkedIn ?? false);
+        resChecked.textContent = checked ? 'Yes' : 'No';
+        setBadge('ok', 'Checked in');
+        resMeta.textContent = data.message || 'Attendee checked in successfully';
+        statChecked.textContent = String(+statChecked.textContent + 1);
+      } catch (err) {
+        console.error(err);
+        setBadge('err', 'Network error');
+        resMeta.textContent = 'Please try again.';
+      }
+    });
+
+    // ====== Clear ======
+    btnClear?.addEventListener('click', () => {
+      manualCode.value = '';
+      preview.src = ''; show(preview, false);
+      resBadge.className = 'result-badge warning';
+      resBadge.textContent = 'Waiting for input…';
+      resMeta.textContent = 'No ticket processed yet.';
+      resTicket.textContent = resName.textContent = resEmail.textContent = resChecked.textContent = '—';
+    });
+
+    // ====== Bootstrap events ======
+    await loadOrganizerEvents();
+  </script>
+</body>
+
+</html>
