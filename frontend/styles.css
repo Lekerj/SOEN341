@@ -1687,6 +1687,10 @@ select.form-control {
   background: #f8fafc;
 }
 
+.moderation-table tr.is-selected {
+  background: rgba(145, 35, 56, 0.06);
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;

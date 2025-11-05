@@ -192,12 +192,13 @@
   </dialog>
 
   <script type="module">
-    import { getApiBase } from './utils/api.js';
+    import { getApiBase, apiFetch } from './utils/api.js';
 
     const state = {
       events: [],
       filtered: [],
-      selected: null,
+      selectedId: null,
+      isLoading: false,
       filter: 'all',
     };
 
@@ -207,6 +208,7 @@
       authLinks: document.getElementById('authLinks'),
       userLinks: document.getElementById('userLinks'),
       welcomeMessage: document.getElementById('welcomeMessage'),
+      layout: document.querySelector('.moderation-layout'),
       filterButtons: document.querySelectorAll('.moderation-filter'),
       searchInput: document.getElementById('searchInput'),
       refreshBtn: document.getElementById('refreshBtn'),
@@ -233,10 +235,11 @@
       toastContainer: document.getElementById('toastContainer'),
     };
 
-    // Placeholder until data wiring is completed in subsequent steps.
     async function initializeModerationDashboard() {
       updateAuthNavigation();
-      renderEmptyState();
+      bindUIEvents();
+      renderLoadingState();
+      await loadEvents();
     }
 
     function updateAuthNavigation() {
@@ -264,12 +267,363 @@
       }
     }
 
+    function bindUIEvents() {
+      elements.filterButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const nextFilter = button.dataset.filter || 'all';
+          if (state.filter === nextFilter) return;
+          state.filter = nextFilter;
+          elements.filterButtons.forEach((btn) => btn.classList.toggle('active', btn === button));
+          applyFilters();
+        });
+      });
+
+      let searchTimer = null;
+      elements.searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(applyFilters, 180);
+      });
+
+      elements.refreshBtn.addEventListener('click', () => {
+        loadEvents();
+      });
+
+      elements.tableBody.addEventListener('click', (event) => {
+        const row = event.target.closest('tr[data-event-id]');
+        if (!row) return;
+        const eventId = Number(row.dataset.eventId);
+        const selected = state.events.find((entry) => entry.id === eventId);
+        if (selected) {
+          selectEvent(selected);
+        }
+      });
+    }
+
+    async function loadEvents() {
+      state.isLoading = true;
+      renderLoadingState();
+      try {
+        const response = await apiFetch('/api/admin/events');
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        const payload = await response.json();
+        const events = extractEventsFromPayload(payload);
+        state.events = events.map(normalizeEvent);
+        applyFilters();
+        if (!state.events.length) {
+          clearDetailPanel();
+          renderEmptyState('No events found yet. Once organizers submit events, they will appear here.');
+        }
+      } catch (error) {
+        console.error('Failed to load moderation events:', error);
+        clearDetailPanel();
+        renderEmptyState('Unable to load events. Please try refreshing or check back later.');
+        showToast('error', 'Could not load events. Please try again.');
+      } finally {
+        state.isLoading = false;
+      }
+    }
+
+    function extractEventsFromPayload(payload) {
+      if (!payload) return [];
+      if (Array.isArray(payload)) return payload;
+      if (Array.isArray(payload.events)) return payload.events;
+      if (Array.isArray(payload.data)) return payload.data;
+      return [];
+    }
+
+    function normalizeEvent(raw = {}) {
+      const id = Number(raw.id ?? raw.event_id ?? raw.ID ?? 0);
+      const title = raw.title || raw.event_title || 'Untitled Event';
+      const description = raw.description || raw.event_description || '';
+      const eventDate = raw.event_date || raw.date || null;
+      const eventTime = raw.event_time || raw.time || null;
+      const location = raw.location || raw.venue || 'TBD';
+      const category = (raw.category || raw.event_category || '').toString();
+      const organizerName = raw.organizer_name || raw.organizer || raw.created_by || 'Unknown organizer';
+      const organization = raw.organization || raw.organizer_organization || '';
+      const capacity = Number(raw.capacity ?? raw.max_attendees ?? 0);
+      const ticketsAvailable = Number(raw.tickets_available ?? raw.remaining_tickets ?? 0);
+      const price = Number(raw.price ?? raw.ticket_price ?? 0);
+
+      const statusRaw = (raw.moderation_status || raw.status || raw.review_status || 'pending').toString().toLowerCase();
+      const moderationStatus = normalizeStatus(statusRaw);
+
+      const rawFlagCount = raw.flag_count ?? raw.flags ?? raw.flagged_count ?? raw.report_count ?? 0;
+      const flagCount = Number(rawFlagCount) || 0;
+      const flagged = determineFlaggedState(raw, flagCount);
+
+      return {
+        ...raw,
+        id,
+        title,
+        description,
+        event_date: eventDate,
+        event_time: eventTime,
+        location,
+        category,
+        organizer_name: organizerName,
+        organization,
+        capacity,
+        tickets_available: ticketsAvailable,
+        price,
+        moderation_status: moderationStatus,
+        flag_count: flagCount,
+        is_flagged: flagged,
+      };
+    }
+
+    function normalizeStatus(status) {
+      const value = status || '';
+      if (['approved', 'active', 'published'].includes(value)) return 'approved';
+      if (['rejected', 'blocked', 'removed'].includes(value)) return 'rejected';
+      return 'pending';
+    }
+
+    function determineFlaggedState(event, flagCount) {
+      const rawFlag = event.flagged ?? event.is_flagged ?? event.reported ?? event.is_flagged === 1;
+      if (typeof rawFlag === 'string') {
+        return ['true', '1', 'yes', 'flagged'].includes(rawFlag.toLowerCase());
+      }
+      if (typeof rawFlag === 'number') {
+        return rawFlag > 0;
+      }
+      if (typeof rawFlag === 'boolean') {
+        return rawFlag;
+      }
+      return flagCount > 0;
+    }
+
+    function applyFilters() {
+      if (!state.events.length) {
+        renderEmptyState(state.isLoading ? 'Loading events…' : 'No events found.');
+        return;
+      }
+
+      const searchTerm = (elements.searchInput.value || '').trim().toLowerCase();
+
+      state.filtered = state.events.filter((event) => {
+        if (!filterMatches(event, state.filter)) {
+          return false;
+        }
+        if (!searchTerm) return true;
+        return matchesSearch(event, searchTerm);
+      });
+
+      if (state.selectedId && !state.filtered.some((event) => event.id === state.selectedId)) {
+        clearDetailPanel();
+      }
+
+      renderTable();
+    }
+
+    function filterMatches(event, filter) {
+      switch (filter) {
+        case 'flagged':
+          return Boolean(event.is_flagged);
+        case 'pending':
+          return event.moderation_status === 'pending';
+        default:
+          return true;
+      }
+    }
+
+    function matchesSearch(event, searchTerm) {
+      const haystacks = [
+        event.title,
+        event.location,
+        event.category,
+        event.organizer_name,
+        event.organization,
+        event.moderation_status,
+      ];
+      return haystacks
+        .filter(Boolean)
+        .some((field) => field.toString().toLowerCase().includes(searchTerm));
+    }
+
+    function renderTable() {
+      if (!state.filtered.length) {
+        clearDetailPanel();
+        renderEmptyState('No events match the current filters.');
+        return;
+      }
+
+      elements.tableBody.innerHTML = state.filtered.map(renderTableRow).join('');
+      ensureDetailPanelVisibility(Boolean(state.selectedId));
+      highlightSelectedRow();
+    }
+
+    function renderTableRow(event) {
+      const { id, title, moderation_status, is_flagged, flag_count, organizer_name } = event;
+      const dateLabel = formatEventDate(event.event_date, event.event_time);
+      const statusPill = renderStatusPill(moderation_status, is_flagged);
+      const flagsLabel = flag_count > 0 ? `${flag_count}` : '0';
+
+      return `
+        <tr data-event-id="${id}" class="${state.selectedId === id ? 'is-selected' : ''}">
+          <td>
+            <div style="font-weight:600; color:#111827;">${escapeHtml(title)}</div>
+            <div class="small-muted">${escapeHtml(organizer_name || 'Unassigned')}</div>
+          </td>
+          <td>${dateLabel}</td>
+          <td>${escapeHtml(event.location || 'TBD')}</td>
+          <td>${statusPill}</td>
+          <td style="font-weight:600; color:${flag_count > 0 ? '#b91c1c' : '#64748b'};">${flagsLabel}</td>
+          <td><button type="button" class="btn btn-secondary btn-sm" data-action="view">View</button></td>
+        </tr>
+      `;
+    }
+
+    function selectEvent(event) {
+      state.selectedId = event.id;
+      highlightSelectedRow();
+      populateDetailPanel(event);
+    }
+
+    function highlightSelectedRow() {
+      const rows = elements.tableBody.querySelectorAll('tr[data-event-id]');
+      rows.forEach((row) => {
+        const rowId = Number(row.dataset.eventId);
+        row.classList.toggle('is-selected', rowId === state.selectedId);
+      });
+    }
+
+    function populateDetailPanel(event) {
+      if (!event) {
+        clearDetailPanel();
+        return;
+      }
+
+      elements.detailTitle.textContent = event.title || 'Event Details';
+      elements.detailSubtitle.textContent = buildDetailSubtitle(event);
+      elements.detailOrganizer.textContent = event.organizer_name || 'Unknown organizer';
+      elements.detailStatus.textContent = formatStatusLabel(event.moderation_status, event.is_flagged);
+      elements.detailCategory.textContent = event.category || '—';
+      elements.detailTickets.textContent = `${event.tickets_available ?? 0} / ${event.capacity ?? 0}`;
+      elements.detailPrice.textContent = formatCurrency(event.price);
+      elements.detailFlags.textContent = event.flag_count ?? 0;
+      elements.detailDescription.textContent = event.description || 'No description provided.';
+
+      elements.detailGrid.style.display = 'grid';
+      elements.detailDescriptionCard.style.display = 'block';
+      elements.detailActions.style.display = 'flex';
+      ensureDetailPanelVisibility(true);
+    }
+
+    function clearDetailPanel() {
+      elements.detailTitle.textContent = 'Select an event';
+      elements.detailSubtitle.textContent = 'Choose an event from the table to view details and take action.';
+      elements.detailGrid.style.display = 'none';
+      elements.detailDescriptionCard.style.display = 'none';
+      elements.detailActions.style.display = 'none';
+      ensureDetailPanelVisibility(false);
+      state.selectedId = null;
+      highlightSelectedRow();
+    }
+
+    function ensureDetailPanelVisibility(shouldShow) {
+      if (!elements.detailPanel) return;
+      elements.detailPanel.style.display = shouldShow ? 'flex' : 'none';
+      if (elements.layout) {
+        elements.layout.classList.toggle('single', !shouldShow);
+      }
+    }
+
+    function renderLoadingState() {
+      elements.tableBody.innerHTML = `
+        <tr>
+          <td colspan="6" class="empty-state">Loading events…</td>
+        </tr>
+      `;
+      ensureDetailPanelVisibility(false);
+    }
+
     function renderEmptyState(message = 'Select a filter to begin reviewing events.') {
       elements.tableBody.innerHTML = `
         <tr>
           <td colspan="6" class="empty-state">${message}</td>
         </tr>
       `;
+      ensureDetailPanelVisibility(false);
+    }
+
+    function renderStatusPill(status, isFlagged) {
+      const base = status || 'pending';
+      const flagSuffix = isFlagged ? ' flagged' : '';
+      return `<span class="status-pill ${base}${flagSuffix}">${formatStatusLabel(base, isFlagged)}</span>`;
+    }
+
+    function formatStatusLabel(status, isFlagged) {
+      const value = status || 'pending';
+      if (value === 'approved') return isFlagged ? 'Approved · Flagged' : 'Approved';
+      if (value === 'rejected') return 'Rejected';
+      return isFlagged ? 'Pending · Flagged' : 'Pending Review';
+    }
+
+    function buildDetailSubtitle(event) {
+      const dateLabel = formatEventDate(event.event_date, event.event_time);
+      const location = event.location ? ` · ${event.location}` : '';
+      return `${dateLabel}${location}`;
+    }
+
+    function formatEventDate(date, time) {
+      const formattedDate = formatDate(date);
+      const formattedTime = formatTime(time);
+      if (formattedDate && formattedTime) return `${formattedDate} · ${formattedTime}`;
+      return formattedDate || formattedTime || 'TBD';
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return '';
+      try {
+        const date = new Date(dateString);
+        if (Number.isNaN(date.getTime())) return dateString;
+        return new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+      } catch {
+        return dateString;
+      }
+    }
+
+    function formatTime(timeString) {
+      if (!timeString) return '';
+      try {
+        const [hours = '0', minutes = '0'] = timeString.split(':');
+        const date = new Date();
+        date.setHours(Number(hours), Number(minutes));
+        return new Intl.DateTimeFormat('en-CA', { hour: 'numeric', minute: '2-digit' }).format(date);
+      } catch {
+        return timeString;
+      }
+    }
+
+    function formatCurrency(amount) {
+      const value = Number(amount) || 0;
+      return value === 0 ? 'Free' : new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(value);
+    }
+
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return '';
+      return value
+        .toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function showToast(type, message) {
+      if (!elements.toastContainer) return;
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      elements.toastContainer.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 220);
+      }, 3200);
     }
 
     document.addEventListener('DOMContentLoaded', initializeModerationDashboard);
