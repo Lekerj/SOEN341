@@ -48,7 +48,7 @@
                         <li><a href="organizer-dashboard.html">My Dashboard</a></li>
                         <li><a href="organizer-create-event.html">Create Event</a></li>
                         <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
-                        <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
+                        <li><a href="organizer-analytics.html">Event Analytics</a></li>
                         <li><a href="organizer-scanner.html">QR Scanner</a></li>
                     </ul>
                 </li>
@@ -64,13 +64,33 @@
       </ul>
     </div>
   </nav>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
+
+    document.addEventListener('DOMContentLoaded', async function () {
       try {
         const user = JSON.parse(localStorage.getItem('user') || 'null');
         const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
         const organizerMenu = document.getElementById('organizerMenu');
         if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+
+        // Check authentication and update navbar
+        if (user) {
+          try {
+            const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
+            if (resp.ok) {
+              document.getElementById('authLinks').style.display = 'none';
+              document.getElementById('userLinks').style.display = 'flex';
+              document.getElementById('userLinks').style.gap = '1rem';
+              document.getElementById('userLinks').style.alignItems = 'center';
+              document.getElementById('welcomeMessage').textContent = `Welcome, ${user.name}!`;
+            } else {
+              localStorage.removeItem('user');
+            }
+          } catch (error) {
+            console.error('Auth check failed:', error);
+          }
+        }
       } catch (e) {}
     });
   </script>
@@ -85,7 +105,7 @@
             <p class="hero-subtitle small-muted" id="eventSub" style="margin:6px 0 0; color:rgba(255,255,255,0.9);">Loading…</p>
           </div>
           <div class="hero-buttons" style="display:flex; gap:8px; align-items:center;">
-            <a class="btn" href="javascript:history.back()">Go Back</a>
+            <a class="btn" href="javascript:history.back()" style="background:#fff; color:#912338; border:2px solid #912338; font-weight:600;">← Go Back</a>
             <a id="qrScannerLink" class="btn btn-secondary" href="">Open QR Scanner</a>
             <button id="exportCsvBtn" class="btn btn-primary">Export CSV</button>
           </div>
@@ -96,7 +116,18 @@
     <div class="breadcrumbs"><span>Organizer</span> <span>›</span> <span>Analytics</span></div>
     <div class="analytics-wrapper">
 
-    <section class="metrics-grid" id="metricsGrid">
+    <!-- Event Selection Card (shown when no eventId) -->
+    <div id="eventSelectionCard" style="background:#fff; border-radius:12px; padding:2rem; box-shadow:var(--shadow-md); margin-bottom:2rem;">
+      <h2 style="margin-top:0; color:#912338;">Select an Event to View Analytics</h2>
+      <div style="max-width:400px;">
+        <label for="eventSelectDropdown" style="display:block; margin-bottom:0.5rem; font-weight:600; color:#333;">Choose Event:</label>
+        <select id="eventSelectDropdown" style="width:100%; padding:10px 12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:0.95rem;">
+          <option value="" disabled selected>Loading your events…</option>
+        </select>
+      </div>
+    </div>
+
+    <section class="metrics-grid" id="metricsGrid" style="display:none;">
       <div class="metric card"><h3>Total Capacity</h3><div class="value" id="totalCapacity">—</div></div>
       <div class="metric card"><h3>Tickets Issued</h3><div class="value" id="ticketsIssued">—</div></div>
       <div class="metric card"><h3>Tickets Checked In</h3><div class="value" id="ticketsCheckedIn">—</div></div>
@@ -105,7 +136,7 @@
       <div class="metric card"><h3>Total Revenue</h3><div class="value" id="totalRevenue">—</div></div>
     </section>
 
-    <div class="charts">
+    <div class="charts" style="display:none;">
       <div class="card">
         <h3 style="margin-top:0">Tickets: Claimed vs Remaining</h3>
         <canvas id="ticketsDonut" aria-label="Tickets claimed vs remaining chart"></canvas>
@@ -116,7 +147,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" style="display:none;">
       <div class="toolbar">
         <div class="filters">
           <label for="filterButtons" style="margin-right:6px">Filter:</label>
@@ -168,23 +199,65 @@
 
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <script type="module">
     import { getApiBase } from './utils/api.js';
 
     // Helpers
     const $ = (sel) => document.querySelector(sel);
+    function escapeHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
     const params = new URLSearchParams(window.location.search);
     // Accept both eventId and legacy id
-    const eventId = params.get('eventId') || params.get('id');
+    let eventId = params.get('eventId') || params.get('id');
 
+    // Load organizer events into dropdown and handle selection
+    async function loadOrganizerEventsIntoDropdown() {
+      try {
+        const response = await fetch(`${getApiBase()}/api/organizer/events`, { credentials: 'include' });
+        if (!response.ok) throw new Error('Failed to load events');
+        const data = await response.json();
+        const events = data.events || [];
+        const dropdown = document.getElementById('eventSelectDropdown');
+
+        if (events.length === 0) {
+          dropdown.innerHTML = '<option value="" disabled>No events found. Create an event first.</option>';
+          return;
+        }
+
+        dropdown.innerHTML = '<option value="" disabled selected>Choose an event…</option>' +
+          events.map(event => `<option value="${event.id}">${escapeHtml(event.title)} - ${event.event_date || 'Date TBA'}</option>`).join('');
+
+        // Handle dropdown change
+        dropdown.addEventListener('change', (e) => {
+          if (e.target.value) {
+            const url = new URL(window.location);
+            url.searchParams.set('eventId', e.target.value);
+            window.location.href = url.toString();
+          }
+        });
+      } catch (error) {
+        console.error('Error loading events:', error);
+        const dropdown = document.getElementById('eventSelectDropdown');
+        dropdown.innerHTML = '<option value="" disabled>Error loading events. Please refresh.</option>';
+      }
+    }
+
+    // Show event selection when no eventId provided
     if (!eventId) {
       window.addEventListener('DOMContentLoaded', () => {
         $('#eventTitle').textContent = 'Event Analytics';
-        $('#eventSub').textContent = 'Missing eventId in URL';
-        alert('Missing eventId in URL. Use organizer-analytics.html?eventId=ID');
+        $('#eventSub').textContent = 'Select an event to view analytics';
+        document.getElementById('eventSelectionCard').style.display = 'block';
+        loadOrganizerEventsIntoDropdown();
       });
-      throw new Error('Missing eventId');
+    } else {
+      // Hide event selection card if eventId is provided
+      window.addEventListener('DOMContentLoaded', () => {
+        const card = document.getElementById('eventSelectionCard');
+        if (card) card.style.display = 'none';
+        document.getElementById('metricsGrid').style.display = 'grid';
+      });
     }
 
     // Set up QR Scanner link on DOM ready
@@ -255,12 +328,18 @@
       $('#attendanceRate').textContent = `${attendanceRate.toFixed(1)}%`;
       $('#totalRevenue').textContent = revenue ? `$${revenue.toFixed(2)}` : '$0.00';
 
-      renderDonut(issued, remaining);
-  renderLine(timeline);
+      // Show charts and attendee table once data is loaded
+      document.querySelector('.charts').style.display = 'grid';
+      // Show the attendee table card (the large one below charts)
+      const attendeeTableCard = document.querySelector('.analytics-wrapper > .card[style*="display:none"]');
+      if (attendeeTableCard) attendeeTableCard.style.display = 'block';
 
-  // Normalize attendee shape: backend may return claimed_at while UI expects claim_date
-  const normalizedAttendees = (attendees || []).map(a => ({ ...a, claim_date: a.claimed_at || a.claim_date || a.claimedAt }));
-  renderAttendeeTable(normalizedAttendees);
+      renderDonut(issued, remaining);
+      renderLine(timeline);
+
+      // Normalize attendee shape: backend may return claimed_at while UI expects claim_date
+      const normalizedAttendees = (attendees || []).map(a => ({ ...a, claim_date: a.claimed_at || a.claim_date || a.claimedAt }));
+      renderAttendeeTable(normalizedAttendees);
 
       // Export CSV button (attach once)
       const exportBtn = $('#exportCsvBtn');
@@ -376,23 +455,41 @@
       URL.revokeObjectURL(url);
     }
 
-    function escapeHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
     // Logout helper re-used from other pages
     window.logout = async function logout() {
       try { await fetch(`${getApiBase()}/api/auth/logout`, { method:'POST', credentials:'include' }); localStorage.removeItem('user'); window.location.href='index.html'; } catch(e){}
     }
 
-  // Add a manual refresh button next to Export CSV
-  const refreshBtn = document.createElement('button');
-  refreshBtn.className = 'btn btn-secondary';
-  refreshBtn.textContent = 'Refresh';
-  refreshBtn.addEventListener('click', () => fetchAnalytics());
-  document.querySelector('.hero-buttons').insertBefore(refreshBtn, document.querySelector('.hero-buttons').firstChild);
+  // Add a manual refresh button
+  window.addEventListener('DOMContentLoaded', () => {
+    const heroButtons = document.querySelector('.hero-buttons');
+    if (heroButtons && eventId) {
+      const refreshBtn = document.createElement('button');
+      refreshBtn.className = 'btn btn-secondary';
+      refreshBtn.textContent = '🔄 Refresh';
+      refreshBtn.style.marginRight = '8px';
+      refreshBtn.addEventListener('click', () => {
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = 'Refreshing...';
+        fetchAnalytics().then(() => {
+          refreshBtn.disabled = false;
+          refreshBtn.textContent = '🔄 Refresh';
+        }).catch(() => {
+          refreshBtn.disabled = false;
+          refreshBtn.textContent = '🔄 Refresh';
+        });
+      });
+      heroButtons.insertBefore(refreshBtn, heroButtons.children[1]);
+    }
+  });
 
-  // Kick off
-  fetchAnalytics();
-  startAutoRefresh();
+  // Kick off analytics loading if eventId is provided
+  window.addEventListener('DOMContentLoaded', () => {
+    if (eventId) {
+      fetchAnalytics();
+      startAutoRefresh();
+    }
+  });
   </script>
 </body>
 </html>
