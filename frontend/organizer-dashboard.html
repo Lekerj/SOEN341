@@ -6,53 +6,23 @@
   <title>Organizer Dashboard - ConEvents</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    .dashboard-header {
-      text-align: center;
-      padding: var(--spacing-2xl) var(--spacing-lg) var(--spacing-md);
-      color: var(--white);
-      margin-bottom: var(--spacing-md);
-    }
-    .dashboard-title {
-      font-size: var(--font-size-4xl);
-      font-weight: 800;
-      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
-    }
-    .create-btn {
-      background: linear-gradient(90deg, #912338, #6B2C91);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: var(--radius-full);
-      font-size: var(--font-size-lg);
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.3s ease, transform 0.2s ease;
-    }
-    .create-btn:hover {
-      background: linear-gradient(90deg, #6B2C91, #912338);
-      transform: translateY(-2px);
-    }
-    .dashboard-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: var(--spacing-lg);
-      flex: 1;
-    }
-    .dashboard-controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--spacing-lg);
-    }
-    .dashboard-controls h2 {
-      color: white;
-    }
-    .dashboard-controls .filter-select {
-      padding: 10px 14px;
-      border: 2px solid var(--medium-gray);
-      border-radius: var(--radius-md);
-      font-size: var(--font-size-base);
-    }
+    /* Align dashboard visuals with organizer-analytics */
+    .analytics-wrapper { max-width:1200px; margin:0 auto; padding:24px; }
+    .card { background:#fff; padding:16px; border-radius:12px; box-shadow:var(--shadow-sm); }
+    .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap }
+    .filters { display:flex; gap:8px; align-items:center }
+    #filterButtons { display:inline-flex; gap:6px; align-items:center }
+    .filter-btn { padding:8px 12px; border-radius:999px; border:1px solid #e5e7eb; background:transparent; color:#374151; cursor:pointer; font-weight:600; transition:all 150ms ease; box-shadow: none }
+    .filter-btn:hover { transform:translateY(-2px); box-shadow: 0 6px 18px rgba(15,23,42,0.06) }
+    .filter-btn.active { background:#912338; color:#fff; border-color:transparent }
+    .search-input { padding:8px 12px 8px 36px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; position:relative }
+    .search-wrapper { position:relative; display:inline-block }
+    .search-wrapper .icon { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#9ca3af; pointer-events:none }
+    .header-row { display:flex; align-items:center; gap:12px; justify-content:space-between }
+    .header-row h1 { margin:0; color:#111827; font-size: var(--font-size-3xl) }
+    .small-muted { font-size:0.95rem; color:#6b7280 }
+    
+    /* Existing event grid styles kept, minor polish */
     .events-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -65,15 +35,26 @@
       overflow: hidden;
       transition: transform 0.2s, box-shadow 0.2s;
     }
-    .event-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-    }
-    .event-card img {
-      width: 100%;
-      height: 160px;
-      object-fit: cover;
-    }
+    .event-card:hover { transform: translateY(-4px); box-shadow: 0 6px 12px rgba(0,0,0,0.12) }
+    
+    .event-card {
+  position: relative;
+  z-index: 0;
+}
+
+.event-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+  pointer-events: none; /* ⬅️ important: let clicks pass through */
+}
+
+.event-card-content {
+  position: relative;
+  z-index: 1;
+}
+
     .event-card-content {
       padding: 1rem;
     }
@@ -143,6 +124,16 @@
         <li><a href="index.html">Home</a></li>
         <li><a href="browse.html">Browse</a></li>
         <li><a href="about.html">About</a></li>
+        <li id="organizerMenu" class="dropdown" style="display:none;">
+                    <a href="#" class="dropdown-toggle">Organizer</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+                        <li><a href="organizer-create-event.html">Create Event</a></li>
+                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
+                        <li><a href="organizer-analytics.html">Event Analytics</a></li>
+                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
+                    </ul>
+                </li>
         <li><a href="profile.html">Profile</a></li>
         <li id="authLinks">
           <a href="login.html" class="btn btn-primary btn-sm">Login</a>
@@ -155,36 +146,77 @@
       </ul>
     </div>
   </nav>
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
 
-  <!-- Header -->
-  <div class="dashboard-header">
-    <h1 class="dashboard-title">Organizer Dashboard</h1>
-    <p class="dashboard-subtitle">Manage and track all your events in one place</p>
-    <button class="create-btn" onclick="window.location.href='organizer-create-event.html'">
-        + Create New Event
-      </button>
-      
-  </div>
+    document.addEventListener('DOMContentLoaded', async function () {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+        const organizerMenu = document.getElementById('organizerMenu');
+        if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
 
-  <!-- Dashboard Controls -->
-  <div class="dashboard-container">
-    <div class="dashboard-controls">
-      <h2>Your Events</h2>
-      <select class="filter-select" id="sortBy">
-        <option value="date">Sort by Date</option>
-        <option value="tickets">Sort by Tickets Sold</option>
-        <option value="name">Sort by Name</option>
-      </select>
+        // Check authentication and update navbar
+        if (user) {
+          try {
+            const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
+            if (resp.ok) {
+              document.getElementById('authLinks').style.display = 'none';
+              document.getElementById('userLinks').style.display = 'flex';
+              document.getElementById('userLinks').style.gap = '1rem';
+              document.getElementById('userLinks').style.alignItems = 'center';
+              document.getElementById('welcomeMessage').textContent = `Welcome, ${user.name}!`;
+            } else {
+              localStorage.removeItem('user');
+            }
+          } catch (error) {
+            console.error('Auth check failed:', error);
+          }
+        }
+      } catch (e) {}
+    });
+  </script>
+  <main>
+    <div class="breadcrumbs"><span>Organizer</span> <span>›</span> <span>Dashboard</span></div>
+    <div class="analytics-wrapper">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="header-row">
+          <h1>My Dashboard</h1>
+          <button class="btn btn-accent btn-lg" onclick="window.location.href='organizer-create-event.html'">+ Create New Event</button>
+        </div>
+        <p class="small-muted">Manage and track all your events in one place</p>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="toolbar">
+          <div class="filters">
+            <label for="filterButtons" style="margin-right:6px">Filter:</label>
+            <div id="filterButtons" role="tablist" aria-label="Filter events">
+              <button class="filter-btn active" data-filter="all" type="button">All</button>
+              <button class="filter-btn" data-filter="upcoming" type="button">Upcoming</button>
+              <button class="filter-btn" data-filter="past" type="button">Past</button>
+            </div>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+            <div class="search-wrapper">
+              <span class="icon">🔎</span>
+              <input id="searchInput" class="search-input" placeholder="Search events" />
+            </div>
+            <select class="filter-select" id="sortBy" aria-label="Sort events">
+              <option value="date">Sort by Date</option>
+              <option value="tickets">Sort by Tickets Sold</option>
+              <option value="name">Sort by Name</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="events-grid" id="eventsGrid"></div>
+        <div class="empty-state" id="emptyState" style="display:none;">
+          <p>You have no events yet. Start by creating your first event!</p>
+        </div>
+      </div>
     </div>
-
-    <!-- Events Grid -->
-    <div class="events-grid" id="eventsGrid"></div>
-
-    <!-- Empty State -->
-    <div class="empty-state" id="emptyState" style="display:none;">
-      <p>No events found. Start by creating your first event!</p>
-    </div>
-  </div>
+  </main>
 
   <!-- Footer -->
   <footer class="footer">
@@ -204,7 +236,11 @@
     const grid = document.getElementById("eventsGrid");
     const emptyState = document.getElementById("emptyState");
     const sortBy = document.getElementById("sortBy");
+    const searchInput = document.getElementById("searchInput");
+    const filterButtons = document.getElementById("filterButtons");
     let allEvents = [];
+    let currentFilter = 'all';
+    let query = '';
 
     // Fetch organizer's events from backend
     async function loadEvents() {
@@ -223,7 +259,7 @@
             capacity: ev.capacity,
             image_url: "assets/default-event.jpg"
           }));
-          renderEvents(allEvents);
+          applyView();
         } else {
           emptyState.style.display = "block";
         }
@@ -233,7 +269,7 @@
       }
     }
 
-    // Display events in cards
+    // Render provided events into cards
     function renderEvents(events) {
       grid.innerHTML = "";
       if (events.length === 0) {
@@ -272,12 +308,12 @@
         const analyticsBtn = document.createElement("button");
         analyticsBtn.className = "btn-small";
         analyticsBtn.textContent = "View Analytics";
-        analyticsBtn.onclick = () => window.location.href = `analytics.html?event=${ev.id}`;
+        analyticsBtn.onclick = () => window.location.href = `organizer-analytics.html?eventId=${ev.id}`;
 
         const editBtn = document.createElement("button");
         editBtn.className = "btn-small";
         editBtn.textContent = "Edit Event";
-        editBtn.onclick = () => window.location.href = `edit-event.html?event=${ev.id}`;
+        editBtn.onclick = () => window.location.href = `organizer-edit-event.html?eventId=${ev.id}`;
 
         actions.append(analyticsBtn, editBtn);
         content.append(title, meta, progressBar, actions);
@@ -286,15 +322,54 @@
       });
     }
 
-    sortBy.addEventListener("change", () => {
-      let sorted = [...allEvents];
-      if (sortBy.value === "name") sorted.sort((a, b) => a.title.localeCompare(b.title));
-      else if (sortBy.value === "tickets") sorted.sort((a, b) => b.tickets_sold - a.tickets_sold);
-      else sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
-      renderEvents(sorted);
+    // Compose filtering, search, and sorting
+    function applyView() {
+      let list = [...allEvents];
+
+      // Filter by status
+      const today = new Date(); today.setHours(0,0,0,0);
+      if (currentFilter === 'upcoming') {
+        list = list.filter(ev => {
+          const d = new Date(ev.date); d.setHours(0,0,0,0); return d >= today;
+        });
+      } else if (currentFilter === 'past') {
+        list = list.filter(ev => {
+          const d = new Date(ev.date); d.setHours(0,0,0,0); return d < today;
+        });
+      }
+
+      // Search by title/location
+      if (query.trim()) {
+        const q = query.trim().toLowerCase();
+        list = list.filter(ev => `${ev.title} ${ev.location}`.toLowerCase().includes(q));
+      }
+
+      // Sort
+      if (sortBy.value === "name") list.sort((a, b) => a.title.localeCompare(b.title));
+      else if (sortBy.value === "tickets") list.sort((a, b) => b.tickets_sold - a.tickets_sold);
+      else list.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      renderEvents(list);
+    }
+
+    // Event handlers for view controls
+    sortBy.addEventListener("change", applyView);
+    if (searchInput) searchInput.addEventListener('input', (e) => { query = e.target.value || ''; applyView(); });
+    if (filterButtons) filterButtons.addEventListener('click', (e) => {
+      const btn = e.target.closest('button.filter-btn');
+      if (!btn) return;
+      [...filterButtons.querySelectorAll('.filter-btn')].forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter || 'all';
+      applyView();
     });
 
     window.addEventListener("DOMContentLoaded", loadEvents);
+
+    // Logout helper re-used from other pages
+    window.logout = async function logout() {
+      try { await fetch(`${getApiBase()}/api/auth/logout`, { method:'POST', credentials:'include' }); localStorage.removeItem('user'); window.location.href='index.html'; } catch(e){}
+    }
   </script>
 </body>
 </html>
