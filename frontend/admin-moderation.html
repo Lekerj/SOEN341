@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Event Moderation - ConEvents</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="browse.html">Browse</a></li>
+        <li><a href="about.html">About</a></li>
+        <li id="organizerMenu" class="dropdown" style="display:none;">
+          <a href="#" class="dropdown-toggle">Organizer</a>
+          <ul class="dropdown-menu">
+            <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+            <li><a href="organizer-create-event.html">Create Event</a></li>
+            <li><a href="organizer-edit-event.html">Edit Event</a></li>
+            <li><a href="organizer-analytics.html">Event Analytics</a></li>
+            <li><a href="organizer-scanner.html">QR Scanner</a></li>
+          </ul>
+        </li>
+        <li id="adminMenu" style="display:none;"><a href="admin-moderation.html">Admin</a></li>
+        <li><a href="profile.html">Profile</a></li>
+        <li id="authLinks">
+          <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </li>
+        <li id="userLinks" style="display:none;">
+          <span id="welcomeMessage" class="text-muted"></span>
+          <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="main-content">
+      <div class="container">
+        <section class="hero" style="align-items:flex-start; padding:32px;">
+          <div>
+            <h1 class="hero-title" style="margin-bottom:8px;">Event Moderation</h1>
+            <p class="hero-subtitle" style="max-width:560px;">
+              Review, update, and moderate events submitted by organizers. Use the filters to focus on flagged or pending listings.
+            </p>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center;">
+            <a href="javascript:history.back()" class="btn btn-secondary btn-sm">← Back</a>
+            <button id="refreshBtn" class="btn btn-primary btn-sm" type="button">Refresh</button>
+          </div>
+        </section>
+
+        <div class="moderation-wrapper">
+          <div class="breadcrumbs"><span>Admin</span> <span>›</span> <span>Moderation</span></div>
+          <div class="moderation-toolbar">
+            <div class="filters" role="tablist" aria-label="Moderation filters">
+              <button class="moderation-filter active" data-filter="all" type="button">All Events</button>
+              <button class="moderation-filter" data-filter="flagged" type="button">Flagged</button>
+              <button class="moderation-filter" data-filter="pending" type="button">Pending Review</button>
+            </div>
+            <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+              <input id="searchInput" type="search" placeholder="Search title, organizer, or location" aria-label="Search events">
+            </div>
+          </div>
+
+          <div class="moderation-layout single">
+            <section class="moderation-card" aria-label="Event moderation table">
+              <table class="moderation-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Event</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Location</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Flags</th>
+                    <th scope="col" style="width:110px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="eventsTableBody">
+                  <tr>
+                    <td colspan="6" class="empty-state">Loading events…</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+
+            <aside class="moderation-card moderation-detail" id="eventDetailPanel" style="display:none;" aria-live="polite">
+              <div>
+                <h2 id="detailTitle" style="margin:0 0 6px; font-size:1.4rem;">Select an event</h2>
+                <p id="detailSubtitle" style="margin:0; color:#6b7280;">Choose an event from the table to view details and take action.</p>
+              </div>
+
+              <div id="detailGrid" class="detail-grid" style="display:none;">
+                <div class="detail-item">
+                  <span>Organizer</span>
+                  <strong id="detailOrganizer">—</strong>
+                </div>
+                <div class="detail-item">
+                  <span>Moderation Status</span>
+                  <strong id="detailStatus">—</strong>
+                </div>
+                <div class="detail-item">
+                  <span>Category</span>
+                  <strong id="detailCategory">—</strong>
+                </div>
+                <div class="detail-item">
+                  <span>Tickets</span>
+                  <strong id="detailTickets">—</strong>
+                </div>
+                <div class="detail-item">
+                  <span>Price</span>
+                  <strong id="detailPrice">—</strong>
+                </div>
+                <div class="detail-item">
+                  <span>Flag Count</span>
+                  <strong id="detailFlags">—</strong>
+                </div>
+              </div>
+
+              <article class="detail-item" style="background:#fff; border:1px solid #e5e7eb; display:none;" id="detailDescriptionCard">
+                <span style="color:#64748b;">Description</span>
+                <p id="detailDescription" style="margin:8px 0 0; color:#1f2937; line-height:1.5;"></p>
+              </article>
+
+              <div class="action-buttons" id="detailActions" style="display:none;">
+                <button id="openEditBtn" class="btn btn-primary" type="button">Edit Event</button>
+                <button id="openDeleteBtn" class="btn btn-secondary" type="button" style="background:#fff; color:#b91c1c; border:1px solid #fee2e2;">Delete Event</button>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="about.html">About Us</a>
+      <a href="browse.html">Events</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="contact.html">Contact</a>
+    </div>
+    <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+  </footer>
+
+  <div class="toast-container" id="toastContainer" aria-live="assertive"></div>
+
+  <dialog id="editDialog" class="moderation-dialog" aria-labelledby="editDialogTitle">
+    <header>
+      <h3 id="editDialogTitle">Edit Event</h3>
+    </header>
+    <form id="editForm">
+      <label for="editTitle">Title</label>
+      <input id="editTitle" name="title" type="text" required />
+
+      <label for="editDescription">Description</label>
+      <textarea id="editDescription" name="description"></textarea>
+
+      <label for="editLocation">Location</label>
+      <input id="editLocation" name="location" type="text" required />
+
+      <label for="editStatus">Moderation Status</label>
+      <select id="editStatus" name="moderation_status">
+        <option value="approved">Approved</option>
+        <option value="pending">Pending</option>
+        <option value="rejected">Rejected</option>
+      </select>
+
+      <footer>
+        <button type="button" class="btn btn-secondary btn-sm" data-action="close">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="deleteDialog" class="moderation-dialog" aria-labelledby="deleteDialogTitle">
+    <header>
+      <h3 id="deleteDialogTitle">Delete Event</h3>
+    </header>
+    <form id="deleteForm">
+      <p id="deletePrompt" style="margin:0; color:#4b5563;">Are you sure you want to delete this event? This action cannot be undone.</p>
+      <footer>
+        <button type="button" class="btn btn-secondary btn-sm" data-action="close">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm" style="background:#b91c1c;">Delete</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
+
+    const state = {
+      events: [],
+      filtered: [],
+      selected: null,
+      filter: 'all',
+    };
+
+    const elements = {
+      organizerMenu: document.getElementById('organizerMenu'),
+      adminMenu: document.getElementById('adminMenu'),
+      authLinks: document.getElementById('authLinks'),
+      userLinks: document.getElementById('userLinks'),
+      welcomeMessage: document.getElementById('welcomeMessage'),
+      filterButtons: document.querySelectorAll('.moderation-filter'),
+      searchInput: document.getElementById('searchInput'),
+      refreshBtn: document.getElementById('refreshBtn'),
+      tableBody: document.getElementById('eventsTableBody'),
+      detailPanel: document.getElementById('eventDetailPanel'),
+      detailGrid: document.getElementById('detailGrid'),
+      detailDescriptionCard: document.getElementById('detailDescriptionCard'),
+      detailActions: document.getElementById('detailActions'),
+      detailTitle: document.getElementById('detailTitle'),
+      detailSubtitle: document.getElementById('detailSubtitle'),
+      detailOrganizer: document.getElementById('detailOrganizer'),
+      detailStatus: document.getElementById('detailStatus'),
+      detailCategory: document.getElementById('detailCategory'),
+      detailTickets: document.getElementById('detailTickets'),
+      detailPrice: document.getElementById('detailPrice'),
+      detailFlags: document.getElementById('detailFlags'),
+      detailDescription: document.getElementById('detailDescription'),
+      openEditBtn: document.getElementById('openEditBtn'),
+      openDeleteBtn: document.getElementById('openDeleteBtn'),
+      editDialog: document.getElementById('editDialog'),
+      editForm: document.getElementById('editForm'),
+      deleteDialog: document.getElementById('deleteDialog'),
+      deleteForm: document.getElementById('deleteForm'),
+      toastContainer: document.getElementById('toastContainer'),
+    };
+
+    // Placeholder until data wiring is completed in subsequent steps.
+    async function initializeModerationDashboard() {
+      updateAuthNavigation();
+      renderEmptyState();
+    }
+
+    function updateAuthNavigation() {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+        const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
+
+        if (elements.organizerMenu) elements.organizerMenu.style.display = isOrganizer ? '' : 'none';
+        if (elements.adminMenu) elements.adminMenu.style.display = isAdmin ? '' : 'none';
+
+        if (user) {
+          elements.authLinks.style.display = 'none';
+          elements.userLinks.style.display = 'flex';
+          elements.userLinks.style.gap = '1rem';
+          elements.userLinks.style.alignItems = 'center';
+          elements.welcomeMessage.textContent = `Welcome, ${user.name}!`;
+        } else {
+          elements.authLinks.style.display = '';
+          elements.userLinks.style.display = 'none';
+          elements.welcomeMessage.textContent = '';
+        }
+      } catch (error) {
+        console.error('Failed to update auth navigation', error);
+      }
+    }
+
+    function renderEmptyState(message = 'Select a filter to begin reviewing events.') {
+      elements.tableBody.innerHTML = `
+        <tr>
+          <td colspan="6" class="empty-state">${message}</td>
+        </tr>
+      `;
+    }
+
+    document.addEventListener('DOMContentLoaded', initializeModerationDashboard);
+  </script>
+</body>
+</html>
