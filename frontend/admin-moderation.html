@@ -200,6 +200,8 @@
       selectedId: null,
       isLoading: false,
       filter: 'all',
+      editingId: null,
+      deletingId: null,
     };
 
     const elements = {
@@ -230,8 +232,13 @@
       openDeleteBtn: document.getElementById('openDeleteBtn'),
       editDialog: document.getElementById('editDialog'),
       editForm: document.getElementById('editForm'),
+      editTitle: document.getElementById('editTitle'),
+      editDescription: document.getElementById('editDescription'),
+      editLocation: document.getElementById('editLocation'),
+      editStatus: document.getElementById('editStatus'),
       deleteDialog: document.getElementById('deleteDialog'),
       deleteForm: document.getElementById('deleteForm'),
+      deletePrompt: document.getElementById('deletePrompt'),
       toastContainer: document.getElementById('toastContainer'),
     };
 
@@ -290,6 +297,163 @@
       }
     }
 
+    function getSelectedEvent() {
+      if (!state.selectedId) return null;
+      return state.events.find((event) => event.id === state.selectedId) || null;
+    }
+
+    function openEditDialog(eventData) {
+      if (!elements.editDialog) return;
+      state.editingId = eventData.id;
+
+      if (elements.editTitle) elements.editTitle.value = eventData.title || '';
+      if (elements.editDescription) elements.editDescription.value = eventData.description || '';
+      if (elements.editLocation) elements.editLocation.value = eventData.location || '';
+      if (elements.editStatus) elements.editStatus.value = eventData.moderation_status || 'pending';
+
+      try {
+        elements.editDialog.showModal();
+      } catch (error) {
+        elements.editDialog.setAttribute('open', '');
+      }
+    }
+
+    function closeEditDialog() {
+      state.editingId = null;
+      if (elements.editForm) elements.editForm.reset();
+      if (elements.editDialog && elements.editDialog.open) {
+        elements.editDialog.close();
+      } else if (elements.editDialog) {
+        elements.editDialog.removeAttribute('open');
+      }
+    }
+
+    function openDeleteDialog(eventData) {
+      if (!elements.deleteDialog) return;
+      state.deletingId = eventData.id;
+
+      if (elements.deletePrompt) {
+        elements.deletePrompt.textContent = `Are you sure you want to delete "${eventData.title || 'this event'}"? This action cannot be undone.`;
+      }
+
+      try {
+        elements.deleteDialog.showModal();
+      } catch (error) {
+        elements.deleteDialog.setAttribute('open', '');
+      }
+    }
+
+    function closeDeleteDialog() {
+      state.deletingId = null;
+      if (elements.deleteDialog && elements.deleteDialog.open) {
+        elements.deleteDialog.close();
+      } else if (elements.deleteDialog) {
+        elements.deleteDialog.removeAttribute('open');
+      }
+    }
+
+    async function handleEditSubmit(event) {
+      event.preventDefault();
+      const targetId = state.editingId || state.selectedId;
+      if (!targetId) {
+        showToast('error', 'No event selected to edit.');
+        return;
+      }
+
+      const payload = {
+        title: (elements.editTitle?.value || '').trim(),
+        description: (elements.editDescription?.value || '').trim(),
+        location: (elements.editLocation?.value || '').trim(),
+        moderation_status: elements.editStatus?.value || 'pending',
+      };
+
+      const submitButton = elements.editForm?.querySelector('button[type="submit"]');
+      if (submitButton) submitButton.disabled = true;
+
+      try {
+        const response = await apiFetch(`/api/admin/events/${targetId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        let data = {};
+        try {
+          data = await response.json();
+        } catch (_) {
+          data = {};
+        }
+
+        if (!response.ok || data?.success === false) {
+          const message = data?.error || data?.message || 'Failed to update event.';
+          throw new Error(message);
+        }
+
+        const existing = state.events.find((evt) => evt.id === targetId) || {};
+        const merged = data.event ? { ...existing, ...data.event } : { ...existing, ...payload };
+        const normalized = normalizeEvent(merged);
+
+        state.events = state.events.map((evt) => (evt.id === normalized.id ? normalized : evt));
+        const stillVisible = isEventVisible(normalized);
+        applyFilters();
+        if (stillVisible) {
+          selectEvent(normalized);
+        } else {
+          clearDetailPanel();
+        }
+        showToast('success', data?.message || 'Event updated successfully.');
+        closeEditDialog();
+      } catch (error) {
+        console.error('Failed to update event:', error);
+        showToast('error', error.message || 'Unable to update event.');
+      } finally {
+        if (submitButton) submitButton.disabled = false;
+      }
+    }
+
+    async function handleDeleteSubmit(event) {
+      event.preventDefault();
+      const targetId = state.deletingId || state.selectedId;
+      if (!targetId) {
+        showToast('error', 'No event selected to delete.');
+        return;
+      }
+
+      const submitButton = elements.deleteForm?.querySelector('button[type="submit"]');
+      if (submitButton) submitButton.disabled = true;
+
+      try {
+        const response = await apiFetch(`/api/admin/events/${targetId}`, {
+          method: 'DELETE',
+        });
+
+        let data = {};
+        try {
+          data = await response.json();
+        } catch (_) {
+          data = {};
+        }
+
+        if (!response.ok || data?.success === false) {
+          const message = data?.error || data?.message || 'Failed to delete event.';
+          throw new Error(message);
+        }
+
+        state.events = state.events.filter((evt) => evt.id !== targetId);
+        if (state.selectedId === targetId) {
+          clearDetailPanel();
+        }
+        closeDeleteDialog();
+        applyFilters();
+        showToast('success', data?.message || 'Event deleted successfully.');
+      } catch (error) {
+        console.error('Failed to delete event:', error);
+        showToast('error', error.message || 'Unable to delete event.');
+      } finally {
+        if (submitButton) submitButton.disabled = false;
+      }
+    }
+
     function bindUIEvents() {
       elements.filterButtons.forEach((button) => {
         button.addEventListener('click', () => {
@@ -320,6 +484,64 @@
           selectEvent(selected);
         }
       });
+
+      if (elements.openEditBtn) {
+        elements.openEditBtn.addEventListener('click', () => {
+          const current = getSelectedEvent();
+          if (!current) {
+            showToast('error', 'Select an event to edit.');
+            return;
+          }
+          openEditDialog(current);
+        });
+      }
+
+      if (elements.openDeleteBtn) {
+        elements.openDeleteBtn.addEventListener('click', () => {
+          const current = getSelectedEvent();
+          if (!current) {
+            showToast('error', 'Select an event to delete.');
+            return;
+          }
+          openDeleteDialog(current);
+        });
+      }
+
+      if (elements.editForm) {
+        elements.editForm.addEventListener('submit', handleEditSubmit);
+        elements.editForm.addEventListener('click', (event) => {
+          const closeBtn = event.target.closest('[data-action="close"]');
+          if (closeBtn) {
+            event.preventDefault();
+            closeEditDialog();
+          }
+        });
+      }
+
+      if (elements.deleteForm) {
+        elements.deleteForm.addEventListener('submit', handleDeleteSubmit);
+        elements.deleteForm.addEventListener('click', (event) => {
+          const closeBtn = event.target.closest('[data-action="close"]');
+          if (closeBtn) {
+            event.preventDefault();
+            closeDeleteDialog();
+          }
+        });
+      }
+
+      if (elements.editDialog) {
+        elements.editDialog.addEventListener('cancel', (event) => {
+          event.preventDefault();
+          closeEditDialog();
+        });
+      }
+
+      if (elements.deleteDialog) {
+        elements.deleteDialog.addEventListener('cancel', (event) => {
+          event.preventDefault();
+          closeDeleteDialog();
+        });
+      }
     }
 
     async function loadEvents() {
@@ -418,6 +640,23 @@
       return flagCount > 0;
     }
 
+    function isEventVisible(event, searchTermOverride) {
+      const effectiveSearch =
+        typeof searchTermOverride === 'string'
+          ? searchTermOverride
+          : (elements.searchInput.value || '').trim().toLowerCase();
+
+      if (!filterMatches(event, state.filter)) {
+        return false;
+      }
+
+      if (!effectiveSearch) {
+        return true;
+      }
+
+      return matchesSearch(event, effectiveSearch);
+    }
+
     function applyFilters() {
       if (!state.events.length) {
         renderEmptyState(state.isLoading ? 'Loading events…' : 'No events found.');
@@ -426,13 +665,7 @@
 
       const searchTerm = (elements.searchInput.value || '').trim().toLowerCase();
 
-      state.filtered = state.events.filter((event) => {
-        if (!filterMatches(event, state.filter)) {
-          return false;
-        }
-        if (!searchTerm) return true;
-        return matchesSearch(event, searchTerm);
-      });
+      state.filtered = state.events.filter((event) => isEventVisible(event, searchTerm));
 
       if (state.selectedId && !state.filtered.some((event) => event.id === state.selectedId)) {
         clearDetailPanel();
