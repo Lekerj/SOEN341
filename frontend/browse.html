@@ -541,6 +541,14 @@
         </li>
         <li id="userLinks" style="display: none;">
           <span id="welcomeMessage" class="text-muted"></span>
+          <div id="adminMenu" class="admin-menu" hidden>
+            <button type="button" class="btn btn-secondary btn-sm admin-menu-toggle">
+              Admin <span aria-hidden="true" class="admin-menu-caret">&#9662;</span>
+            </button>
+            <div class="admin-menu-list" role="menu">
+              <a href="admin-moderation.html" class="admin-menu-link" role="menuitem">Moderation Dashboard</a>
+            </div>
+          </div>
           <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
         </li>
       </ul>
@@ -702,6 +710,12 @@
 
   <script type="module">
     import { getApiBase } from './utils/api.js';
+
+    function toggleAdminMenu(isAdmin) {
+      const adminMenu = document.getElementById('adminMenu');
+      if (!adminMenu) return;
+      adminMenu.hidden = !isAdmin;
+    }
     // Check authentication status (match index.html)
     window.addEventListener('DOMContentLoaded', async () => {
       const user = localStorage.getItem('user');
@@ -719,18 +733,22 @@
             document.getElementById('userLinks').style.gap = '1rem';
             document.getElementById('userLinks').style.alignItems = 'center';
             document.getElementById('welcomeMessage').textContent = `Welcome, ${userData.name || userData.username || 'User'}!`;
+            toggleAdminMenu(userData.role === 'admin');
           } else {
             // Session expired
             localStorage.removeItem('user');
+            toggleAdminMenu(false);
           }
         } catch (error) {
           console.error('Error checking session:', error);
           localStorage.removeItem('user');
+          toggleAdminMenu(false);
         }
       } else {
         document.getElementById('authLinks').style.display = '';
         document.getElementById('userLinks').style.display = 'none';
         document.getElementById('welcomeMessage').textContent = '';
+        toggleAdminMenu(false);
       }
     });
 

@@ -26,6 +26,14 @@
         </li>
         <li id="userLinks" style="display: none;">
           <span id="welcomeMessage" class="text-muted"></span>
+          <div id="adminMenu" class="admin-menu" hidden>
+            <button type="button" class="btn btn-secondary btn-sm admin-menu-toggle">
+              Admin <span aria-hidden="true" class="admin-menu-caret">&#9662;</span>
+            </button>
+            <div class="admin-menu-list" role="menu">
+              <a href="admin-moderation.html" class="admin-menu-link" role="menuitem">Moderation Dashboard</a>
+            </div>
+          </div>
           <button type="button" onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
         </li>
       </ul>
@@ -177,6 +185,7 @@
     const tableWrapper = document.querySelector('.table-wrapper');
     const cardPanel = document.querySelector('.card-panel');
     const dashboardControls = document.querySelector('.dashboard-controls');
+    const adminMenu = document.getElementById('adminMenu');
 
     const editModal = document.getElementById('editModal');
     const editForm = document.getElementById('editEventForm');
@@ -189,6 +198,8 @@
     const confirmDeleteButton = document.getElementById('confirmDeleteButton');
 
     document.addEventListener('DOMContentLoaded', () => {
+      if (editModal) closeModal(editModal);
+      if (confirmModal) closeModal(confirmModal);
       bootstrapSession();
       attachEventListeners();
     });
@@ -327,6 +338,7 @@
       const userLinks = document.getElementById('userLinks');
       const welcome = document.getElementById('welcomeMessage');
       const stored = safeParse(localStorage.getItem('user'));
+      toggleAdminMenu(false);
 
       try {
         const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
@@ -341,6 +353,7 @@
           }
           setLoadingVisibility(false);
           hideDashboardShell();
+          toggleAdminMenu(false);
           return;
         }
 
@@ -359,16 +372,19 @@
         if (user.role !== 'admin') {
           setStatus('Only administrators can access this dashboard.', 'error');
           hideDashboardShell();
+          toggleAdminMenu(false);
           return;
         }
 
         showDashboardShell();
+        toggleAdminMenu(true);
         await loadEvents();
       } catch (error) {
         console.error('Session bootstrap failed', error);
         setStatus('Unable to verify your session right now. Please try again later.', 'error');
         setLoadingVisibility(false);
         hideDashboardShell();
+        toggleAdminMenu(false);
         if (stored) {
           if (authLinks) authLinks.style.display = 'none';
           if (userLinks) userLinks.style.display = 'flex';
@@ -610,6 +626,11 @@
     function setLoadingVisibility(visible) {
       if (!loadingState) return;
       loadingState.style.display = visible ? 'flex' : 'none';
+    }
+
+    function toggleAdminMenu(isAdmin) {
+      if (!adminMenu) return;
+      adminMenu.hidden = !isAdmin;
     }
 
     function hideDashboardShell() {

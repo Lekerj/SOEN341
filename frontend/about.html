@@ -9,6 +9,11 @@
 </head>
 <script type="module">
   import { getApiBase } from './utils/api.js';
+  function toggleAdminMenu(isAdmin) {
+    const adminMenu = document.getElementById('adminMenu');
+    if (!adminMenu) return;
+    adminMenu.hidden = !isAdmin;
+  }
   window.addEventListener('DOMContentLoaded', async () => {
     const user = localStorage.getItem('user');
     if (user) {
@@ -20,12 +25,17 @@
           const ul = document.getElementById('userLinks');
           ul.style.display = 'flex'; ul.style.gap = '1rem'; ul.style.alignItems = 'center';
           document.getElementById('welcomeMessage').textContent = `Welcome, ${u.name}!`;
+          toggleAdminMenu(u.role === 'admin');
         } else {
           localStorage.removeItem('user');
+          toggleAdminMenu(false);
         }
       } catch {
         localStorage.removeItem('user');
+        toggleAdminMenu(false);
       }
+    } else {
+      toggleAdminMenu(false);
     }
   });
 
@@ -38,6 +48,8 @@
       localStorage.removeItem('user'); location.href = 'index.html';
     }
   }
+
+  window.logout = logout;
 </script>
 
 <body>
@@ -63,6 +75,14 @@
         <!-- Logged-in state -->
         <li id="userLinks" style="display:none;">
           <span id="welcomeMessage" class="text-muted"></span>
+          <div id="adminMenu" class="admin-menu" hidden>
+            <button type="button" class="btn btn-secondary btn-sm admin-menu-toggle">
+              Admin <span aria-hidden="true" class="admin-menu-caret">&#9662;</span>
+            </button>
+            <div class="admin-menu-list" role="menu">
+              <a href="admin-moderation.html" class="admin-menu-link" role="menuitem">Moderation Dashboard</a>
+            </div>
+          </div>
           <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
         </li>
       </ul>

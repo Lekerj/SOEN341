@@ -13,11 +13,19 @@
   <!-- Mirror organizer-create-event: import getApiBase and bootstrap profile/session -->
   <script type="module">
     import { getApiBase } from './utils/api.js';
+    function toggleAdminMenu(isAdmin) {
+      const adminMenu = document.getElementById('adminMenu');
+      if (!adminMenu) return;
+      adminMenu.hidden = !isAdmin;
+    }
 
     // Show/hide navbar like create-event does
     window.addEventListener('DOMContentLoaded', async () => {
       const stored = localStorage.getItem('user');
-      if (!stored) return;
+      if (!stored) {
+        toggleAdminMenu(false);
+        return;
+      }
 
       try {
         const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
@@ -34,12 +42,15 @@
             userLinks.style.alignItems = 'center';
           }
           if (welcome && user?.name) welcome.textContent = `Welcome, ${user.name}!`;
+          toggleAdminMenu(user?.role === 'admin');
         } else if (resp.status === 401) {
           localStorage.removeItem('user');
+          toggleAdminMenu(false);
         }
       } catch (error) {
         console.warn('Profile check failed:', error);
         localStorage.removeItem('user');
+        toggleAdminMenu(false);
       }
     });
 
@@ -441,6 +452,14 @@
         </li>
         <li id="userLinks" style="display:none;">
           <span id="welcomeMessage" class="text-muted"></span>
+          <div id="adminMenu" class="admin-menu" hidden>
+            <button type="button" class="btn btn-secondary btn-sm admin-menu-toggle">
+              Admin <span aria-hidden="true" class="admin-menu-caret">&#9662;</span>
+            </button>
+            <div class="admin-menu-list" role="menu">
+              <a href="admin-moderation.html" class="admin-menu-link" role="menuitem">Moderation Dashboard</a>
+            </div>
+          </div>
           <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
         </li>
       </ul>

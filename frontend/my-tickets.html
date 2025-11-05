@@ -120,6 +120,14 @@
                 <li id="authLinks"><a href="login.html" class="btn btn-secondary btn-sm">Login</a></li>
                 <li id="userLinks" style="display:none;">
                     <span id="welcomeMessage" class="text-muted"></span>
+                    <div id="adminMenu" class="admin-menu" hidden>
+                        <button type="button" class="btn btn-secondary btn-sm admin-menu-toggle">
+                            Admin <span aria-hidden="true" class="admin-menu-caret">&#9662;</span>
+                        </button>
+                        <div class="admin-menu-list" role="menu">
+                            <a href="admin-moderation.html" class="admin-menu-link" role="menuitem">Moderation Dashboard</a>
+                        </div>
+                    </div>
                     <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
                 </li>
             </ul>
@@ -154,6 +162,11 @@
 
     <script type="module">
         import { getApiBase } from './utils/api.js';
+        function toggleAdminMenu(isAdmin) {
+            const adminMenu = document.getElementById('adminMenu');
+            if (!adminMenu) return;
+            adminMenu.hidden = !isAdmin;
+        }
         function showTicketTab(tab) {
             const currentTab = document.getElementById('currentTab');
             const pastTab = document.getElementById('pastTab');
@@ -187,6 +200,7 @@
         window.addEventListener('DOMContentLoaded', async () => {
             const user = localStorage.getItem('user');
             if (!user) {
+                toggleAdminMenu(false);
                 window.location.href = 'login.html';
                 return;
             }
@@ -197,6 +211,7 @@
             userLinks.style.gap = '1rem';
             userLinks.style.alignItems = 'center';
             document.getElementById('welcomeMessage').textContent = `Welcome, ${userData.name}!`;
+            toggleAdminMenu(userData.role === 'admin');
 
             try {
                 const res = await fetch(`${getApiBase()}/api/tickets`, { credentials: 'include' });
@@ -348,6 +363,7 @@
                 window.location.href = 'index.html';
             } catch (e) { }
         }
+        window.logout = logout;
     </script>
     <script type="module">
         import { generateGoogleCalendarURL } from './utils/calendar.js';

@@ -26,6 +26,14 @@
                 </li>
                 <li id="userLinks" style="display: none;">
                     <span id="welcomeMessage" class="text-muted"></span>
+                    <div id="adminMenu" class="admin-menu" hidden>
+                        <button type="button" class="btn btn-secondary btn-sm admin-menu-toggle">
+                            Admin <span aria-hidden="true" class="admin-menu-caret">&#9662;</span>
+                        </button>
+                        <div class="admin-menu-list" role="menu">
+                            <a href="admin-moderation.html" class="admin-menu-link" role="menuitem">Moderation Dashboard</a>
+                        </div>
+                    </div>
                     <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
                 </li>
             </ul>
@@ -133,6 +141,13 @@
 
     <script type="module">
         import { getApiBase } from './utils/api.js';
+
+        function toggleAdminMenu(isAdmin) {
+            const adminMenu = document.getElementById('adminMenu');
+            if (!adminMenu) return;
+            adminMenu.hidden = !isAdmin;
+        }
+
         // Check authentication status
         window.addEventListener('DOMContentLoaded', async () => {
             const user = localStorage.getItem('user');
@@ -154,12 +169,14 @@
                         document.getElementById('userLinks').style.gap = '1rem';
                         document.getElementById('userLinks').style.alignItems = 'center';
                         document.getElementById('welcomeMessage').textContent = `Welcome, ${userData.name}!`;
+                        toggleAdminMenu(userData.role === 'admin');
                         if (createAccountButton) {
                             createAccountButton.style.display = 'none';
                         }
                     } else {
                         // Session expired
                         localStorage.removeItem('user');
+                        toggleAdminMenu(false);
                         if (createAccountButton) {
                             createAccountButton.style.display = 'inline-block';
                         }
@@ -167,12 +184,14 @@
                 } catch (error) {
                     console.error('Error checking session:', error);
                     localStorage.removeItem('user');
+                    toggleAdminMenu(false);
                     if (createAccountButton) {
                         createAccountButton.style.display = 'inline-block';
                     }
                 }
             } else if (createAccountButton) {
                 createAccountButton.style.display = 'inline-block';
+                toggleAdminMenu(false);
             }
 
             await loadEvents();
@@ -384,6 +403,8 @@
                 alert('An error occurred during logout.');
             }
         }
+
+        window.logout = logout;
 
         // Modal state management
         let modalState = { eventId: null, eventName: '', price: 0 };
