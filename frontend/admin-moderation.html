@@ -1,388 +1,468 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin Event Moderation - ConEvents</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Moderation Dashboard - ConEvents</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
+  <!-- Navigation Bar -->
   <nav class="navbar">
     <div class="navbar-container">
-      <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+      <a href="index.html" class="navbar-logo">
+        🎫 ConEvents
+      </a>
       <ul class="navbar-menu">
         <li><a href="index.html">Home</a></li>
         <li><a href="browse.html">Browse</a></li>
         <li><a href="about.html">About</a></li>
-        <li id="adminMenu" class="dropdown" style="display:none;">
-          <a href="#" class="dropdown-toggle">Admin</a>
-          <ul class="dropdown-menu">
-            <li><a href="admin-moderation.html">Event Moderation</a></li>
-          </ul>
-        </li>
         <li><a href="profile.html">Profile</a></li>
         <li id="authLinks">
           <a href="login.html" class="btn btn-primary btn-sm">Login</a>
           <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
         </li>
-        <li id="userLinks" style="display:none;">
+        <li id="userLinks" style="display: none;">
           <span id="welcomeMessage" class="text-muted"></span>
-          <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+          <button type="button" onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
         </li>
       </ul>
     </div>
   </nav>
 
-  <main>
-    <div class="main-content">
-      <div class="container">
-        <section class="hero" style="align-items:flex-start; padding:32px;">
-          <div>
-            <h1 class="hero-title" style="margin-bottom:8px;">Event Moderation Dashboard</h1>
-            <p class="hero-subtitle" style="max-width:620px;">
-              Review, edit, and moderate events submitted by organizers. Approve changes and keep listings accurate.
-            </p>
+  <main class="main-content">
+    <div class="container">
+      <section class="admin-dashboard">
+        <header class="dashboard-header">
+          <h1>Admin Moderation Dashboard</h1>
+          <p class="dashboard-subtitle">
+            Review community events, resolve reports, and keep the catalog healthy.
+          </p>
+        </header>
+
+        <div id="statusMessage" class="status-banner" role="status" aria-live="polite" hidden></div>
+
+        <div class="dashboard-controls">
+          <div class="filter-group" role="group" aria-label="Event filter">
+            <button type="button" class="btn btn-secondary btn-sm filter-btn active" data-filter="all">
+              All events
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm filter-btn" data-filter="flagged">
+              Flagged only
+            </button>
           </div>
-        </section>
-
-        <div class="moderation-wrapper">
-          <header class="moderation-toolbar">
-            <div class="filters" role="tablist" aria-label="Moderation filters">
-              <button class="moderation-filter active" data-filter="all" type="button">All Events</button>
-              <button class="moderation-filter" data-filter="flagged" type="button">Flagged</button>
-              <button class="moderation-filter" data-filter="pending" type="button">Pending Review</button>
-            </div>
-            <div style="margin-left:auto;">
-              <input id="searchInput" type="search" placeholder="Search title, organizer, or location" aria-label="Search events" />
-            </div>
-            <button id="refreshBtn" class="btn btn-primary btn-sm" type="button">Refresh</button>
-          </header>
-
-          <div class="moderation-layout single">
-            <section class="moderation-card">
-              <table class="moderation-table">
-                <thead>
-                  <tr>
-                    <th>Event</th>
-                    <th>Date</th>
-                    <th>Location</th>
-                    <th>Status</th>
-                    <th>Flags</th>
-                    <th style="width:140px;">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="eventsTableBody">
-                  <tr><td colspan="6" class="empty-state">Loading events…</td></tr>
-                </tbody>
-              </table>
-            </section>
-
-            <aside class="moderation-card moderation-detail" id="eventDetailPanel" style="display:none;">
-              <header>
-                <h2 id="detailTitle" style="margin:0;">Select an event</h2>
-                <p id="detailSubtitle" class="small-muted">Choose an event in the table to view full details.</p>
-              </header>
-              <div id="detailGrid" class="detail-grid" style="display:none;">
-                <div class="detail-item">
-                  <span>Organizer</span>
-                  <strong id="detailOrganizer">—</strong>
-                </div>
-                <div class="detail-item">
-                  <span>Status</span>
-                  <strong id="detailStatus">—</strong>
-                </div>
-                <div class="detail-item">
-                  <span>Category</span>
-                  <strong id="detailCategory">—</strong>
-                </div>
-                <div class="detail-item">
-                  <span>Tickets</span>
-                  <strong id="detailTickets">—</strong>
-                </div>
-                <div class="detail-item">
-                  <span>Price</span>
-                  <strong id="detailPrice">—</strong>
-                </div>
-                <div class="detail-item">
-                  <span>Flag Count</span>
-                  <strong id="detailFlags">—</strong>
-                </div>
-              </div>
-              <article id="detailDescriptionCard" class="detail-item" style="display:none;">
-                <span>Description</span>
-                <p id="detailDescription" style="margin:0;"></p>
-              </article>
-              <div id="detailActions" class="action-buttons" style="display:none;">
-                <button id="openEditBtn" class="btn btn-primary" type="button">Edit Event</button>
-                <button id="openDeleteBtn" class="btn btn-secondary" type="button">Delete Event</button>
-              </div>
-            </aside>
+          <div class="search-group">
+            <input id="searchInput" type="search" class="form-control" placeholder="Search by title, category, or location"
+              aria-label="Search events" />
           </div>
         </div>
-      </div>
+
+        <div class="card-panel">
+          <div id="loadingState" class="loading-state">Loading events…</div>
+          <div id="emptyState" class="empty-state" hidden>No events found for the current filters.</div>
+
+          <div class="table-wrapper">
+            <table class="moderation-table" aria-describedby="statusMessage">
+              <thead>
+                <tr>
+                  <th scope="col">Event</th>
+                  <th scope="col">Schedule</th>
+                  <th scope="col">Details</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="actions-column">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="eventsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </div>
   </main>
 
-  <footer class="footer">
-    <div class="footer-links">
-      <a href="about.html">About Us</a>
-      <a href="browse.html">Events</a>
-      <a href="privacy.html">Privacy Policy</a>
-      <a href="terms.html">Terms of Service</a>
-      <a href="contact.html">Contact</a>
+  <!-- Edit Event Modal -->
+  <div id="editModal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+    <div class="modal-content">
+      <header class="modal-header">
+        <h2 id="editModalTitle">Edit event</h2>
+        <button type="button" class="modal-close" data-close-modal aria-label="Close edit dialog">&times;</button>
+      </header>
+      <form id="editEventForm" class="modal-body">
+        <div class="form-grid">
+          <label class="form-field">
+            <span class="form-label">Title</span>
+            <input id="editTitle" name="title" type="text" class="form-control" required />
+          </label>
+          <label class="form-field">
+            <span class="form-label">Event date</span>
+            <input id="editDate" name="event_date" type="date" class="form-control" required />
+          </label>
+          <label class="form-field">
+            <span class="form-label">Event time</span>
+            <input id="editTime" name="event_time" type="time" class="form-control" required />
+          </label>
+          <label class="form-field">
+            <span class="form-label">Location</span>
+            <input id="editLocation" name="location" type="text" class="form-control" required />
+          </label>
+          <label class="form-field">
+            <span class="form-label">Category</span>
+            <select id="editCategory" name="category" class="form-control" required>
+              <option value="social">Social</option>
+              <option value="academic">Academic</option>
+              <option value="sports">Sports</option>
+              <option value="club">Club</option>
+            </select>
+          </label>
+          <label class="form-field">
+            <span class="form-label">Capacity</span>
+            <input id="editCapacity" name="capacity" type="number" class="form-control" min="0" />
+          </label>
+          <label class="form-field">
+            <span class="form-label">Price ($)</span>
+            <input id="editPrice" name="price" type="number" class="form-control" min="0" step="0.01" />
+          </label>
+        </div>
+        <label class="form-field">
+          <span class="form-label">Description</span>
+          <textarea id="editDescription" name="description" rows="4" class="form-control"></textarea>
+        </label>
+        <div id="editFormMessage" class="form-feedback" role="alert" hidden></div>
+        <footer class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-close-modal>Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="saveEditButton">Save changes</button>
+        </footer>
+      </form>
     </div>
-    <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
-  </footer>
+  </div>
 
-  <div class="toast-container" id="toastContainer" aria-live="assertive"></div>
-
-  <dialog id="editDialog" class="moderation-dialog" aria-labelledby="editDialogTitle">
-    <form id="editForm">
-      <header>
-        <h3 id="editDialogTitle">Edit Event</h3>
+  <!-- Delete Confirmation Modal -->
+  <div id="confirmModal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+    <div class="modal-content">
+      <header class="modal-header">
+        <h2 id="confirmModalTitle">Delete event</h2>
+        <button type="button" class="modal-close" data-close-modal aria-label="Close confirmation dialog">&times;</button>
       </header>
-      <div class="dialog-body">
-        <label for="editTitle">Title</label>
-        <input id="editTitle" name="title" type="text" required />
-
-        <label for="editDescription">Description</label>
-        <textarea id="editDescription" name="description" rows="4"></textarea>
-
-        <label for="editLocation">Location</label>
-        <input id="editLocation" name="location" type="text" required />
-
-        <label for="editStatus">Moderation Status</label>
-        <select id="editStatus" name="moderation_status">
-          <option value="approved">Approved</option>
-          <option value="pending">Pending</option>
-          <option value="rejected">Rejected</option>
-        </select>
+      <div class="modal-body">
+        <p id="confirmMessage">
+          Are you sure you want to delete this event? This action cannot be undone.
+        </p>
+        <div id="confirmFormMessage" class="form-feedback" role="alert" hidden></div>
       </div>
-      <footer>
-        <button type="button" class="btn btn-secondary btn-sm" data-action="close">Cancel</button>
-        <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+      <footer class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-close-modal>Cancel</button>
+        <button type="button" class="btn btn-danger btn-sm" id="confirmDeleteButton">Delete event</button>
       </footer>
-    </form>
-  </dialog>
-
-  <dialog id="deleteDialog" class="moderation-dialog" aria-labelledby="deleteDialogTitle">
-    <form id="deleteForm">
-      <header>
-        <h3 id="deleteDialogTitle">Delete Event?</h3>
-      </header>
-      <div class="dialog-body">
-        <p id="deletePrompt" class="muted">Are you sure you want to delete this event? This action cannot be undone.</p>
-      </div>
-      <footer>
-        <button type="button" class="btn btn-secondary btn-sm" data-action="close">Cancel</button>
-        <button type="submit" class="btn btn-secondary btn-sm" style="background:#b91c1c;">Delete</button>
-      </footer>
-    </form>
-  </dialog>
+    </div>
+  </div>
 
   <script type="module">
     import { getApiBase, apiFetch } from './utils/api.js';
 
     const state = {
-      events: [],
-      filtered: [],
-      selectedId: null,
       filter: 'all',
-      isLoading: false,
+      events: [],
+      editingEventId: null,
+      deleteEventId: null,
     };
 
-    const elements = {
-      adminMenu: document.getElementById('adminMenu'),
-      authLinks: document.getElementById('authLinks'),
-      userLinks: document.getElementById('userLinks'),
-      welcomeMessage: document.getElementById('welcomeMessage'),
-      tableBody: document.getElementById('eventsTableBody'),
-      filterButtons: document.querySelectorAll('.moderation-filter'),
-      searchInput: document.getElementById('searchInput'),
-      refreshBtn: document.getElementById('refreshBtn'),
-      detailPanel: document.getElementById('eventDetailPanel'),
-      detailTitle: document.getElementById('detailTitle'),
-      detailSubtitle: document.getElementById('detailSubtitle'),
-      detailGrid: document.getElementById('detailGrid'),
-      detailDescriptionCard: document.getElementById('detailDescriptionCard'),
-      detailDescription: document.getElementById('detailDescription'),
-      detailOrganizer: document.getElementById('detailOrganizer'),
-      detailStatus: document.getElementById('detailStatus'),
-      detailCategory: document.getElementById('detailCategory'),
-      detailTickets: document.getElementById('detailTickets'),
-      detailPrice: document.getElementById('detailPrice'),
-      detailFlags: document.getElementById('detailFlags'),
-      detailActions: document.getElementById('detailActions'),
-      editDialog: document.getElementById('editDialog'),
-      editForm: document.getElementById('editForm'),
-      editTitle: document.getElementById('editTitle'),
-      editDescription: document.getElementById('editDescription'),
-      editLocation: document.getElementById('editLocation'),
-      editStatus: document.getElementById('editStatus'),
-      openEditBtn: document.getElementById('openEditBtn'),
-      deleteDialog: document.getElementById('deleteDialog'),
-      deleteForm: document.getElementById('deleteForm'),
-      deletePrompt: document.getElementById('deletePrompt'),
-      openDeleteBtn: document.getElementById('openDeleteBtn'),
-      toastContainer: document.getElementById('toastContainer'),
-    };
+    const banner = document.getElementById('statusMessage');
+    const filterButtons = Array.from(document.querySelectorAll('.filter-btn'));
+    const searchInput = document.getElementById('searchInput');
+    const tableBody = document.getElementById('eventsTableBody');
+    const loadingState = document.getElementById('loadingState');
+    const emptyState = document.getElementById('emptyState');
+    const tableWrapper = document.querySelector('.table-wrapper');
+    const cardPanel = document.querySelector('.card-panel');
+    const dashboardControls = document.querySelector('.dashboard-controls');
 
-    function updateAuthNavigation() {
-      try {
-        const user = JSON.parse(localStorage.getItem('user') || 'null');
-        const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
+    const editModal = document.getElementById('editModal');
+    const editForm = document.getElementById('editEventForm');
+    const editFormMessage = document.getElementById('editFormMessage');
+    const saveEditButton = document.getElementById('saveEditButton');
 
-        if (user) {
-          elements.authLinks.style.display = 'none';
-          elements.userLinks.style.display = 'flex';
-          elements.userLinks.style.gap = '1rem';
-          elements.userLinks.style.alignItems = 'center';
-          elements.welcomeMessage.textContent = `Welcome, ${user.name}!`;
-        }
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmMessage = document.getElementById('confirmMessage');
+    const confirmFormMessage = document.getElementById('confirmFormMessage');
+    const confirmDeleteButton = document.getElementById('confirmDeleteButton');
 
-        if (elements.adminMenu) elements.adminMenu.style.display = isAdmin ? '' : 'none';
-      } catch (error) {
-        console.warn('Auth nav update failed:', error);
-      }
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+      bootstrapSession();
+      attachEventListeners();
+    });
 
-    async function handleLogout() {
-      try {
-        const resp = await fetch(`${getApiBase()}/api/auth/logout`, {
-          method: 'POST',
-          credentials: 'include',
+    function attachEventListeners() {
+      filterButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const nextFilter = btn.dataset.filter || 'all';
+          if (state.filter === nextFilter) return;
+          state.filter = nextFilter;
+          toggleFilterButtons(nextFilter);
+          loadEvents();
         });
+      });
 
-        if (!resp.ok) {
-          showToast('Could not log out. Please try again.', 'error');
+      searchInput.addEventListener('input', () => {
+        renderEvents();
+      });
+
+      tableBody.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const action = target.dataset.action;
+        const eventId = Number(target.dataset.eventId);
+        if (!action || Number.isNaN(eventId)) return;
+
+        if (action === 'edit') {
+          openEditModal(eventId);
+        } else if (action === 'delete') {
+          openDeleteModal(eventId);
+        }
+      });
+
+      editForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!state.editingEventId) {
+          setFormFeedback(editFormMessage, 'Missing event reference. Please try again.', 'error');
           return;
         }
+
+        const payload = buildEditPayload();
+        if (!payload.title || !payload.event_date || !payload.event_time || !payload.location || !payload.category) {
+          setFormFeedback(editFormMessage, 'Please fill in all required fields.', 'error');
+          return;
+        }
+
+        try {
+          setSubmittingState(true);
+          const response = await apiFetch(`/api/admin/events/${state.editingEventId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await safeJson(response);
+
+          if (!response.ok) {
+            const message = data?.message || data?.error || 'Unable to update event.';
+            setFormFeedback(editFormMessage, message, 'error');
+            setStatus(message, 'error');
+            return;
+          }
+
+          setStatus(data?.message || 'Event updated successfully.', 'success');
+          closeModal(editModal);
+          await loadEvents();
+        } catch (error) {
+          console.error('Failed to update event', error);
+          const message = 'Unexpected error updating the event. Please try again.';
+          setFormFeedback(editFormMessage, message, 'error');
+          setStatus(message, 'error');
+        } finally {
+          setSubmittingState(false);
+        }
+      });
+
+      confirmDeleteButton.addEventListener('click', async () => {
+        if (!state.deleteEventId) {
+          setFormFeedback(confirmFormMessage, 'Missing event reference. Please reload and try again.', 'error');
+          return;
+        }
+
+        try {
+          confirmDeleteButton.disabled = true;
+          confirmDeleteButton.textContent = 'Deleting…';
+          const response = await apiFetch(`/api/admin/events/${state.deleteEventId}`, {
+            method: 'DELETE',
+          });
+          const data = await safeJson(response);
+
+          if (!response.ok) {
+            const message = data?.message || data?.error || 'Unable to delete event.';
+            setFormFeedback(confirmFormMessage, message, 'error');
+            setStatus(message, 'error');
+            return;
+          }
+
+          setStatus(data?.message || 'Event deleted successfully.', 'success');
+          closeModal(confirmModal);
+          await loadEvents();
+        } catch (error) {
+          console.error('Failed to delete event', error);
+          const message = 'Unexpected error deleting the event. Please try again.';
+          setFormFeedback(confirmFormMessage, message, 'error');
+          setStatus(message, 'error');
+        } finally {
+          confirmDeleteButton.disabled = false;
+          confirmDeleteButton.textContent = 'Delete event';
+        }
+      });
+
+      document.querySelectorAll('[data-close-modal]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const modal = btn.closest('.modal-backdrop');
+          if (modal) closeModal(modal);
+        });
+      });
+
+      [editModal, confirmModal].forEach((modal) => {
+        modal.addEventListener('click', (event) => {
+          if (event.target === modal) {
+            closeModal(modal);
+          }
+        });
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          if (!editModal.hasAttribute('hidden')) closeModal(editModal);
+          if (!confirmModal.hasAttribute('hidden')) closeModal(confirmModal);
+        }
+      });
+    }
+
+    async function bootstrapSession() {
+      const authLinks = document.getElementById('authLinks');
+      const userLinks = document.getElementById('userLinks');
+      const welcome = document.getElementById('welcomeMessage');
+      const stored = safeParse(localStorage.getItem('user'));
+
+      try {
+        const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
+        if (!resp.ok) {
+          if (authLinks) authLinks.style.display = 'flex';
+          if (userLinks) userLinks.style.display = 'none';
+          if (resp.status === 401) {
+            localStorage.removeItem('user');
+            setStatus('You need to log in as an administrator to access the moderation dashboard.', 'error');
+          } else {
+            setStatus('Unable to verify your session. Please try again later.', 'error');
+          }
+          setLoadingVisibility(false);
+          hideDashboardShell();
+          return;
+        }
+
+        const { user } = await resp.json();
+        if (userLinks) {
+          userLinks.style.display = 'flex';
+          userLinks.style.gap = '1rem';
+          userLinks.style.alignItems = 'center';
+        }
+        if (authLinks) authLinks.style.display = 'none';
+        if (welcome && user?.name) {
+          welcome.textContent = `Welcome, ${user.name}!`;
+        }
+        localStorage.setItem('user', JSON.stringify(user));
+
+        if (user.role !== 'admin') {
+          setStatus('Only administrators can access this dashboard.', 'error');
+          hideDashboardShell();
+          return;
+        }
+
+        showDashboardShell();
+        await loadEvents();
       } catch (error) {
-        showToast('Network error logging out.', 'error');
-        return;
+        console.error('Session bootstrap failed', error);
+        setStatus('Unable to verify your session right now. Please try again later.', 'error');
+        setLoadingVisibility(false);
+        hideDashboardShell();
+        if (stored) {
+          if (authLinks) authLinks.style.display = 'none';
+          if (userLinks) userLinks.style.display = 'flex';
+        }
       }
-
-      localStorage.removeItem('user');
-      window.location.href = 'login.html';
-    }
-
-    window.logout = handleLogout;
-
-    function showToast(message, type = 'success') {
-      if (!elements.toastContainer) return;
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.textContent = message;
-      elements.toastContainer.appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 220);
-      }, 3200);
-    }
-
-    function escapeHtml(value) {
-      if (value === null || value === undefined) return '';
-      return value
-        .toString()
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
     }
 
     async function loadEvents() {
-      state.isLoading = true;
-      elements.tableBody.innerHTML = `
-        <tr><td colspan="6" class="empty-state">Loading events…</td></tr>
-      `;
-      elements.detailPanel.style.display = 'none';
+      setLoadingVisibility(true);
+      setBannerVisibility(false);
+      emptyState.hidden = true;
+      tableBody.innerHTML = '';
+
+      const endpoint = state.filter === 'flagged' ? '/api/admin/events/flagged' : '/api/admin/events';
 
       try {
-        const response = await apiFetch('/api/admin/events');
+        const response = await apiFetch(endpoint);
+        const data = await safeJson(response);
+
         if (!response.ok) {
-          throw new Error(`Failed with status ${response.status}`);
+          const message = data?.message || data?.error || 'Failed to retrieve events.';
+          setStatus(message, 'error');
+          setLoadingVisibility(false);
+          emptyState.hidden = false;
+          return;
         }
-        const data = await response.json();
-        state.events = (data.events || []).map(mapEventRow);
-        applyFilters();
+
+        const list = Array.isArray(data?.events) ? data.events : Array.isArray(data?.flaggedEvents) ? data.flaggedEvents : [];
+        state.events = list;
+        renderEvents();
       } catch (error) {
-        console.error('Failed to load events:', error);
-        elements.tableBody.innerHTML = `
-          <tr><td colspan="6" class="empty-state">Unable to load events. Please try again later.</td></tr>
-        `;
-        showToast('Could not load events.', 'error');
-      } finally {
-        state.isLoading = false;
+        console.error('Failed to load events', error);
+        setStatus('Unexpected error fetching events. Please try again.', 'error');
+        setLoadingVisibility(false);
+        emptyState.hidden = false;
       }
     }
 
-    function mapEventRow(row = {}) {
-      return {
-        ...row,
-        id: Number(row.id),
-        flag_count: Number(row.flag_count ?? row.flags ?? 0),
-        is_flagged:
-          row.is_flagged !== undefined
-            ? Boolean(row.is_flagged)
-            : Number(row.flag_count ?? row.flags ?? 0) > 0,
-        moderation_status: (row.moderation_status || row.status || 'pending').toLowerCase(),
-      };
-    }
-
-    function applyFilters() {
-      const searchTerm = (elements.searchInput.value || '').trim().toLowerCase();
-
-      state.filtered = state.events.filter((event) => {
-        if (state.filter === 'flagged' && !event.is_flagged) return false;
-        if (state.filter === 'pending' && event.moderation_status !== 'pending') return false;
-
-        if (!searchTerm) return true;
-        return [
+    function renderEvents() {
+      const query = searchInput.value.trim().toLowerCase();
+      const filtered = state.events.filter((event) => {
+        if (!query) return true;
+        const composite = [
           event.title,
-          event.location,
           event.category,
-          event.organizer_name,
+          event.location,
           event.organization,
           event.moderation_status,
         ]
           .filter(Boolean)
-          .some((value) => value.toString().toLowerCase().includes(searchTerm));
+          .map((value) => String(value).toLowerCase())
+          .join(' ');
+        return composite.includes(query);
       });
 
-      renderTable();
-    }
+      tableBody.innerHTML = '';
 
-    function renderTable() {
-      if (!state.filtered.length) {
-        elements.tableBody.innerHTML = `
-          <tr><td colspan="6" class="empty-state">No events match the current filters.</td></tr>
-        `;
-        elements.detailPanel.style.display = 'none';
-        state.selectedId = null;
+      if (filtered.length === 0) {
+        setLoadingVisibility(false);
+        emptyState.hidden = false;
         return;
       }
 
-      const rows = state.filtered
+      const rows = filtered
         .map((event) => {
-          const { id, title, event_date, event_time, location, moderation_status, is_flagged, flag_count, organizer_name } = event;
-          const dateLabel = formatEventDate(event_date, event_time);
-          const statusLabel = renderStatusPill(moderation_status, is_flagged);
-          const flagsLabel = flag_count > 0 ? `${flag_count}` : '0';
-
+          const status = deriveStatus(event);
           return `
-            <tr data-event-id="${id}" class="${state.selectedId === id ? 'is-selected' : ''}">
+            <tr>
               <td>
-                <div class="table-primary">${escapeHtml(title)}</div>
-                <div class="small-muted">${escapeHtml(organizer_name || 'Unassigned')}</div>
+                <div class="event-primary">
+                  <span class="event-title">${escapeHtml(event.title)}</span>
+                  <span class="event-id">#${event.id}</span>
+                </div>
+                <div class="event-description">${escapeHtml(event.description || 'No description provided.')}</div>
               </td>
-              <td>${dateLabel}</td>
-              <td>${escapeHtml(location || 'TBD')}</td>
-              <td>${statusLabel}</td>
-              <td style="font-weight:600; color:${flag_count > 0 ? '#b91c1c' : '#64748b'};">${flagsLabel}</td>
               <td>
+                <div>${formatDate(event.event_date)}</div>
+                <div class="event-time">${formatTime(event.event_time)}</div>
+              </td>
+              <td>
+                <div><strong>Location:</strong> ${escapeHtml(event.location || '—')}</div>
+                <div><strong>Category:</strong> ${escapeHtml(event.category || '—')}</div>
+                <div><strong>Price:</strong> ${formatPrice(event.price)}</div>
+                <div><strong>Capacity:</strong> ${formatNumber(event.capacity)}</div>
+                <div><strong>Tickets left:</strong> ${formatNumber(event.tickets_available)}</div>
+              </td>
+              <td>
+                <span class="status-badge status-${status.className}">${escapeHtml(status.label)}</span>
+                ${status.details ? `<div class="status-subtext">${escapeHtml(status.details)}</div>` : ''}
+              </td>
+              <td class="actions-column">
                 <div class="action-buttons">
-                  <button class="btn btn-secondary btn-sm" data-action="view">Details</button>
+                  <button type="button" class="btn btn-secondary btn-sm" data-action="edit" data-event-id="${event.id}">Edit</button>
+                  <button type="button" class="btn btn-danger btn-sm" data-action="delete" data-event-id="${event.id}">Delete</button>
                 </div>
               </td>
             </tr>
@@ -390,257 +470,284 @@
         })
         .join('');
 
-      elements.tableBody.innerHTML = rows;
-      if (state.selectedId) {
-        const selected = state.events.find((evt) => evt.id === state.selectedId);
-        if (selected) {
-          highlightSelectedRow();
-        } else {
-          clearDetailPanel();
-        }
-      }
+      tableBody.innerHTML = rows;
+      emptyState.hidden = true;
+      setLoadingVisibility(false);
     }
 
-    function renderStatusPill(status, flagged) {
-      const baseClass = status || 'pending';
-      const label = formatStatusLabel(status, flagged);
-      const flaggedClass = flagged && status !== 'rejected' ? ' flagged' : '';
-      return `<span class="status-pill ${baseClass}${flaggedClass}">${label}</span>`;
-    }
-
-    function formatStatusLabel(status, flagged) {
-      const value = (status || 'pending').toLowerCase();
-      if (value === 'approved') return flagged ? 'Approved · Flagged' : 'Approved';
-      if (value === 'rejected') return 'Rejected';
-      return flagged ? 'Pending · Flagged' : 'Pending Review';
-    }
-
-    function formatEventDate(date, time) {
-      const formattedDate = formatDate(date);
-      const formattedTime = formatTime(time);
-      if (formattedDate && formattedTime) return `${formattedDate} · ${formattedTime}`;
-      return formattedDate || formattedTime || 'TBD';
-    }
-
-    function formatDate(dateString) {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      if (Number.isNaN(date.getTime())) return dateString;
-      return new Intl.DateTimeFormat('en-CA', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      }).format(date);
-    }
-
-    function formatTime(timeString) {
-      if (!timeString) return '';
-      const [hour = '0', minute = '0'] = timeString.split(':');
-      const date = new Date();
-      date.setHours(Number(hour), Number(minute));
-      return new Intl.DateTimeFormat('en-CA', {
-        hour: 'numeric',
-        minute: '2-digit',
-      }).format(date);
-    }
-
-    function highlightSelectedRow() {
-      const rows = elements.tableBody.querySelectorAll('tr[data-event-id]');
-      rows.forEach((row) => {
-        const rowId = Number(row.dataset.eventId);
-        row.classList.toggle('is-selected', rowId === state.selectedId);
-      });
-    }
-
-    function selectEvent(event) {
-      state.selectedId = event.id;
-      highlightSelectedRow();
-      populateDetailPanel(event);
-    }
-
-    function populateDetailPanel(event) {
-      elements.detailPanel.style.display = 'flex';
-      elements.detailTitle.textContent = event.title || 'Event Details';
-      elements.detailSubtitle.textContent = formatEventDate(event.event_date, event.event_time);
-      elements.detailOrganizer.textContent = event.organizer_name || 'Unassigned';
-      elements.detailStatus.textContent = formatStatusLabel(event.moderation_status, event.is_flagged);
-      elements.detailCategory.textContent = event.category || '—';
-      elements.detailTickets.textContent = `${event.tickets_available ?? 0} / ${event.capacity ?? 0}`;
-      elements.detailPrice.textContent = formatCurrency(event.price);
-      elements.detailFlags.textContent = event.flag_count ?? 0;
-      elements.detailDescription.textContent = event.description || 'No description provided.';
-
-      elements.detailGrid.style.display = 'grid';
-      elements.detailDescriptionCard.style.display = 'block';
-      elements.detailActions.style.display = 'flex';
-    }
-
-    function formatCurrency(amount) {
-      const value = Number(amount) || 0;
-      if (value === 0) return 'Free';
-      return new Intl.NumberFormat('en-CA', {
-        style: 'currency',
-        currency: 'CAD',
-      }).format(value);
-    }
-
-    function clearDetailPanel() {
-      elements.detailPanel.style.display = 'none';
-      state.selectedId = null;
-      highlightSelectedRow();
-    }
-
-    function openEditDialog() {
-      if (!state.selectedId) {
-        showToast('Select an event first.', 'error');
-        return;
-      }
-      const event = state.events.find((evt) => evt.id === state.selectedId);
-      if (!event) return;
-
-      elements.editTitle.value = event.title || '';
-      elements.editDescription.value = event.description || '';
-      elements.editLocation.value = event.location || '';
-      elements.editStatus.value = event.moderation_status || 'pending';
-
-      elements.editDialog.showModal();
-    }
-
-    function closeEditDialog() {
-      elements.editDialog.close();
-      elements.editForm.reset();
-    }
-
-    async function handleEditSubmit(event) {
-      event.preventDefault();
-      if (!state.selectedId) {
-        showToast('Select an event first.', 'error');
+    function openEditModal(eventId) {
+      const event = state.events.find((item) => Number(item.id) === Number(eventId));
+      if (!event) {
+        setStatus('Unable to locate that event. It may have been removed.', 'error');
         return;
       }
 
+      state.editingEventId = Number(event.id);
+      editForm.reset();
+      setFormFeedback(editFormMessage, '', 'info');
+
+      editForm.elements.title.value = event.title || '';
+      editForm.elements.event_date.value = formatForDateInput(event.event_date);
+      editForm.elements.event_time.value = formatForTimeInput(event.event_time);
+      editForm.elements.location.value = event.location || '';
+      editForm.elements.category.value = event.category || 'social';
+      editForm.elements.capacity.value = event.capacity ?? '';
+      editForm.elements.price.value = event.price ?? '';
+      editForm.elements.description.value = event.description || '';
+
+      openModal(editModal);
+    }
+
+    function openDeleteModal(eventId) {
+      const event = state.events.find((item) => Number(item.id) === Number(eventId));
+      if (!event) {
+        setStatus('Unable to locate that event. It may have been removed.', 'error');
+        return;
+      }
+
+      state.deleteEventId = Number(event.id);
+      setFormFeedback(confirmFormMessage, '', 'info');
+      confirmMessage.textContent = `Are you sure you want to delete "${event.title}"? This action cannot be undone.`;
+
+      openModal(confirmModal);
+    }
+
+    function buildEditPayload() {
       const payload = {
-        title: elements.editTitle.value.trim(),
-        description: elements.editDescription.value.trim(),
-        location: elements.editLocation.value.trim(),
-        moderation_status: elements.editStatus.value,
+        title: editForm.elements.title.value.trim(),
+        event_date: editForm.elements.event_date.value,
+        event_time: editForm.elements.event_time.value,
+        location: editForm.elements.location.value.trim(),
+        category: editForm.elements.category.value,
+        description: editForm.elements.description.value.trim(),
       };
 
-      try {
-        const response = await apiFetch(`/api/admin/events/${state.selectedId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+      const capacity = editForm.elements.capacity.value;
+      const price = editForm.elements.price.value;
 
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || data?.success === false) {
-          throw new Error(data?.error || data?.message || 'Failed to update event.');
-        }
+      if (capacity !== '') payload.capacity = Number(capacity);
+      if (price !== '') payload.price = Number(price);
 
-        showToast(data?.message || 'Event updated successfully.');
-        closeEditDialog();
-        await loadEvents();
-        const refreshed = state.events.find((evt) => evt.id === state.selectedId);
-        if (refreshed) {
-          selectEvent(refreshed);
-        }
-      } catch (error) {
-        console.error('Edit failed:', error);
-        showToast(error.message || 'Unable to update event.', 'error');
-      }
+      Object.keys(payload).forEach((key) => {
+        if (payload[key] === '') delete payload[key];
+      });
+
+      return payload;
     }
 
-    function openDeleteDialog() {
-      if (!state.selectedId) {
-        showToast('Select an event first.', 'error');
+    function deriveStatus(event) {
+      const moderation = event.moderation_status || '';
+      const flagged = Boolean(event.is_flagged);
+
+      if (moderation) {
+        const normalized = moderation.toString().toLowerCase();
+        if (normalized.includes('flag')) {
+          return { label: moderation, className: 'alert', details: flagged ? 'Reported by users' : '' };
+        }
+        if (normalized.includes('pending')) {
+          return { label: moderation, className: 'pending', details: 'Awaiting review' };
+        }
+        if (normalized.includes('rejected')) {
+          return { label: moderation, className: 'blocked', details: 'Hidden from listings' };
+        }
+        if (normalized.includes('approved')) {
+          return { label: moderation, className: 'ok', details: flagged ? 'Flag still active' : '' };
+        }
+      }
+
+      if (flagged) {
+        return { label: 'Flagged', className: 'alert', details: 'Reported by users' };
+      }
+
+      return { label: 'Active', className: 'ok', details: '' };
+    }
+
+    function toggleFilterButtons(selected) {
+      filterButtons.forEach((btn) => {
+        if ((btn.dataset.filter || 'all') === selected) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    function setStatus(message, variant = 'info') {
+      if (!message) {
+        setBannerVisibility(false);
         return;
       }
-      const event = state.events.find((evt) => evt.id === state.selectedId);
-      if (event) {
-        elements.deletePrompt.textContent = `Delete “${event.title}”? This action cannot be undone.`;
-      }
-      elements.deleteDialog.showModal();
+
+      banner.textContent = message;
+      banner.className = `status-banner status-${variant}`;
+      setBannerVisibility(true);
     }
 
-    function closeDeleteDialog() {
-      elements.deleteDialog.close();
-    }
-
-    async function handleDeleteSubmit(event) {
-      event.preventDefault();
-      if (!state.selectedId) {
-        showToast('Select an event first.', 'error');
+    function setFormFeedback(node, message, variant = 'info') {
+      if (!node) return;
+      if (!message) {
+        node.textContent = '';
+        node.className = 'form-feedback';
+        node.hidden = true;
         return;
       }
-      const targetId = state.selectedId;
-      try {
-        const response = await apiFetch(`/api/admin/events/${targetId}`, {
-          method: 'DELETE',
-        });
+      node.hidden = false;
+      node.textContent = message;
+      node.className = `form-feedback form-feedback-${variant}`;
+    }
 
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || data?.success === false) {
-          throw new Error(data?.error || data?.message || 'Failed to delete event.');
-        }
+    function setSubmittingState(isSubmitting) {
+      saveEditButton.disabled = isSubmitting;
+      saveEditButton.textContent = isSubmitting ? 'Saving…' : 'Save changes';
+    }
 
-        showToast(data?.message || 'Event deleted.');
-        closeDeleteDialog();
-        state.selectedId = null;
-        await loadEvents();
-      } catch (error) {
-        console.error('Delete failed:', error);
-        showToast(error.message || 'Unable to delete event.', 'error');
+    function setBannerVisibility(visible) {
+      if (!banner) return;
+      banner.hidden = !visible;
+      banner.style.display = visible ? 'block' : 'none';
+    }
+
+    function setLoadingVisibility(visible) {
+      if (!loadingState) return;
+      loadingState.style.display = visible ? 'flex' : 'none';
+    }
+
+    function hideDashboardShell() {
+      if (tableWrapper) tableWrapper.classList.add('visually-hidden');
+      if (cardPanel) cardPanel.classList.add('visually-hidden');
+      if (dashboardControls) dashboardControls.classList.add('visually-hidden');
+    }
+
+    function showDashboardShell() {
+      if (tableWrapper) tableWrapper.classList.remove('visually-hidden');
+      if (cardPanel) cardPanel.classList.remove('visually-hidden');
+      if (dashboardControls) dashboardControls.classList.remove('visually-hidden');
+    }
+
+    function openModal(modal) {
+      modal.removeAttribute('hidden');
+      document.body.classList.add('modal-open');
+    }
+
+    function closeModal(modal) {
+      modal.setAttribute('hidden', '');
+      if (modal === editModal) {
+        state.editingEventId = null;
+        setFormFeedback(editFormMessage, '', 'info');
+        editForm.reset();
+      }
+      if (modal === confirmModal) {
+        state.deleteEventId = null;
+        setFormFeedback(confirmFormMessage, '', 'info');
+      }
+      if (document.querySelectorAll('.modal-backdrop:not([hidden])').length === 0) {
+        document.body.classList.remove('modal-open');
       }
     }
 
-    function bindUI() {
-      let searchTimer = null;
-      elements.searchInput.addEventListener('input', () => {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(applyFilters, 200);
-      });
+    function safeParse(value) {
+      try {
+        return value ? JSON.parse(value) : null;
+      } catch {
+        return null;
+      }
+    }
 
-      elements.refreshBtn.addEventListener('click', loadEvents);
+    async function safeJson(response) {
+      try {
+        return await response.json();
+      } catch {
+        return null;
+      }
+    }
 
-      elements.filterButtons.forEach((button) => {
-        button.addEventListener('click', () => {
-          const nextFilter = button.dataset.filter || 'all';
-          if (state.filter === nextFilter) return;
-          state.filter = nextFilter;
-          elements.filterButtons.forEach((btn) => btn.classList.toggle('active', btn === button));
-          applyFilters();
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return '';
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatDate(value) {
+      if (!value) return '—';
+      const iso = formatForDateInput(value);
+      if (iso) {
+        try {
+          const date = new Date(`${iso}T00:00:00`);
+          return date.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
+        } catch {
+          return iso;
+        }
+      }
+      return String(value);
+    }
+
+    function formatTime(value) {
+      if (!value) return '—';
+      const normalized = formatForTimeInput(value);
+      if (!normalized) return String(value);
+      const [hour, minute] = normalized.split(':');
+      const date = new Date();
+      date.setHours(Number(hour), Number(minute), 0, 0);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatPrice(value) {
+      if (value === null || value === undefined) return '$0.00';
+      const number = Number(value);
+      if (Number.isNaN(number)) return '$0.00';
+      return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(number);
+    }
+
+    function formatNumber(value) {
+      if (value === null || value === undefined) return '—';
+      const number = Number(value);
+      return Number.isNaN(number) ? '—' : number.toLocaleString();
+    }
+
+    function formatForDateInput(value) {
+      if (!value) return '';
+      if (typeof value === 'string') {
+        if (value.includes('T')) return value.split('T')[0];
+        return value;
+      }
+      if (value instanceof Date) {
+        return value.toISOString().split('T')[0];
+      }
+      return '';
+    }
+
+    function formatForTimeInput(value) {
+      if (!value) return '';
+      if (typeof value === 'string') {
+        if (value.includes(':')) return value.slice(0, 5);
+        return value;
+      }
+      return '';
+    }
+
+    window.logout = async function logout() {
+      try {
+        const resp = await fetch(`${getApiBase()}/api/auth/logout`, {
+          method: 'POST',
+          credentials: 'include',
         });
-      });
-
-      elements.tableBody.addEventListener('click', (event) => {
-        const row = event.target.closest('tr[data-event-id]');
-        if (!row) return;
-        const eventId = Number(row.dataset.eventId);
-        const selected = state.events.find((entry) => entry.id === eventId);
-        if (!selected) return;
-
-        const actionButton = event.target.closest('button[data-action]');
-        if (actionButton && actionButton.dataset.action === 'view') {
-          selectEvent(selected);
-          return;
+        localStorage.removeItem('user');
+        if (resp.ok) {
+          window.location.href = 'index.html';
+        } else {
+          setStatus('Logout failed. Please try again.', 'error');
         }
-
-        selectEvent(selected);
-      });
-
-      elements.openEditBtn.addEventListener('click', openEditDialog);
-      elements.openDeleteBtn.addEventListener('click', openDeleteDialog);
-
-      elements.editForm.addEventListener('submit', handleEditSubmit);
-      elements.editForm.addEventListener('click', (event) => {
-        if (event.target.closest('[data-action="close"]')) {
-          event.preventDefault();
-          closeEditDialog();
-        }
-      });
-      elements.editDialog.addEventListener('cancel', (event) => {
-        event.preventDefault();
-        closeEditDialog();
-","]} to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch to=functions.apply_patch ea to=functions.apply_patch to=functions.apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch നേടി to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch to=functions_apply_patch (stop due to huge). 
+      } catch (error) {
+        console.warn('Logout failed:', error);
+        localStorage.removeItem('user');
+        window.location.href = 'index.html';
+      }
+    };
+  </script>
 </body>
+
 </html>
