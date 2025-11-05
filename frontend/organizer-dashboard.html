@@ -69,11 +69,25 @@
       transform: translateY(-4px);
       box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     }
-    .event-card img {
-      width: 100%;
-      height: 160px;
-      object-fit: cover;
-    }
+    
+    .event-card {
+  position: relative;
+  z-index: 0;
+}
+
+.event-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+  pointer-events: none; /* ⬅️ important: let clicks pass through */
+}
+
+.event-card-content {
+  position: relative;
+  z-index: 1;
+}
+
     .event-card-content {
       padding: 1rem;
     }
@@ -143,6 +157,16 @@
         <li><a href="index.html">Home</a></li>
         <li><a href="browse.html">Browse</a></li>
         <li><a href="about.html">About</a></li>
+        <li id="organizerMenu" class="dropdown" style="display:none;">
+                    <a href="#" class="dropdown-toggle">Organizer</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+                        <li><a href="organizer-create-event.html">Create Event</a></li>
+                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
+                        <li><a href="organizer-analytics.html">Event Analytics</a></li>
+                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
+                    </ul>
+                </li>
         <li><a href="profile.html">Profile</a></li>
         <li id="authLinks">
           <a href="login.html" class="btn btn-primary btn-sm">Login</a>
@@ -155,7 +179,36 @@
       </ul>
     </div>
   </nav>
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
 
+    document.addEventListener('DOMContentLoaded', async function () {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+        const organizerMenu = document.getElementById('organizerMenu');
+        if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+
+        // Check authentication and update navbar
+        if (user) {
+          try {
+            const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
+            if (resp.ok) {
+              document.getElementById('authLinks').style.display = 'none';
+              document.getElementById('userLinks').style.display = 'flex';
+              document.getElementById('userLinks').style.gap = '1rem';
+              document.getElementById('userLinks').style.alignItems = 'center';
+              document.getElementById('welcomeMessage').textContent = `Welcome, ${user.name}!`;
+            } else {
+              localStorage.removeItem('user');
+            }
+          } catch (error) {
+            console.error('Auth check failed:', error);
+          }
+        }
+      } catch (e) {}
+    });
+  </script>
   <!-- Header -->
   <div class="dashboard-header">
     <h1 class="dashboard-title">Organizer Dashboard</h1>
@@ -272,12 +325,12 @@
         const analyticsBtn = document.createElement("button");
         analyticsBtn.className = "btn-small";
         analyticsBtn.textContent = "View Analytics";
-        analyticsBtn.onclick = () => window.location.href = `analytics.html?event=${ev.id}`;
+        analyticsBtn.onclick = () => window.location.href = `organizer-analytics.html?eventId=${ev.id}`;
 
         const editBtn = document.createElement("button");
         editBtn.className = "btn-small";
         editBtn.textContent = "Edit Event";
-        editBtn.onclick = () => window.location.href = `edit-event.html?event=${ev.id}`;
+        editBtn.onclick = () => window.location.href = `organizer-edit-event.html?eventId=${ev.id}`;
 
         actions.append(analyticsBtn, editBtn);
         content.append(title, meta, progressBar, actions);
@@ -295,6 +348,11 @@
     });
 
     window.addEventListener("DOMContentLoaded", loadEvents);
+
+    // Logout helper re-used from other pages
+    window.logout = async function logout() {
+      try { await fetch(`${getApiBase()}/api/auth/logout`, { method:'POST', credentials:'include' }); localStorage.removeItem('user'); window.location.href='index.html'; } catch(e){}
+    }
   </script>
 </body>
 </html>
