@@ -839,8 +839,10 @@
             priceMax.value = String(max);
           }
           maxPriceDisplay.textContent = priceMax.value;
+          priceTouched = false;
         } else {
           maxPriceDisplay.textContent = priceMax.value;
+          priceTouched = false;
         }
       } catch (e) {
         console.warn('Failed to load filter options, using defaults', e);
@@ -849,7 +851,9 @@
     }
 
     // Handle the max price slider
+    let priceTouched = false;
     priceMax.addEventListener('input', () => {
+      priceTouched = true;
       maxPriceDisplay.textContent = priceMax.value;
     });
 
@@ -859,8 +863,9 @@
     // Clear All Filters
     const clearFiltersBtn = document.querySelector('.clear-filters');
     clearFiltersBtn.addEventListener('click', () => {
-      priceMax.value = priceMax.max || '300';
+      priceMax.value = priceMax.max || priceMax.value;
       maxPriceDisplay.textContent = priceMax.value;
+      priceTouched = false;
       searchInput.value = '';
       categorySelect.selectedIndex = 0;
       locationInput.value = '';
@@ -953,9 +958,17 @@
 
       // Price slider (0..priceMax) unless 'free' quick filter is active
       if (currentQuick !== 'free') {
-        const sliderMax = parseFloat(priceMax.value || '0');
-        params.set('price_min', '0');
-        params.set('price_max', String(sliderMax));
+        if (priceTouched) {
+          const sliderValue = parseFloat(priceMax.value || '0');
+          const sliderCeiling = parseFloat(priceMax.max || '0');
+          if (!Number.isNaN(sliderValue)) {
+            const isUnlimited = Number.isNaN(sliderCeiling) || sliderCeiling === 0 || sliderValue >= sliderCeiling;
+            if (!isUnlimited) {
+              params.set('price_min', '0');
+              params.set('price_max', String(sliderValue));
+            }
+          }
+        }
       }
 
       if (dateStart.value) params.set('date_start', dateStart.value);

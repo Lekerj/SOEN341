@@ -454,6 +454,47 @@
       }
     }
 
+    async function updateModerationStatus(eventId, nextStatus) {
+      if (!eventId || !nextStatus) return;
+
+      try {
+        const payload = {
+          moderation_status: nextStatus,
+          status: nextStatus,
+        };
+
+        const response = await apiFetch(`/api/admin/events/${eventId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        let data = {};
+        try {
+          data = await response.json();
+        } catch (_) {
+          data = {};
+        }
+
+        if (!response.ok || data?.success === false) {
+          const message = data?.error || data?.message || 'Failed to update status.';
+          throw new Error(message);
+        }
+
+        showToast('success', data?.message || `Event marked as ${nextStatus}.`);
+
+        state.selectedId = eventId;
+        await loadEvents();
+        const refreshed = state.events.find((evt) => evt.id === eventId);
+        if (refreshed) {
+          selectEvent(refreshed);
+        }
+      } catch (error) {
+        console.error('Failed to update moderation status:', error);
+        showToast('error', error.message || 'Unable to update moderation status.');
+      }
+    }
+
     function bindUIEvents() {
       elements.filterButtons.forEach((button) => {
         button.addEventListener('click', () => {
@@ -476,10 +517,34 @@
       });
 
       elements.tableBody.addEventListener('click', (event) => {
+        const actionButton = event.target.closest('button[data-action]');
         const row = event.target.closest('tr[data-event-id]');
         if (!row) return;
+
         const eventId = Number(row.dataset.eventId);
         const selected = state.events.find((entry) => entry.id === eventId);
+
+        if (actionButton) {
+          const action = actionButton.dataset.action;
+          if (action === 'approve') {
+            updateModerationStatus(eventId, 'approved');
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+          }
+          if (action === 'reject') {
+            updateModerationStatus(eventId, 'rejected');
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+          }
+          if (action === 'view' && selected) {
+            selectEvent(selected);
+            event.preventDefault();
+            return;
+          }
+        }
+
         if (selected) {
           selectEvent(selected);
         }
@@ -717,6 +782,8 @@
       const statusPill = renderStatusPill(moderation_status, is_flagged);
       const flagsLabel = flag_count > 0 ? `${flag_count}` : '0';
 
+      const approveDisabled = moderation_status === 'approved';
+      const rejectDisabled = moderation_status === 'rejected';
       return `
         <tr data-event-id="${id}" class="${state.selectedId === id ? 'is-selected' : ''}">
           <td>
@@ -727,7 +794,13 @@
           <td>${escapeHtml(event.location || 'TBD')}</td>
           <td>${statusPill}</td>
           <td style="font-weight:600; color:${flag_count > 0 ? '#b91c1c' : '#64748b'};">${flagsLabel}</td>
-          <td><button type="button" class="btn btn-secondary btn-sm" data-action="view">View</button></td>
+          <td>
+            <div class="moderation-actions">
+              <button type="button" class="btn btn-secondary btn-sm" data-action="view">Details</button>
+              <button type="button" class="btn btn-primary btn-sm" data-action="approve" ${approveDisabled ? 'disabled' : ''}>Approve</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-action="reject" style="background:#fff; color:#b91c1c; border:1px solid #fee2e2;" ${rejectDisabled ? 'disabled' : ''}>Reject</button>
+            </div>
+          </td>
         </tr>
       `;
     }

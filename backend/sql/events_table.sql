@@ -21,6 +21,10 @@ CREATE TABLE IF NOT EXISTS events (
     capacity INT NOT NULL DEFAULT 0 COMMENT 'Maximum number of attendees allowed',
     tickets_available INT NOT NULL DEFAULT 0 COMMENT 'Number of tickets still available for purchase',
 
+    -- Moderation workflow
+    moderation_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending' COMMENT 'Admin moderation status for visibility control',
+    moderation_notes TEXT COMMENT 'Optional notes recorded by moderators about actions taken',
+
     -- Media and timestamps
     image_url VARCHAR(500) COMMENT 'URL to event banner or promotional image',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'When this record was created',

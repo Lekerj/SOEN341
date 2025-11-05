@@ -1760,6 +1760,16 @@ select.form-control {
   gap: 10px;
 }
 
+.moderation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.moderation-actions button {
+  width: 100%;
+}
+
 .toast-container {
   position: fixed;
   top: 18px;

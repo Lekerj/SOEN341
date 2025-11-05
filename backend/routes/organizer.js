@@ -121,13 +121,13 @@ router.post('/events', requireOrganizer, (req, res) => {
     //Important Note, the Columns in the SQL string must match the order of variables in the 'params' array
     const sql = `
         INSERT INTO events 
-        (organizer_id, title, description, event_date, event_time, location, capacity, organization, category, price, tickets_available)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (organizer_id, title, description, event_date, event_time, location, capacity, organization, category, price, tickets_available, moderation_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const params = [
         organizer_Id, title, description || null, event_date, event_time, location, 
-        capacity, organization, category, price, tickets_Available
+        capacity, organization, category, price, tickets_Available, 'pending'
     ];
 
     // 3. Execute Database Insertion 

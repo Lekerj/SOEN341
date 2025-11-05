@@ -10,6 +10,7 @@ const eventRoutes = require("./routes/events");
 
 // Adding this (PERSON1): Import the organizer route file
 const organizerRoutes = require("./routes/Organizer");
+const adminRoutes = require("./routes/admin");
 
 //Import the database connection
 const db = require("./config/db");
@@ -70,6 +71,7 @@ app.use("/api/events", eventRoutes);
 
 // Adding this: Mount the organizer routes here
 app.use("/api/organizer", organizerRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/api/test", (req, res) => {
   res.json({ message: "API is working!" });
