@@ -277,6 +277,105 @@ body::before {
   width: 100%;
 }
 
+/* Organizer dropdown */
+.navbar-menu .dropdown {
+  position: relative;
+}
+
+.navbar-menu .dropdown > a.dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.5;
+  vertical-align: middle;
+}
+
+.navbar-menu .dropdown > a.dropdown-toggle::after {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid var(--dark-gray);
+}
+
+.navbar-menu .dropdown .dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--white);
+  border: 1px solid #e9ecef;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  min-width: 220px;
+  padding: 8px 0;
+  display: none;
+  z-index: 1000;
+}
+
+.navbar-menu .dropdown:hover .dropdown-menu,
+.navbar-menu .dropdown:focus-within .dropdown-menu {
+  display: block;
+}
+
+.navbar-menu .dropdown .dropdown-menu li {
+  list-style: none;
+}
+
+.navbar-menu .dropdown .dropdown-menu a {
+  display: block;
+  padding: 10px 14px;
+  color: var(--dark-gray);
+  text-decoration: none;
+}
+
+.navbar-menu .dropdown .dropdown-menu a:hover {
+  background: var(--light-gray);
+  color: var(--primary-maroon);
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+  font-size: 0.95rem;
+  color: var(--white);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 8px auto 0;
+  max-width: 1200px;
+  padding: 0 var(--spacing-lg);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+}
+
+.breadcrumbs a,
+.breadcrumbs span {
+  color: var(--white);
+  font-weight: 700;
+}
+
+.breadcrumbs a {
+  text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}
+
+/* Directory-style separators */
+.breadcrumbs > * + *::before {
+  content: "/";
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0.35rem 0 0.25rem;
+}
+
+/* Hide legacy inline separator span in existing markup */
+.breadcrumbs > span:nth-child(2) {
+  display: none;
+}
+
 /* === Container & Layout === */
 .container {
   max-width: 1200px;
@@ -1248,6 +1347,49 @@ select.form-control {
 *:focus-visible {
   outline: 3px solid var(--primary-maroon);
   outline-offset: 2px;
+}
+
+/* Mobile-friendly dropdown layout */
+@media (max-width: 768px) {
+  .navbar-menu .dropdown .dropdown-menu {
+    position: static;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    margin-top: 4px;
+  }
+  .navbar-menu .dropdown .dropdown-menu a {
+    padding-left: 0;
+  }
+}
+
+/* Desktop hover enhancements and stacking */
+.navbar {
+  position: relative;
+  z-index: 2000;
+}
+
+.navbar-menu .dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* align all navbar list items consistently */
+.navbar-menu > li {
+  display: flex;
+  align-items: center;
+}
+
+@media (hover: hover) {
+  .navbar-menu .dropdown .dropdown-menu {
+    top: 100% !important; /* remove any gap between toggle and menu */
+    margin-top: 0;
+  }
+  .navbar-menu .dropdown:hover .dropdown-menu,
+  .navbar-menu .dropdown:focus-within .dropdown-menu {
+    display: block;
+  }
 }
 
 /* Pulse animation for special elements */
