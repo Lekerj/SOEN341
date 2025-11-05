@@ -132,6 +132,135 @@
       gap: var(--spacing-md);
     }
 
+    .attendee-table-card {
+      margin-top: var(--spacing-lg);
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      padding: var(--spacing-lg);
+      display: grid;
+      gap: var(--spacing-md);
+    }
+
+    .attendee-table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacing-md);
+      flex-wrap: wrap;
+    }
+
+    .attendee-table-header h2 {
+      margin: 0;
+      font-size: var(--font-size-lg);
+      color: var(--primary-maroon);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+
+    .attendee-table-header h2 span {
+      font-size: 1.4rem;
+    }
+
+    #exportCsvBtn {
+      min-width: 180px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+
+    #exportCsvBtn .loading-text {
+      display: none;
+    }
+
+    #exportCsvBtn[data-loading="true"] {
+      pointer-events: none;
+      opacity: 0.75;
+    }
+
+    #exportCsvBtn[data-loading="true"] .default-text {
+      display: none;
+    }
+
+    #exportCsvBtn[data-loading="true"] .loading-text {
+      display: inline;
+    }
+
+    .export-status {
+      font-size: 0.75rem;
+      color: var(--medium-gray);
+    }
+
+    .export-status.success {
+      color: #047857;
+      font-weight: 600;
+    }
+
+    .export-status.error {
+      color: #b91c1c;
+      font-weight: 600;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 0.75rem;
+      height: 0.75rem;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .attendee-table-wrapper {
+      overflow-x: auto;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(145, 35, 56, 0.12);
+    }
+
+    table.attendee-table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+    }
+
+    table.attendee-table thead {
+      background: rgba(145, 35, 56, 0.08);
+    }
+
+    table.attendee-table th,
+    table.attendee-table td {
+      padding: var(--spacing-sm) var(--spacing-md);
+      text-align: left;
+      border-bottom: 1px solid rgba(229, 231, 235, 0.7);
+      font-size: 0.85rem;
+    }
+
+    table.attendee-table th {
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.75rem;
+      color: var(--medium-gray);
+    }
+
+    table.attendee-table tbody tr:hover {
+      background: rgba(145, 35, 56, 0.05);
+    }
+
+    .attendee-table-empty {
+      text-align: center;
+      padding: var(--spacing-lg);
+      color: var(--medium-gray);
+      font-style: italic;
+    }
+
     @media (min-width: 768px) {
       .event-selection-grid {
         grid-template-columns: 1fr 1fr;
@@ -431,6 +560,15 @@
         font-size: var(--font-size-base);
       }
 
+      .attendee-table-card {
+        padding: var(--spacing-md);
+      }
+
+      #exportCsvBtn {
+        width: 100%;
+        justify-content: center;
+      }
+
       .detail-row {
         grid-template-columns: 70px 1fr;
       }
@@ -445,6 +583,16 @@
       <ul class="navbar-menu">
         <li><a href="index.html">Home</a></li>
         <li><a href="index.html#events">Events</a></li>
+        <li id="organizerMenu" class="dropdown" style="display:none;">
+          <a href="#" class="dropdown-toggle">Organizer</a>
+          <ul class="dropdown-menu">
+          <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+                        <li><a href="organizer-create-event.html">Create Event</a></li>
+                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
+                        <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
+                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
+          </ul>
+        </li>
         <li><a href="about.html">About</a></li>
         <li id="authLinks">
           <a href="login.html" class="btn btn-primary btn-sm">Login</a>
@@ -465,13 +613,25 @@
       </ul>
     </div>
   </nav>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+        const organizerMenu = document.getElementById('organizerMenu');
+        if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+      } catch (e) {}
+    });
+  </script>
 
   <main class="scanner-page-wrapper">
+    <div class="breadcrumbs"><span>Organizer</span> <span>›</span> <span>QR Scanner</span></div>
     <div class="scanner-container">
       <!-- Header -->
       <header class="scanner-header">
         <h1>Attendee Check-In Scanner</h1>
         <p>Verify and check-in attendees using QR codes or ticket codes</p>
+        <div style="margin-top: 8px;"><a class="btn" href="javascript:history.back()">Go Back</a></div>
       </header>
 
       <!-- Event Selection -->
@@ -499,6 +659,36 @@
           </div>
           <button class="btn btn-secondary" id="saveStaffKey" style="white-space: nowrap;">Save Key</button>
           <span id="staffKeySaved" class="staff-key-feedback">✓ Saved</span>
+        </div>
+      </section>
+
+      <section class="attendee-table-card" aria-labelledby="attendeeTableTitle">
+        <div class="attendee-table-header">
+          <h2 id="attendeeTableTitle"><span>📊</span> Attendee Overview</h2>
+          <button type="button" class="btn btn-secondary" id="exportCsvBtn" title="Download attendee list as CSV" data-loading="false" aria-label="Export attendee list">
+            <span>📥</span>
+            <span class="default-text">Export CSV</span>
+            <span class="loading-text"><span class="loading-spinner" aria-hidden="true"></span> Exporting...</span>
+          </button>
+        </div>
+        <p id="exportStatus" class="export-status" role="status" aria-live="polite"></p>
+        <div class="attendee-table-wrapper">
+          <table class="attendee-table">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">Ticket Type</th>
+                <th scope="col">Checked In</th>
+                <th scope="col">Claim Date</th>
+              </tr>
+            </thead>
+            <tbody id="attendeeTableBody">
+              <tr>
+                <td colspan="5" class="attendee-table-empty">Select an event to load attendees.</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -621,6 +811,9 @@
     const eventSelect = document.getElementById('eventSelect');
     const eventTitleEl = document.getElementById('eventTitle');
     const eventDateEl = document.getElementById('eventDate');
+    const exportBtn = document.getElementById('exportCsvBtn');
+    const exportStatus = document.getElementById('exportStatus');
+    const attendeeTableBody = document.getElementById('attendeeTableBody');
 
     const staffKeyEl = document.getElementById('staffKey');
     const saveStaffKeyBtn = document.getElementById('saveStaffKey');
@@ -667,6 +860,102 @@
       return m ? m[1] : text.trim();
     }
 
+    function setExportStatus(state, message) {
+      if (!exportStatus) return;
+      exportStatus.textContent = message || '';
+      exportStatus.classList.remove('success', 'error');
+      if (!message) return;
+      if (state === 'success') exportStatus.classList.add('success');
+      if (state === 'error') exportStatus.classList.add('error');
+    }
+
+    function syncExportButtonAvailability() {
+      if (!exportBtn) return;
+      const hasEvent = Boolean(eventSelect?.value);
+      const isLoading = exportBtn.getAttribute('data-loading') === 'true';
+      exportBtn.disabled = !hasEvent || isLoading;
+      exportBtn.setAttribute('aria-disabled', exportBtn.disabled ? 'true' : 'false');
+    }
+
+    function setExportLoading(isLoading) {
+      if (!exportBtn) return;
+      exportBtn.setAttribute('data-loading', isLoading ? 'true' : 'false');
+      if (isLoading) {
+        exportBtn.disabled = true;
+        exportBtn.setAttribute('aria-disabled', 'true');
+        exportBtn.setAttribute('aria-busy', 'true');
+      } else {
+        exportBtn.removeAttribute('aria-busy');
+        syncExportButtonAvailability();
+      }
+    }
+
+    function setAttendeeTableMessage(message) {
+      if (!attendeeTableBody) return;
+      attendeeTableBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="attendee-table-empty">${message}</td>
+        </tr>
+      `;
+    }
+
+    function renderAttendeeRows(attendees) {
+      if (!attendeeTableBody) return;
+      if (!Array.isArray(attendees) || attendees.length === 0) {
+        setAttendeeTableMessage('No attendees found for this event.');
+        return;
+      }
+
+      attendeeTableBody.innerHTML = attendees.map(att => `
+        <tr>
+          <td>${att.name || '—'}</td>
+          <td>${att.email || '—'}</td>
+          <td>${att.ticket_type || '—'}</td>
+          <td>${att.checked_in ? 'Yes' : 'No'}</td>
+          <td>${fmtDate(att.claimed_at)}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadAttendeeTable(eventId) {
+      if (!eventId) {
+        setAttendeeTableMessage('Select an event to load attendees.');
+        return;
+      }
+
+      setAttendeeTableMessage('Loading attendees...');
+
+      try {
+        const resp = await fetch(`${getApiBase()}/api/organizer/events/${eventId}/attendees`, {
+          credentials: 'include',
+          headers: authHeaders({ 'Accept': 'application/json' })
+        });
+
+        if (!resp.ok) {
+          throw new Error(`Failed with status ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        renderAttendeeRows(data?.attendees || []);
+      } catch (error) {
+        console.error('Failed to load attendees:', error);
+        setAttendeeTableMessage('Unable to load attendees. Please try again.');
+      }
+    }
+
+    function getFilenameFromDisposition(header, fallback) {
+      if (!header) return fallback;
+      const utfMatch = header.match(/filename\*=UTF-8''([^;]+)/i);
+      if (utfMatch && utfMatch[1]) {
+        try { return decodeURIComponent(utfMatch[1]); } catch (_) { return utfMatch[1]; }
+      }
+      const simpleMatch = header.match(/filename="?([^\";]+)"?/i);
+      if (simpleMatch && simpleMatch[1]) {
+        return simpleMatch[1];
+      }
+      return fallback;
+    }
+
     // ====== Load organizer events (mirror create-event base/middleware) ======
     async function loadOrganizerEvents() {
       try {
@@ -683,6 +972,9 @@
         if (!Array.isArray(events) || !events.length) {
           eventSelect.innerHTML = '<option value="">No events found</option>';
           eventSelect.disabled = true;
+          setExportStatus('', 'No events available to export.');
+          setAttendeeTableMessage('No events available to display.');
+          syncExportButtonAvailability();
           return;
         }
 
@@ -698,9 +990,13 @@
         });
 
         updateSelectedEvent();
+        syncExportButtonAvailability();
       } catch (err) {
         console.warn('Failed to load events', err);
         eventSelect.innerHTML = '<option value="">Unable to load events</option>';
+        setExportStatus('error', 'Unable to load events for export.');
+        setAttendeeTableMessage('Unable to load events.');
+        syncExportButtonAvailability();
       }
     }
 
@@ -708,6 +1004,14 @@
       const selectedId = eventSelect.value;
       const selectedText = eventSelect.options[eventSelect.selectedIndex]?.textContent || '—';
       eventTitleEl.textContent = selectedText;
+      setExportStatus('', '');
+      syncExportButtonAvailability();
+
+      if (!selectedId) {
+        eventDateEl.textContent = '—';
+        setAttendeeTableMessage('Select an event to load attendees.');
+        return;
+      }
 
       fetch(`${getApiBase()}/api/events/${selectedId}`, {
         credentials: 'include',
@@ -719,14 +1023,78 @@
           eventDateEl.textContent = fmtDate(ev.starts_at ?? ev.event_date ?? ev.startsAt ?? null);
         })
         .catch(() => eventDateEl.textContent = '—');
+
+      loadAttendeeTable(selectedId);
     }
 
     eventSelect?.addEventListener('change', () => {
       const params = new URLSearchParams(location.search);
-      params.set('eventId', eventSelect.value);
-      history.replaceState({}, '', location.pathname + '?' + params.toString());
+      if (eventSelect.value) {
+        params.set('eventId', eventSelect.value);
+      } else {
+        params.delete('eventId');
+      }
+      const newSearch = params.toString();
+      history.replaceState({}, '', newSearch ? `${location.pathname}?${newSearch}` : location.pathname);
       updateSelectedEvent();
     });
+
+    async function exportAttendeesCsv() {
+      if (!eventSelect?.value) {
+        setExportStatus('error', 'Select an event to export attendees.');
+        return;
+      }
+
+      setExportStatus('', '');
+      setExportLoading(true);
+
+      const eventId = eventSelect.value;
+      const endpoint = `${getApiBase()}/api/organizer/events/${eventId}/export-csv`;
+
+      try {
+        const resp = await fetch(endpoint, {
+          method: 'GET',
+          credentials: 'include',
+          headers: authHeaders({ 'Accept': 'text/csv' })
+        });
+
+        if (!resp.ok) {
+          let message = `Unable to export attendees (status ${resp.status})`;
+          const contentType = resp.headers.get('Content-Type') || '';
+          if (contentType.includes('application/json')) {
+            const body = await resp.json().catch(() => null);
+            message = body?.message || body?.error || message;
+          } else {
+            const text = await resp.text().catch(() => '');
+            if (text) message = text;
+          }
+          throw new Error(message);
+        }
+
+        const blob = await resp.blob();
+        const disposition = resp.headers.get('Content-Disposition');
+        const fallbackName = `event-${eventId}-attendees-${new Date().toISOString().split('T')[0]}.csv`;
+        const filename = getFilenameFromDisposition(disposition, fallbackName);
+
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 1500);
+
+        setExportStatus('success', 'CSV download started.');
+      } catch (error) {
+        console.error('Export CSV failed:', error);
+        setExportStatus('error', error?.message || 'Failed to export attendees.');
+      } finally {
+        setExportLoading(false);
+      }
+    }
+
+    exportBtn?.addEventListener('click', exportAttendeesCsv);
 
     // ====== Staff key save ======
     saveStaffKeyBtn.addEventListener('click', () => {
@@ -739,6 +1107,9 @@
 
     // Prefill staff key
     (function prefillStaffKey() { const saved = localStorage.getItem('staffKey'); if (saved) staffKeyEl.value = saved; })();
+
+    setAttendeeTableMessage('Loading events...');
+    syncExportButtonAvailability();
 
     // ====== QR upload + decode (client-side) ======
     fileInput?.addEventListener('change', (e) => {
