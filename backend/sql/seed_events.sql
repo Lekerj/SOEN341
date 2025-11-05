@@ -48,6 +48,19 @@ INSERT INTO events (
     ('Holiday Market', 'Shop local crafts and gifts.', '2025-12-08', '12:00:00', 'Student Centre', 0.00, 'social', 'Student Life Office', NULL, 100, 90, 'https://example.com/images/holiday-market.jpg'),
     ('Engineering Expo', 'Showcase of student engineering projects.', '2025-11-22', '14:00:00', 'Engineering Building', 0.00, 'academic', 'Engineering & Computer Science Association', NULL, 150, 140, 'https://example.com/images/engineering-expo.jpg');
 
+-- Flag a couple of events to showcase moderation filters in demos
+UPDATE events
+SET moderation_status = 'flagged',
+    moderation_notes = 'Multiple user reports about incorrect timing.',
+    moderation_updated_at = NOW()
+WHERE title = 'Halloween Bash';
+
+UPDATE events
+SET moderation_status = 'flagged',
+    moderation_notes = 'Potential duplicate listing flagged by automated checks.',
+    moderation_updated_at = NOW()
+WHERE title = 'Career Fair';
+
 -- Optional: preload a few tickets for existing users.
 -- Update the email list to match accounts in your users table. If none match, the INSERT simply affects zero rows.
 INSERT INTO tickets (user_id, event_id, ticket_type, qr_code, checked_in)

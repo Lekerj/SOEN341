@@ -9,6 +9,7 @@ router.get('/preview', (req, res) => {
         `SELECT id, title, description, event_date, event_time, location, price, category, organization, tickets_available, capacity, image_url
          FROM events
          WHERE tickets_available > 0
+           AND moderation_status != 'removed'
          ORDER BY RAND()
          LIMIT 3`,
         [],
@@ -56,12 +57,14 @@ router.get('/', (req, res) => {
         e.id, e.title, e.description, e.event_date, e.event_time, 
         e.location, e.price, e.category, e.organization, 
         e.capacity, e.tickets_available, e.image_url,
+        e.moderation_status,
         u.name as organizer_name
     FROM 
         events e
     LEFT JOIN 
         users u ON e.organizer_id = u.id
     WHERE 1=1
+        AND e.moderation_status != 'removed'
 `;
     const params = [];
 
@@ -237,6 +240,7 @@ router.get('/:id', (req, res) => {
             users u ON e.organizer_id = u.id
         WHERE 
             e.id = ?
+            AND e.moderation_status != 'removed'
     `;
 
     db.query(sql, [eventId], (err, results) => {
@@ -290,6 +294,7 @@ router.post('/check-availability', (req, res) => {
             events 
         WHERE 
             id = ?
+            AND moderation_status != 'removed'
     `;
 
     db.query(sql, [tickets_requested, tickets_requested, event_id], (err, results) => {

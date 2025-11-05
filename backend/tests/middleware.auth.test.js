@@ -5,7 +5,7 @@ jest.mock('../config/db', () => ({
   query: jest.fn()
 }));
 
-const { requireAuth, requireRole, requireOrganizer } = require('../middleware/auth');
+const { requireAuth, requireRole, requireOrganizer, requireAdmin } = require('../middleware/auth');
 const db = require('../config/db');
 
 describe('Authentication Middleware Tests - requireAuth()', () => {
@@ -275,6 +275,38 @@ describe('Authorization Scenarios - Real-World Use Cases', () => {
     setTimeout(() => {
       expect(mockNext).toHaveBeenCalled();
       expect(mockReq.userRole).toBe('organizer');
+      done();
+    }, 10);
+  });
+
+  test('Scenario: Organizer cannot access admin endpoint', (done) => {
+    mockReq = { session: { userId: 30 } };
+
+    db.query.mockImplementation((query, params, callback) => {
+      callback(null, [{ role: 'organizer' }]);
+    });
+
+    requireAdmin(mockReq, mockRes, mockNext);
+
+    setTimeout(() => {
+      expect(mockRes.status).toHaveBeenCalledWith(403);
+      expect(mockNext).not.toHaveBeenCalled();
+      done();
+    }, 10);
+  });
+
+  test('Scenario: Admin can access admin endpoint', (done) => {
+    mockReq = { session: { userId: 31 } };
+
+    db.query.mockImplementation((query, params, callback) => {
+      callback(null, [{ role: 'admin' }]);
+    });
+
+    requireAdmin(mockReq, mockRes, mockNext);
+
+    setTimeout(() => {
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockReq.userRole).toBe('admin');
       done();
     }, 10);
   });

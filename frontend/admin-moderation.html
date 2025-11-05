@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Administrator Moderation - ConEvents</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    .moderation-wrapper { max-width: 1160px; margin: 0 auto; padding: 24px 16px 48px; }
+    .moderation-header { display: flex; flex-direction: column; gap: 8px; }
+    .moderation-header h1 { margin: 0; font-size: var(--font-size-3xl); color: var(--primary-maroon); }
+    .moderation-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 16px; }
+    .toolbar-field { display: flex; flex-direction: column; gap: 4px; min-width: 160px; }
+    .toolbar-field label { font-weight: 600; color: var(--dark-gray); }
+    .toolbar-field input,
+    .toolbar-field select { padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 0.95rem; }
+    .toolbar-field input:focus,
+    .toolbar-field select:focus { outline: 2px solid rgba(145, 35, 56, 0.35); border-color: rgba(145, 35, 56, 0.5); }
+    .moderation-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .moderation-table th,
+    .moderation-table td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+    .moderation-table th { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; background: #fafafa; }
+    .moderation-table tbody tr:hover { background: #f9fafb; }
+    .status-pill { padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; text-transform: capitalize; }
+    .status-pill.status-active { background: rgba(34, 197, 94, 0.12); color: #166534; }
+    .status-pill.status-flagged { background: rgba(250, 204, 21, 0.25); color: #92400e; }
+    .status-pill.status-removed { background: rgba(239, 68, 68, 0.18); color: #991b1b; }
+    .actions-cell { display: flex; flex-wrap: wrap; gap: 6px; }
+    .action-btn { border: 1px solid transparent; border-radius: 6px; padding: 6px 12px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 140ms ease; background: #f1f5f9; color: #1f2937; }
+    .action-btn:hover { background: #e2e8f0; }
+    .action-btn.danger { background: rgba(185, 28, 28, 0.12); color: #991b1b; border-color: rgba(185, 28, 28, 0.2); }
+    .action-btn.danger:hover { background: rgba(185, 28, 28, 0.2); }
+    .action-btn.ghost { background: transparent; border-color: #d1d5db; color: #4b5563; }
+    .action-btn.ghost:hover { border-color: var(--primary-maroon); color: var(--primary-maroon); }
+    .empty-state { text-align: center; padding: 48px 16px; color: #6b7280; font-size: 0.98rem; }
+    .logs-card { margin-top: 24px; }
+    .logs-header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+    .logs-header h2 { margin: 0; font-size: 1.25rem; color: var(--dark-gray); }
+    .logs-target { font-size: 0.9rem; color: #6b7280; }
+    .logs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .logs-list li { background: #f9fafb; border: 1px solid #e5e8eb; border-radius: 8px; padding: 10px 12px; font-size: 0.9rem; color: #1f2937; }
+    .log-meta { display: flex; gap: 10px; font-size: 0.78rem; color: #6b7280; margin-bottom: 4px; }
+    .feedback-banner { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; font-weight: 600; display: none; }
+    .feedback-banner.show { display: block; }
+    .feedback-banner.success { background: rgba(34, 197, 94, 0.12); color: #166534; border: 1px solid rgba(34, 197, 94, 0.25); }
+    .feedback-banner.error { background: rgba(239, 68, 68, 0.12); color: #b91c1c; border: 1px solid rgba(239, 68, 68, 0.25); }
+    .badge-flagged { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px; background: rgba(250, 204, 21, 0.2); color: #92400e; font-size: 0.75rem; font-weight: 600; }
+    .loading-overlay { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.25); display: none; align-items: center; justify-content: center; z-index: 900; }
+    .loading-overlay.show { display: flex; }
+    .spinner { width: 40px; height: 40px; border-radius: 50%; border: 4px solid rgba(145, 35, 56, 0.2); border-top-color: var(--primary-maroon); animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .modal { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.55); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 1000; }
+    .modal.open { display: flex; }
+    .modal-dialog { width: 100%; max-width: 620px; background: #fff; border-radius: 12px; box-shadow: var(--shadow-lg); padding: 20px 24px; position: relative; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+    .modal-title { font-size: 1.2rem; font-weight: 700; color: var(--dark-gray); margin: 0; }
+    .modal-close { border: none; background: transparent; font-size: 1.5rem; cursor: pointer; color: #6b7280; padding: 4px; }
+    .modal-close:hover { color: var(--primary-maroon); }
+    .modal form { display: flex; flex-direction: column; gap: 14px; }
+    .modal form label { font-weight: 600; font-size: 0.9rem; color: var(--dark-gray); }
+    .modal form input,
+    .modal form select,
+    .modal form textarea { padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 0.95rem; }
+    .modal form textarea { min-height: 90px; resize: vertical; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
+    .btn { cursor: pointer; border-radius: 8px; border: none; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-secondary { background: #e5e7eb; color: #1f2937; padding: 8px 16px; }
+    .btn-secondary:hover { background: #d1d5db; }
+    .btn-primary { background: var(--primary-maroon); color: #fff; padding: 10px 18px; border: none; }
+    .btn-primary:hover { opacity: 0.92; }
+    .btn-danger { background: #b91c1c; color: #fff; padding: 10px 18px; }
+    .btn-danger:hover { opacity: 0.9; }
+    .unauthorized-card { max-width: 640px; margin: 64px auto; text-align: center; padding: 40px; }
+    .unauthorized-card h2 { margin-top: 0; color: var(--primary-maroon); }
+    .note-muted { font-size: 0.85rem; color: #6b7280; }
+    @media (max-width: 768px) {
+      .moderation-table { display: block; overflow-x: auto; }
+      .modal-dialog { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="browse.html">Browse</a></li>
+        <li><a href="about.html">About</a></li>
+        <li id="organizerMenu" class="dropdown" style="display:none;">
+          <a href="organizer-create-event.html">Organizer Tools</a>
+        </li>
+        <li id="adminMenu" class="dropdown" style="display:none;">
+          <a href="admin-moderation.html">Administrator</a>
+        </li>
+        <li><a href="profile.html">Profile</a></li>
+        <li id="authLinks">
+          <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </li>
+        <li id="userLinks" style="display:none;">
+          <span id="welcomeMessage" class="text-muted"></span>
+          <button class="btn btn-secondary btn-sm" id="logoutBtn">Logout</button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="moderationMain">
+    <div class="breadcrumbs"><span>Administrator</span> <span>›</span> <span>Moderation</span></div>
+    <div class="moderation-wrapper">
+      <div id="feedbackBanner" class="feedback-banner" role="status" aria-live="polite"></div>
+
+      <section class="card">
+        <div class="moderation-header">
+          <h1>Event Moderation</h1>
+          <p class="text-muted">
+            Review flagged listings, keep legitimate events up to date, and remove entries that violate ConEvents policies.
+          </p>
+        </div>
+        <div class="moderation-toolbar">
+          <div class="toolbar-field">
+            <label for="statusFilter">Status</label>
+            <select id="statusFilter">
+              <option value="all">All events</option>
+              <option value="flagged">Flagged only</option>
+              <option value="active">Active</option>
+              <option value="removed">Removed</option>
+            </select>
+          </div>
+          <div class="toolbar-field" style="flex:1; min-width:220px;">
+            <label for="searchInput">Search</label>
+            <input id="searchInput" placeholder="Search by title, organization, or location" type="search" autocomplete="off" />
+          </div>
+          <div class="toolbar-field" style="min-width:220px;">
+            <label>Flagged Summary</label>
+            <div class="badge-flagged" id="flaggedCount">Flagged events: 0</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card table-card">
+        <div class="table-responsive">
+          <table class="moderation-table" aria-describedby="moderationTableCaption">
+            <caption id="moderationTableCaption" class="sr-only">Events available for moderation</caption>
+            <thead>
+              <tr>
+                <th scope="col">Event</th>
+                <th scope="col">Schedule</th>
+                <th scope="col">Organizer</th>
+                <th scope="col">Tickets</th>
+                <th scope="col">Status</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="eventsTableBody"></tbody>
+          </table>
+        </div>
+        <div id="emptyState" class="empty-state" hidden>
+          No events match your filters right now. Try adjusting the status filter or clearing your search.
+        </div>
+      </section>
+
+      <section class="card logs-card">
+        <div class="logs-header">
+          <h2>Moderation History</h2>
+          <span class="logs-target" id="logsTitle">Select an event to view its recent history.</span>
+        </div>
+        <ul class="logs-list" id="logsList"></ul>
+        <div id="logsEmpty" class="empty-state" hidden>
+          No moderation actions recorded for this event yet.
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <section id="unauthorizedContainer" class="unauthorized-card card" hidden>
+    <h2>Administrator access required</h2>
+    <p>This page is reserved for ConEvents administrators. Please log in with an administrator account.</p>
+    <p class="note-muted">If you believe this is a mistake, contact the development team.</p>
+    <div style="margin-top:16px;">
+      <a class="btn btn-primary" href="login.html">Go to Login</a>
+    </div>
+  </section>
+
+  <div class="loading-overlay" id="loadingOverlay" aria-hidden="true">
+    <div class="spinner" role="status" aria-label="Loading"></div>
+  </div>
+
+  <div class="modal" id="editModal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 class="modal-title" id="editModalTitle">Edit Event</h2>
+        <button class="modal-close" type="button" data-modal-close>&times;</button>
+      </div>
+      <form id="editForm">
+        <label>
+          Title
+          <input type="text" name="title" id="editTitle" required maxlength="255" />
+        </label>
+        <label>
+          Description
+          <textarea name="description" id="editDescription" maxlength="5000"></textarea>
+        </label>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <label style="flex:1 1 180px;">
+            Date
+            <input type="date" name="event_date" id="editDate" required />
+          </label>
+          <label style="flex:1 1 160px;">
+            Time
+            <input type="time" name="event_time" id="editTime" required />
+          </label>
+        </div>
+        <label>
+          Location
+          <input type="text" name="location" id="editLocation" required maxlength="255" />
+        </label>
+        <label>
+          Organizing Group
+          <input type="text" name="organization" id="editOrganization" required maxlength="100" />
+        </label>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <label style="flex:1 1 160px;">
+            Category
+            <select name="category" id="editCategory" required>
+              <option value="sports">Sports</option>
+              <option value="academic">Academic</option>
+              <option value="social">Social</option>
+              <option value="club">Club</option>
+            </select>
+          </label>
+          <label style="flex:1 1 160px;">
+            Price (CAD)
+            <input type="number" name="price" id="editPrice" min="0" step="0.01" required />
+          </label>
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <label style="flex:1 1 160px;">
+            Capacity
+            <input type="number" name="capacity" id="editCapacity" min="1" step="1" required />
+          </label>
+          <label style="flex:1 1 160px;">
+            Tickets available
+            <input type="number" name="tickets_available" id="editTicketsAvailable" min="0" step="1" required />
+          </label>
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <label style="flex:1 1 160px;">
+            Moderation status
+            <select name="moderation_status" id="editModerationStatus">
+              <option value="active">Active</option>
+              <option value="flagged">Flagged</option>
+              <option value="removed">Removed</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          Moderation notes
+          <textarea name="moderation_notes" id="editModerationNotes" maxlength="2000" placeholder="Document decisions or context for other admins"></textarea>
+        </label>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" type="button" data-modal-close>Cancel</button>
+          <button class="btn btn-primary" type="submit">Save changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="confirmModal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 class="modal-title" id="confirmModalTitle">Remove Event</h2>
+        <button class="modal-close" type="button" data-modal-close>&times;</button>
+      </div>
+      <form id="confirmForm">
+        <p id="confirmMessage">Are you sure you want to remove this event from public listings?</p>
+        <label>
+          Add a note for the moderation log (optional)
+          <textarea id="removalReason" name="reason" maxlength="500" placeholder="Reason for removal..."></textarea>
+        </label>
+        <p class="note-muted">Removed events no longer appear in search results or tickets pages, but remain available to administrators for auditing.</p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" type="button" data-modal-close>Cancel</button>
+          <button class="btn btn-danger" type="submit">Remove event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { apiFetch, getApiBase } from './utils/api.js';
+
+    const state = {
+      events: [],
+      currentUser: null,
+      filters: { status: 'all', search: '' },
+      selectedEventId: null,
+      pendingRemovalId: null
+    };
+
+    const elements = {
+      organizerMenu: document.getElementById('organizerMenu'),
+      adminMenu: document.getElementById('adminMenu'),
+      authLinks: document.getElementById('authLinks'),
+      userLinks: document.getElementById('userLinks'),
+      welcomeMessage: document.getElementById('welcomeMessage'),
+      flaggedCount: document.getElementById('flaggedCount'),
+      statusFilter: document.getElementById('statusFilter'),
+      searchInput: document.getElementById('searchInput'),
+      eventsTableBody: document.getElementById('eventsTableBody'),
+      emptyState: document.getElementById('emptyState'),
+      logsList: document.getElementById('logsList'),
+      logsEmpty: document.getElementById('logsEmpty'),
+      logsTitle: document.getElementById('logsTitle'),
+      feedbackBanner: document.getElementById('feedbackBanner'),
+      loadingOverlay: document.getElementById('loadingOverlay'),
+      moderationMain: document.getElementById('moderationMain'),
+      unauthorizedContainer: document.getElementById('unauthorizedContainer'),
+      editModal: document.getElementById('editModal'),
+      confirmModal: document.getElementById('confirmModal'),
+      editForm: document.getElementById('editForm'),
+      confirmForm: document.getElementById('confirmForm'),
+      editFields: {
+        title: document.getElementById('editTitle'),
+        description: document.getElementById('editDescription'),
+        date: document.getElementById('editDate'),
+        time: document.getElementById('editTime'),
+        location: document.getElementById('editLocation'),
+        organization: document.getElementById('editOrganization'),
+        category: document.getElementById('editCategory'),
+        price: document.getElementById('editPrice'),
+        capacity: document.getElementById('editCapacity'),
+        ticketsAvailable: document.getElementById('editTicketsAvailable'),
+        moderationStatus: document.getElementById('editModerationStatus'),
+        moderationNotes: document.getElementById('editModerationNotes')
+      },
+      confirmMessage: document.getElementById('confirmMessage'),
+      removalReason: document.getElementById('removalReason'),
+      confirmModalTitle: document.getElementById('confirmModalTitle')
+    };
+
+    const modalCloseButtons = document.querySelectorAll('[data-modal-close]');
+    modalCloseButtons.forEach((button) => button.addEventListener('click', () => closeActiveModal(button.closest('.modal'))));
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await logout();
+    });
+
+    elements.confirmForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!state.pendingRemovalId) return;
+      const reason = elements.removalReason.value.trim();
+      await removeEvent(state.pendingRemovalId, reason);
+    });
+
+    elements.editForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!state.selectedEventId) return;
+      const payload = collectEditFormValues();
+      await updateEvent(state.selectedEventId, payload);
+    });
+
+    elements.eventsTableBody.addEventListener('click', (event) => {
+      const actionButton = event.target.closest('[data-action]');
+      if (!actionButton) return;
+      const eventId = parseInt(actionButton.dataset.id, 10);
+      if (Number.isNaN(eventId)) return;
+
+      const action = actionButton.dataset.action;
+      if (action === 'edit') {
+        openEditModal(eventId);
+      } else if (action === 'remove') {
+        openConfirmModal(eventId);
+      } else if (action === 'logs') {
+        selectEventForLogs(eventId);
+      }
+    });
+
+    let searchDebounceTimer = null;
+    elements.searchInput.addEventListener('input', () => {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        state.filters.search = elements.searchInput.value.trim();
+        reloadEvents();
+      }, 300);
+    });
+
+    elements.statusFilter.addEventListener('change', () => {
+      state.filters.status = elements.statusFilter.value;
+      reloadEvents();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeActiveModal(document.querySelector('.modal.open'));
+      }
+    });
+
+    elements.editModal.addEventListener('click', (event) => {
+      if (event.target === elements.editModal) {
+        closeActiveModal(elements.editModal);
+      }
+    });
+
+    elements.confirmModal.addEventListener('click', (event) => {
+      if (event.target === elements.confirmModal) {
+        closeActiveModal(elements.confirmModal);
+      }
+    });
+
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return '';
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return '—';
+      const date = new Date(dateString);
+      if (Number.isNaN(date.getTime())) return escapeHtml(dateString);
+      return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function formatTime(timeString) {
+      if (!timeString) return '—';
+      return timeString.slice(0, 5);
+    }
+
+    function formatDateTime(dateTime) {
+      if (!dateTime) return '—';
+      const date = new Date(dateTime);
+      if (Number.isNaN(date.getTime())) return escapeHtml(dateTime);
+      return date.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    async function ensureAdminSession() {
+      try {
+        const response = await apiFetch('/api/auth/profile');
+        if (!response.ok) {
+          handleUnauthorized();
+          return false;
+        }
+        const profile = await response.json();
+        state.currentUser = profile.user;
+        localStorage.setItem('user', JSON.stringify(profile.user));
+
+        const role = String(profile.user.role || '').toLowerCase();
+        if (role !== 'admin') {
+          handleUnauthorized();
+          return false;
+        }
+
+        updateNavigation(profile.user);
+        return true;
+      } catch (error) {
+        console.error('Failed to verify session:', error);
+        handleUnauthorized();
+        return false;
+      }
+    }
+
+    function handleUnauthorized() {
+      elements.moderationMain.style.display = 'none';
+      elements.unauthorizedContainer.hidden = false;
+    }
+
+    function updateNavigation(user) {
+      if (elements.authLinks) elements.authLinks.style.display = 'none';
+      if (elements.userLinks) {
+        elements.userLinks.style.display = 'flex';
+        elements.userLinks.style.alignItems = 'center';
+        elements.userLinks.style.gap = '0.75rem';
+      }
+      if (elements.welcomeMessage) {
+        elements.welcomeMessage.textContent = `Hi, ${user.name}`;
+      }
+      const role = String(user.role || '').toLowerCase();
+      if (role === 'organizer' && elements.organizerMenu) {
+        elements.organizerMenu.style.display = '';
+      }
+      if (role === 'admin' && elements.adminMenu) {
+        elements.adminMenu.style.display = '';
+      }
+    }
+
+    function toggleLoading(show) {
+      if (!elements.loadingOverlay) return;
+      if (show) {
+        elements.loadingOverlay.classList.add('show');
+        elements.loadingOverlay.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+      } else {
+        elements.loadingOverlay.classList.remove('show');
+        elements.loadingOverlay.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }
+    }
+
+    function showFeedback(message, variant = 'success', duration = 4000) {
+      if (!elements.feedbackBanner) return;
+      elements.feedbackBanner.textContent = message;
+      elements.feedbackBanner.className = `feedback-banner show ${variant}`;
+      if (duration > 0) {
+        setTimeout(() => {
+          elements.feedbackBanner.className = 'feedback-banner';
+          elements.feedbackBanner.textContent = '';
+        }, duration);
+      }
+    }
+
+    async function reloadEvents() {
+      if (!state.currentUser) return;
+      toggleLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (state.filters.status && state.filters.status !== 'all') {
+          params.set('status', state.filters.status);
+        }
+        if (state.filters.search) {
+          params.set('search', state.filters.search);
+        }
+        const queryString = params.toString();
+        const response = await apiFetch(`/api/admin/events${queryString ? `?${queryString}` : ''}`);
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload.message || payload.error || 'Failed to load events.');
+        }
+
+        state.events = Array.isArray(payload.events) ? payload.events : [];
+        renderEvents();
+        updateFlaggedBadge();
+
+        if (state.selectedEventId) {
+          selectEventForLogs(state.selectedEventId);
+        }
+      } catch (error) {
+        console.error('Unable to fetch moderation events:', error);
+        showFeedback(error.message || 'Unable to fetch events.', 'error');
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    function updateFlaggedBadge() {
+      const flaggedCount = state.events.filter((event) => event.moderation_status === 'flagged').length;
+      if (elements.flaggedCount) {
+        elements.flaggedCount.textContent = `Flagged events: ${flaggedCount}`;
+      }
+    }
+
+    function renderEvents() {
+      if (!elements.eventsTableBody) return;
+      if (!state.events.length) {
+        elements.eventsTableBody.innerHTML = '';
+        elements.emptyState.hidden = false;
+        return;
+      }
+
+      elements.emptyState.hidden = true;
+      const rows = state.events.map((event) => {
+        const statusClass = `status-${escapeHtml(event.moderation_status || 'active')}`;
+        const statusLabel = escapeHtml(event.moderation_status || 'active');
+        return `
+          <tr data-event-id="${event.id}">
+            <td>
+              <div style="font-weight:600; color:#111827;">${escapeHtml(event.title)}</div>
+              <div style="font-size:0.85rem; color:#6b7280; margin-top:2px;">${escapeHtml(event.organization || '—')}</div>
+            </td>
+            <td>
+              <div>${formatDate(event.event_date)}</div>
+              <div style="font-size:0.85rem; color:#6b7280;">${formatTime(event.event_time)}</div>
+            </td>
+            <td>
+              <div>${escapeHtml(event.organizer_name || '—')}</div>
+              <div style="font-size:0.8rem; color:#6b7280;">${escapeHtml(event.organizer_email || '')}</div>
+            </td>
+            <td>
+              <div><strong>${escapeHtml(event.tickets_available)}</strong> available</div>
+              <div style="font-size:0.8rem; color:#6b7280;">Capacity: ${escapeHtml(event.capacity)}</div>
+            </td>
+            <td>
+              <span class="status-pill ${statusClass}">${statusLabel}</span>
+              ${event.moderation_notes ? `<div style="margin-top:6px; font-size:0.8rem; color:#6b7280;">${escapeHtml(event.moderation_notes)}</div>` : ''}
+            </td>
+            <td class="actions-cell">
+              <button class="action-btn" data-action="edit" data-id="${event.id}">Edit</button>
+              <button class="action-btn danger" data-action="remove" data-id="${event.id}">Remove</button>
+              <button class="action-btn ghost" data-action="logs" data-id="${event.id}">Logs</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      elements.eventsTableBody.innerHTML = rows;
+    }
+
+    function openEditModal(eventId) {
+      const event = state.events.find((item) => item.id === eventId);
+      if (!event) return;
+      state.selectedEventId = eventId;
+      elements.editFields.title.value = event.title || '';
+      elements.editFields.description.value = event.description || '';
+      elements.editFields.date.value = event.event_date ? event.event_date.slice(0, 10) : '';
+      elements.editFields.time.value = event.event_time ? event.event_time.slice(0, 5) : '';
+      elements.editFields.location.value = event.location || '';
+      elements.editFields.organization.value = event.organization || '';
+      elements.editFields.category.value = event.category || 'social';
+      elements.editFields.price.value = event.price !== undefined && event.price !== null ? Number(event.price).toFixed(2) : '0.00';
+      elements.editFields.capacity.value = event.capacity ?? '';
+      elements.editFields.ticketsAvailable.value = event.tickets_available ?? '';
+      elements.editFields.moderationStatus.value = event.moderation_status || 'active';
+      elements.editFields.moderationNotes.value = event.moderation_notes || '';
+
+      openModal(elements.editModal);
+    }
+
+    function openConfirmModal(eventId) {
+      const event = state.events.find((item) => item.id === eventId);
+      if (!event) return;
+      state.pendingRemovalId = eventId;
+      elements.confirmModalTitle.textContent = `Remove "${event.title}"`;
+      elements.confirmMessage.textContent = `Are you sure you want to remove "${event.title}" from public listings?`;
+      elements.removalReason.value = '';
+      openModal(elements.confirmModal);
+    }
+
+    function openModal(modal) {
+      if (!modal) return;
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeActiveModal(modal) {
+      if (!modal) return;
+      modal.classList.remove('open');
+      if (!document.querySelector('.modal.open')) {
+        document.body.style.overflow = '';
+      }
+      if (modal === elements.editModal) {
+        state.selectedEventId = null;
+      }
+      if (modal === elements.confirmModal) {
+        state.pendingRemovalId = null;
+      }
+    }
+
+    function collectEditFormValues() {
+      return {
+        title: elements.editFields.title.value.trim(),
+        description: elements.editFields.description.value.trim(),
+        event_date: elements.editFields.date.value,
+        event_time: elements.editFields.time.value,
+        location: elements.editFields.location.value.trim(),
+        organization: elements.editFields.organization.value.trim(),
+        category: elements.editFields.category.value,
+        price: elements.editFields.price.value,
+        capacity: elements.editFields.capacity.value,
+        tickets_available: elements.editFields.ticketsAvailable.value,
+        moderation_status: elements.editFields.moderationStatus.value,
+        moderation_notes: elements.editFields.moderationNotes.value.trim()
+      };
+    }
+
+    async function updateEvent(eventId, payload) {
+      toggleLoading(true);
+      try {
+        const response = await apiFetch(`/api/admin/events/${eventId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.messages?.join(', ') || data.error || 'Unable to update event.');
+        }
+        closeActiveModal(elements.editModal);
+        showFeedback('Event updated successfully.');
+        await reloadEvents();
+      } catch (error) {
+        console.error('Failed to update event:', error);
+        showFeedback(error.message || 'Failed to update event.', 'error', 6000);
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    async function removeEvent(eventId, reason) {
+      toggleLoading(true);
+      try {
+        const response = await apiFetch(`/api/admin/events/${eventId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason })
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.message || payload.error || 'Unable to remove event.');
+        }
+        closeActiveModal(elements.confirmModal);
+        showFeedback('Event removed and logged for audit.');
+        await reloadEvents();
+      } catch (error) {
+        console.error('Failed to remove event:', error);
+        showFeedback(error.message || 'Failed to remove event.', 'error', 6000);
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    async function selectEventForLogs(eventId) {
+      state.selectedEventId = eventId;
+      const event = state.events.find((item) => item.id === eventId);
+      if (event) {
+        elements.logsTitle.textContent = `Showing recent actions for "${event.title}"`;
+      }
+      try {
+        const response = await apiFetch(`/api/admin/events/${eventId}/logs?limit=25`);
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.message || payload.error || 'Unable to load logs.');
+        }
+        renderLogs(payload.logs || []);
+      } catch (error) {
+        console.error('Failed to load logs:', error);
+        showFeedback(error.message || 'Failed to load moderation logs.', 'error', 6000);
+      }
+    }
+
+    function renderLogs(logs) {
+      if (!elements.logsList) return;
+      if (!logs.length) {
+        elements.logsList.innerHTML = '';
+        elements.logsEmpty.hidden = false;
+        return;
+      }
+
+      elements.logsEmpty.hidden = true;
+      elements.logsList.innerHTML = logs.map((log) => `
+        <li>
+          <div class="log-meta">
+            <span>${formatDateTime(log.created_at)}</span>
+            <span>${escapeHtml(log.admin_name || 'Unknown admin')}</span>
+            <span>${escapeHtml(log.action)}</span>
+          </div>
+          <div>${escapeHtml(log.details || '')}</div>
+        </li>
+      `).join('');
+    }
+
+    async function logout() {
+      try {
+        await apiFetch('/api/auth/logout', { method: 'POST' });
+      } catch (error) {
+        console.error('Failed to logout cleanly:', error);
+      } finally {
+        localStorage.removeItem('user');
+        window.location.href = 'index.html';
+      }
+    }
+
+    (async function init() {
+      const ok = await ensureAdminSession();
+      if (!ok) {
+        return;
+      }
+      await reloadEvents();
+    })();
+  </script>
+</body>
+</html>
