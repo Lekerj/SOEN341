@@ -9,6 +9,7 @@ router.get('/preview', (req, res) => {
         `SELECT id, title, description, event_date, event_time, location, price, category, organization, tickets_available, capacity, image_url
          FROM events
          WHERE tickets_available > 0
+           AND moderation_status = 'approved'
          ORDER BY RAND()
          LIMIT 3`,
         [],
@@ -138,6 +139,9 @@ router.get('/', (req, res) => {
 
     // 11. Only show events with available tickets
     sql += `\n AND e.tickets_available > 0`;
+
+    // 11b. Only show events that have been approved by moderation
+    sql += `\n AND e.moderation_status = 'approved'`;
 
     // 12. Final ordering - prioritize upcoming events
     sql += `\n ORDER BY e.event_date ASC, e.event_time ASC`;
