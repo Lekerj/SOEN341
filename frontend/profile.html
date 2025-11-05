@@ -117,6 +117,53 @@
             border-left: 4px solid #912338;
         }
 
+        .moderation-card {
+            background: linear-gradient(135deg, rgba(145, 35, 56, 0.95) 0%, rgba(107, 44, 145, 0.95) 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .moderation-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.22);
+        }
+
+        .moderation-card h4 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .moderation-card p {
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            opacity: 0.92;
+        }
+
+        .moderation-card .btn {
+            align-self: flex-start;
+            background: white;
+            color: #912338;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.25);
+        }
+
+        .moderation-card .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(255, 255, 255, 0.35);
+        }
+
         .stat-item {
             display: flex;
             justify-content: space-between;
@@ -432,6 +479,12 @@
                         <span class="stat-value" id="memberSince" style="font-size: 0.95rem;">2025</span>
                     </div>
                 </div>
+
+                <div id="adminModerationCard" class="moderation-card" style="display:none;">
+                    <h4>🛡️ Moderation Board</h4>
+                    <p>Review flagged events, approve updates, and keep ConEvents running smoothly.</p>
+                    <a class="btn btn-secondary btn-sm" href="admin-moderation.html">Open Moderation Board</a>
+                </div>
             </div>
 
             <!-- Main Form -->
@@ -518,6 +571,16 @@
             document.getElementById('avatar').src = avatarUrl;
             document.getElementById('displayName').textContent = p.name || 'User';
             document.getElementById('displayEmail').textContent = p.email || '';
+            if (p.role) {
+                u.role = p.role;
+                localStorage.setItem('user', JSON.stringify(u));
+            }
+
+            const adminCard = document.getElementById('adminModerationCard');
+            if (adminCard) {
+                const role = String(p.role || u.role || '').toLowerCase();
+                adminCard.style.display = role === 'admin' ? 'flex' : 'none';
+            }
 
             // Member since
             if (p.created_at) {

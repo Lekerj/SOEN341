@@ -157,10 +157,12 @@
         window.addEventListener('DOMContentLoaded', async () => {
             const user = localStorage.getItem('user');
             const createAccountButton = document.getElementById('createAccountButton');
+            const organizerMenu = document.getElementById('organizerMenu');
 
             if (user) {
                 try {
                     const userData = JSON.parse(user);
+                    const role = String(userData.role || '').toLowerCase();
 
                     // Verify session is still valid
                     const response = await fetch(`${getApiBase()}/api/auth/profile`, {
@@ -177,12 +179,14 @@
                         if (createAccountButton) {
                             createAccountButton.style.display = 'none';
                         }
+                        if (organizerMenu) organizerMenu.style.display = role === 'organizer' ? '' : 'none';
                     } else {
                         // Session expired
                         localStorage.removeItem('user');
                         if (createAccountButton) {
                             createAccountButton.style.display = 'inline-block';
                         }
+                        if (organizerMenu) organizerMenu.style.display = 'none';
                     }
                 } catch (error) {
                     console.error('Error checking session:', error);
@@ -190,9 +194,11 @@
                     if (createAccountButton) {
                         createAccountButton.style.display = 'inline-block';
                     }
+                    if (organizerMenu) organizerMenu.style.display = 'none';
                 }
             } else if (createAccountButton) {
                 createAccountButton.style.display = 'inline-block';
+                if (organizerMenu) organizerMenu.style.display = 'none';
             }
 
             await loadEvents();
@@ -404,6 +410,8 @@
                 alert('An error occurred during logout.');
             }
         }
+
+        window.logout = logout;
 
         // Modal state management
         let modalState = { eventId: null, eventName: '', price: 0 };
