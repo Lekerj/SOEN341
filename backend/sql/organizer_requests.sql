@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS organizer_requests (
     organization_id INT NULL,
     request_type ENUM('join', 'create') NOT NULL,
     status ENUM('pending', 'refused', 'approved') NOT NULL DEFAULT 'pending',
+    refusal_reason VARCHAR(255) NULL, -- Optional reason supplied by admin when refusing
     details TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
