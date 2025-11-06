@@ -219,7 +219,10 @@ router.get('/events', requireAdmin, (req, res) => {
  * ADDED: Returns list of flagged/reported events only. (Required for Task #194)
  */
 router.get('/events/flagged', requireAdmin, (req, res) => {
-    const sql = `SELECT * FROM events WHERE is_flagged = TRUE ORDER BY created_at DESC`;
+    const sql = `SELECT * FROM events 
+                 WHERE is_flagged = TRUE 
+                    OR moderation_status IN ('pending', 'rejected')
+                 ORDER BY created_at DESC`;
 
     db.query(sql, (err, results) => {
         if (err) {
@@ -272,6 +275,64 @@ router.put('/events/:id', requireAdmin, (req, res) => {
         console.log(`AUDIT: Moderator (User ID: ${req.session.userId}) edited Event ID: ${eventId}`);
 
         res.status(200).json({ success: true, message: `Event ${eventId} updated successfully.` });
+    });
+});
+
+/**
+ * Route: POST /api/admin/events/:id/approve
+ * AC: Marks event as reviewed and visible to everyone.
+ */
+router.post('/events/:id/approve', requireAdmin, (req, res) => {
+    const eventId = req.params.id;
+    const sql = `
+        UPDATE events
+        SET is_flagged = FALSE,
+            is_visible = TRUE,
+            moderation_status = 'approved',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`;
+
+    db.query(sql, [eventId], (err, result) => {
+        if (err) {
+            console.error(`DB Error approving event ${eventId}:`, err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Event not found." });
+        }
+
+        console.log(`AUDIT: Moderator (User ID: ${req.session.userId}) APPROVED Event ID: ${eventId}`);
+        res.status(200).json({ success: true, message: `Event ${eventId} approved and restored to listings.` });
+    });
+});
+
+/**
+ * Route: POST /api/admin/events/:id/reject
+ * AC: Hides event from public browse lists while keeping record for admins.
+ */
+router.post('/events/:id/reject', requireAdmin, (req, res) => {
+    const eventId = req.params.id;
+    const sql = `
+        UPDATE events
+        SET is_flagged = TRUE,
+            is_visible = FALSE,
+            moderation_status = 'rejected',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`;
+
+    db.query(sql, [eventId], (err, result) => {
+        if (err) {
+            console.error(`DB Error rejecting event ${eventId}:`, err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Event not found." });
+        }
+
+        console.log(`AUDIT: Moderator (User ID: ${req.session.userId}) REJECTED Event ID: ${eventId}`);
+        res.status(200).json({ success: true, message: `Event ${eventId} rejected and hidden from browse.` });
     });
 });
 

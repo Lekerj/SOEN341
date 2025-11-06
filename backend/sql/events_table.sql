@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS events (
     -- Capacity management
     capacity INT NOT NULL DEFAULT 0 COMMENT 'Maximum number of attendees allowed',
     tickets_available INT NOT NULL DEFAULT 0 COMMENT 'Number of tickets still available for purchase',
+    is_flagged TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Flagged by users or pending moderation',
+    is_visible TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Controls whether event appears in public listings',
+    moderation_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'approved' COMMENT 'Admin moderation decision state',
 
     -- Media and timestamps
     image_url VARCHAR(500) COMMENT 'URL to event banner or promotional image',

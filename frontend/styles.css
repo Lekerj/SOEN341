@@ -288,18 +288,24 @@ body::before {
 }
 
 .admin-menu-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--spacing-sm) var(--spacing-lg);
   color: var(--dark-gray);
-  font-weight: 500;
+  font-weight: 600;
   text-decoration: none;
-  transition: background var(--transition-base), color var(--transition-base);
+  text-align: center;
+  border-radius: var(--radius-lg);
+  letter-spacing: 0.01em;
+  transition: background var(--transition-base), color var(--transition-base), transform var(--transition-base);
 }
 
 .admin-menu-link:hover,
 .admin-menu-link:focus {
   background: rgba(145, 35, 56, 0.08);
   color: var(--primary-maroon);
+  transform: translateY(-1px);
 }
 
 .navbar-menu a {
@@ -797,6 +803,19 @@ body::before {
   background: linear-gradient(135deg, #218838 0%, var(--success) 100%);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+.btn-warning {
+  background: linear-gradient(135deg, #f6b73c 0%, #d97a00 100%);
+  color: var(--white) !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-warning:hover {
+  background: linear-gradient(135deg, #ffcc5c 0%, #f08a00 100%);
+  color: var(--white) !important;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .btn-danger {
