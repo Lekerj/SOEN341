@@ -108,4 +108,4 @@ module.exports = {
   requireApprovedOrganizer,  // New middleware for approved organizers only
   requireAdmin, 
   requireModerator
-};
+}; 

@@ -1,58 +1,60 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db');
-const { requireAdmin } = require('../middleware/auth');
+const db = require('../config/db'); 
+const{ requireAdmin } = require('../middleware/auth');
 
 /**
- * Placeholder function to signal/trigger email notification
+ * Placeholder function to signal/trigger email notification (#176) 
  * In a real application, this would use a dedicated email service or queue.
  */
+
 const signalEmailNotification = (userID, decision) => {
     console.log(`[Email Notification Signal] Decision: ${decision} for User ID: ${userID}`);
 };
 
-// Endpoint: GET /api/admin/organizer/pending (Fetch pending organizer requests)
-router.get('/organizer/pending', requireAdmin, (req, res) => {
+// Endpoint for Organizer Approval
+//router GET: /api/admin/organizer/pending (Fetches pending Requests)
+router.get('/organizer/pending', requireAdmin, (req,res) => {
     const sql = `
-        SELECT 
-            u.id, u.name, u.email, u.request_date, u.organization_role,
-            o.id AS organization_id, o.name AS organization_name, o.category AS organization_category
-        FROM users u
-        LEFT JOIN organizations o ON u.organization_id = o.id
-        WHERE u.organizer_auth_status = 'pending'
-        ORDER BY u.request_date ASC`;
+    SELECT 
+      u.id, u.name, u.email, u.request_date, u.organization_role,
+      o.id AS organization_id, o.name AS organization_name, o.category AS organization_category
+    FROM users u
+    LEFT JOIN organizations o ON u.organization_id = o.id
+    WHERE u.organizer_auth_status = 'pending'
+    ORDER BY u.request_date ASC`; 
 
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error('DB Error Fetching Pending organizers:', err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to retrieve the pending requests.' });
+    db.query(sql, (err, results)=> {
+        if(err){
+            console.error("DB Error Fetching Pending organizers:" , err);
+            return res.status(500).json({success: false, error: "Internal Server Error", message: "Failed to retrieve the pending requests."});
         }
-        res.status(200).json({ success: true, pendingOrganizer: results });
+        //Returns the list of pending organizers (name, email, organizations, etc...
+        res.status(200).json({success: true, pendingOrganizer: results});
     });
 });
 
-// ROUTER POST /api/admin/organizers/:id/approve
+// ROUTER POST /api/admin/organizer/:id/approve
 router.post('/organizers/:id/approve', requireAdmin, (req, res) => {
     const userId = req.params.id;
     const { organization_role } = req.body || {};
     const roleToAssign = organization_role || 'Member';
 
     const sql = `UPDATE users 
-                             SET role = 'organizer', organizer_auth_status = 'approved', 
-                                     organization_role = ?, approval_date = CURRENT_TIMESTAMP
-                             WHERE id = ?`;
-
+                 SET role = 'organizer', organizer_auth_status = 'approved', 
+                     organization_role = ?, approval_date = CURRENT_TIMESTAMP
+                 WHERE id = ?`;
+    
     db.query(sql, [roleToAssign, userId], (err, result) => {
         if (err) {
             console.error(`DB Error approving user ${userId}:`, err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Database update failed during approval.' });
+            return res.status(500).json({ success: false, error: "Internal Server Error", message: "Database update failed during approval." });
         }
-
+        
         if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: "User not found or not eligible for approval." });
+             return res.status(404).json({ success: false, message: "User not found or not eligible for approval." });
         }
-
-        // Audit Log for successful approval
+        // ADDED: Audit Log for successful rejection
         console.log(`AUDIT: Admin (User ID: ${req.session.userId}) APPROVED user ID: ${userId}`);
 
         // Fetch organization_id to add membership & notify user
@@ -69,36 +71,32 @@ router.post('/organizers/:id/approve', requireAdmin, (req, res) => {
                 });
                 // Notify user
                 const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
-                                            VALUES (?, 'user', 'request_approved', 'Organizer request approved', 'Your organizer request has been approved.', ?, ?, 'approved')`;
+                              VALUES (?, 'user', 'request_approved', 'Organizer request approved', 'Your organizer request has been approved.', ?, ?, 'approved')`;
                 db.query(nsql, [userId, userId, orgId], (e4) => { if (e4) console.error('Notification insert failed (approval):', e4); });
             }
         });
-
-        // Also send signal/email if available
-        try { signalEmailNotification(userId, 'approved'); } catch (e) { /* ignore */ }
-
+        
         res.status(200).json({ success: true, message: `Organizer request for ID ${userId} approved. Role updated to 'organizer'.` });
     });
 });
 
-// ROUTER POST /api/admin/organizers/:id/reject
+// ROUTER POST /api/admin/organizer/:id/reject
 router.post('/organizers/:id/reject', requireAdmin, (req, res) => {
     const userId = req.params.id;
 
     const sql = `UPDATE users 
-                             SET organizer_auth_status = 'refused', approval_date = CURRENT_TIMESTAMP
-                             WHERE id = ?`;
+                 SET organizer_auth_status = 'refused', approval_date = CURRENT_TIMESTAMP
+                 WHERE id = ?`;
 
     db.query(sql, [userId], (err, result) => {
         if (err) {
             console.error(`DB Error rejecting user ${userId}:`, err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Database update failed during rejection.' });
+            return res.status(500).json({ success: false, error: "Internal Server Error", message: "Database update failed during rejection." });
         }
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: "User not found or not eligible for rejection." });
+             return res.status(404).json({ success: false, message: "User not found or not eligible for rejection." });
         }
-
         console.log(`AUDIT: Admin (User ID: ${req.session.userId}) REJECTED user ID: ${userId}`);
 
         // Notify user of rejection
@@ -106,13 +104,11 @@ router.post('/organizers/:id/reject', requireAdmin, (req, res) => {
         db.query(getOrgSql, [userId], (e2, rows) => {
             const orgId = !e2 && rows && rows[0] ? rows[0].organization_id : null;
             const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
-                                        VALUES (?, 'user', 'request_refused', 'Organizer request refused', 'Your organizer request has been refused. You may modify and resubmit.', ?, ?, 'refused')`;
+                          VALUES (?, 'user', 'request_refused', 'Organizer request refused', 'Your organizer request has been refused. You may modify and resubmit.', ?, ?, 'refused')`;
             db.query(nsql, [userId, userId, orgId], (e3) => {
                 if (e3) console.error('Notification insert failed (rejection):', e3);
             });
         });
-
-        try { signalEmailNotification(userId, 'rejected'); } catch (e) { /* ignore */ }
 
         res.status(200).json({ success: true, message: `Organizer request for ID ${userId} rejected. Role updated to 'rejected'.` });
     });
@@ -182,9 +178,9 @@ router.put('/users/:id/role', requireAdmin, (req,res)=>{
  * ROUTE: GET /api/admin/organization
  * AC: Return Lists of all organization with details
  */
-router.get('/organizations', requireAdmin, (req,res)=>{
+router.get('/organization', requireAdmin, (req,res)=>{
     const sql = `
-    SELECT id, name, category, logo_url, description, created_at
+    SELECT id, name, logo_url, description, created_at
     FROM organizations
     ORDER BY name ASC`;
 
@@ -193,7 +189,7 @@ router.get('/organizations', requireAdmin, (req,res)=>{
             console.error("DB Error Fetching all organizations:", err);
             return res.status(500).json({success: false, error: "Internal Server Error", message: "Failed to retrieve organization list."});
         }
-        res.status(200).json({success: true, organizations: results});
+        res.status(200).json({success: true, organization: results});
     });
 });
 
@@ -344,14 +340,13 @@ router.post('/notifications/read-all', requireAdmin, (req, res) => {
  */
 router.put('/organizations/:id', requireAdmin, (req, res) => {
     const orgId = req.params.id;
-    const { name, category, logo_url, description } = req.body;
-
+    const { name, logo_url, description } = req.body;
+    
     const fields = [];
     const params = [];
 
     // Dynamic whitelisting for update
     if (name) { fields.push('name = ?'); params.push(name); }
-    if (category) { fields.push('category = ?'); params.push(category); }
     if (logo_url) { fields.push('logo_url = ?'); params.push(logo_url); }
     if (description !== undefined) { fields.push('description = ?'); params.push(description); }
 
@@ -379,130 +374,12 @@ router.put('/organizations/:id', requireAdmin, (req, res) => {
         res.status(200).json({ success: true, message: `Organization ${orgId} updated successfully.` });
     });
 });
-
-// POST /api/admin/organizations - Create new organization
-router.post('/organizations', requireAdmin, (req, res) => {
-    const { name, category, description, logo_url } = req.body;
-
-    if (!name || name.trim().length === 0) {
-        return res.status(400).json({ success: false, message: "Organization name is required." });
-    }
-
-    const sql = `INSERT INTO organizations (name, category, description, logo_url)
-                 VALUES (?, ?, ?, ?)`;
-
-    db.query(sql, [name, category || 'social', description || '', logo_url || null], (err, result) => {
-        if (err) {
-            if (err.code === 'ER_DUP_ENTRY') {
-                return res.status(409).json({ success: false, message: "Organization name already exists." });
-            }
-            console.error('DB Error creating organization:', err);
-            return res.status(500).json({ success: false, error: "Internal Server Error" });
-        }
-
-        console.log(`AUDIT: Admin (User ID: ${req.session.userId}) CREATED Organization ID: ${result.insertId}`);
-
-        res.status(201).json({
-            success: true,
-            message: "Organization created successfully.",
-            data: { id: result.insertId, name, category, description, logo_url }
-        });
-    });
-});
-
-// DELETE /api/admin/organizations/:id - Delete organization
-router.delete('/organizations/:id', requireAdmin, (req, res) => {
-    const orgId = req.params.id;
-
-    // Prevent deletion of default organizations
-    const checkSql = 'SELECT is_default FROM organizations WHERE id = ?';
-    db.query(checkSql, [orgId], (err, results) => {
-        if (err || !results || results.length === 0) {
-            return res.status(404).json({ success: false, message: "Organization not found." });
-        }
-
-        if (results[0].is_default) {
-            return res.status(400).json({ success: false, message: "Cannot delete default organization." });
-        }
-
-        const deleteSql = 'DELETE FROM organizations WHERE id = ?';
-        db.query(deleteSql, [orgId], (err, result) => {
-            if (err) {
-                console.error(`DB Error deleting organization ${orgId}:`, err);
-                return res.status(500).json({ success: false, error: "Internal Server Error" });
-            }
-
-            console.log(`AUDIT: Admin (User ID: ${req.session.userId}) DELETED Organization ID: ${orgId}`);
-
-            res.status(200).json({ success: true, message: "Organization deleted successfully." });
-        });
-    });
-});
-
-// GET /api/admin/organizations/:id/members - Get organization members
-router.get('/organizations/:id/members', requireAdmin, (req, res) => {
-    const orgId = req.params.id;
-
-    const sql = `
-        SELECT
-            om.id,
-            om.user_id,
-            om.role,
-            om.status,
-            om.assigned_at,
-            u.name AS user_name,
-            u.email AS user_email
-        FROM organization_members om
-        LEFT JOIN users u ON om.user_id = u.id
-        WHERE om.organization_id = ?
-        ORDER BY om.assigned_at ASC
-    `;
-
-    db.query(sql, [orgId], (err, results) => {
-        if (err) {
-            console.error('DB Error fetching org members:', err);
-            return res.status(500).json({ success: false, error: "Internal Server Error" });
-        }
-
-        res.status(200).json({ success: true, members: results });
-    });
-});
-
-// PUT /api/admin/organizations/:orgId/members/:memberId/role - Update member role
-router.put('/organizations/:orgId/members/:memberId/role', requireAdmin, (req, res) => {
-    const { orgId, memberId } = req.params;
-    const { role } = req.body;
-
-    const validRoles = ['Member', 'Event Manager', 'Vice President', 'President'];
-    if (!role || !validRoles.includes(role)) {
-        return res.status(400).json({
-            success: false,
-            message: `Invalid role. Must be one of: ${validRoles.join(', ')}`
-        });
-    }
-
-    const sql = `UPDATE organization_members SET role = ?
-                 WHERE id = ? AND organization_id = ?`;
-
-    db.query(sql, [role, memberId, orgId], (err, result) => {
-        if (err) {
-            console.error(`DB Error updating member ${memberId}:`, err);
-            return res.status(500).json({ success: false, error: "Internal Server Error" });
-        }
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: "Member not found in organization." });
-        }
-
-        console.log(`AUDIT: Admin (User ID: ${req.session.userId}) updated Member ID: ${memberId} role to ${role}`);
-
-        res.status(200).json({ success: true, message: `Member role updated to ${role}.` });
-    });
-});
-
 // --- EVENT MODERATION ENDPOINTS ---
 
-// Route: GET /api/admin/events - Returns list of all events
+/**
+ * Route: GET /api/admin/events
+ * AC: Returns list of all event details with organizer information.
+ */
 router.get('/events', requireAdmin, (req, res) => {
     const sql = `
     SELECT
@@ -516,14 +393,17 @@ router.get('/events', requireAdmin, (req, res) => {
 
     db.query(sql, (err, results) => {
         if (err) {
-            console.error('DB Error fetching all events:', err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+            console.error("DB Error fetching all events:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
         }
         res.status(200).json({ success: true, events: results });
     });
 });
 
-// Route: GET /api/admin/events/flagged - Returns flagged events
+/**
+ * Route: GET /api/admin/events/flagged
+ * ADDED: Returns list of flagged/reported events only. (Required for Task #194)
+ */
 router.get('/events/flagged', requireAdmin, (req, res) => {
     const sql = `
     SELECT
@@ -538,18 +418,21 @@ router.get('/events/flagged', requireAdmin, (req, res) => {
 
     db.query(sql, (err, results) => {
         if (err) {
-            console.error('DB Error fetching flagged events:', err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+            console.error("DB Error fetching flagged events:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
         }
         res.status(200).json({ success: true, flaggedEvents: results });
     });
 });
 
-// Route: PUT /api/admin/events/:id - Update event
+/**
+ * Route: PUT /api/admin/events/:id
+ * AC: Allows editing event details.
+ */
 router.put('/events/:id', requireAdmin, (req, res) => {
     const eventId = req.params.id;
     const { title, description, event_date, event_time, location, capacity, price, category } = req.body;
-
+    
     const fields = [];
     const params = [];
 
@@ -563,7 +446,7 @@ router.put('/events/:id', requireAdmin, (req, res) => {
     if (category) { fields.push('category = ?'); params.push(category); }
 
     if (fields.length === 0) {
-        return res.status(400).json({ success: false, message: 'No fields provided for update.' });
+        return res.status(400).json({ success: false, message: "No fields provided for update." });
     }
 
     params.push(eventId);
@@ -573,11 +456,11 @@ router.put('/events/:id', requireAdmin, (req, res) => {
     db.query(sql, params, (err, result) => {
         if (err) {
             console.error(`DB Error updating event ${eventId}:`, err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
         }
-
+        
         if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Event not found.' });
+            return res.status(404).json({ success: false, message: "Event not found." });
         }
 
         // Audit Trail Log
@@ -587,7 +470,10 @@ router.put('/events/:id', requireAdmin, (req, res) => {
     });
 });
 
-// Route: DELETE /api/admin/events/:id - Delete event
+/**
+ * Route: DELETE /api/admin/events/:id
+ * AC: Deletes event from system.
+ */
 router.delete('/events/:id', requireAdmin, (req, res) => {
     const eventId = req.params.id;
     const sql = 'DELETE FROM events WHERE id = ?';
@@ -595,11 +481,11 @@ router.delete('/events/:id', requireAdmin, (req, res) => {
     db.query(sql, [eventId], (err, result) => {
         if (err) {
             console.error(`DB Error deleting event ${eventId}:`, err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
         }
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Event not found.' });
+            return res.status(404).json({ success: false, message: "Event not found." });
         }
 
         // Audit Trail Log
@@ -609,14 +495,258 @@ router.delete('/events/:id', requireAdmin, (req, res) => {
     });
 });
 
-// Analytics handler (aggregated stats)
+// ==========================================
+// ORGANIZATION MANAGEMENT ENDPOINTS (Issue #201)
+// ==========================================
+
+/**
+ * GET /api/admin/organizations
+ * Returns all organizations with their details
+ */
+router.get('/organizations', requireAdmin, (req, res) => {
+    const sql = `
+    SELECT id, name, description, category, is_default, logo_url, created_at
+    FROM organizations
+    ORDER BY name ASC
+    `;
+    
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error("DB Error fetching organizations:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+        res.status(200).json({ success: true, organizations: results });
+    });
+});
+
+/**
+ * POST /api/admin/organizations
+ * Creates a new organization
+ */
+router.post('/organizations', requireAdmin, (req, res) => {
+    const { name, description, category, logo_url } = req.body;
+    
+    // Validation
+    if (!name || name.trim().length < 3 || name.trim().length > 100) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Organization name must be 3-100 characters" 
+        });
+    }
+    
+    const validCategories = ['sports', 'academic', 'social', 'club'];
+    if (!validCategories.includes(category)) {
+        return res.status(400).json({ 
+            success: false, 
+            message: `Category must be one of: ${validCategories.join(', ')}` 
+        });
+    }
+    
+    const sql = `
+    INSERT INTO organizations (name, description, category, logo_url, is_default)
+    VALUES (?, ?, ?, ?, FALSE)
+    `;
+    
+    db.query(sql, [name.trim(), description || null, category, logo_url || null], (err, result) => {
+        if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(409).json({ success: false, message: "Organization name already exists" });
+            }
+            console.error("DB Error creating organization:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+        
+        console.log(`AUDIT: Admin (User ID: ${req.session.userId}) CREATED Organization: ${name}`);
+        res.status(201).json({ 
+            success: true, 
+            message: "Organization created successfully",
+            id: result.insertId 
+        });
+    });
+});
+
+/**
+ * PUT /api/admin/organizations/:orgId
+ * Updates an existing organization
+ */
+router.put('/organizations/:orgId', requireAdmin, (req, res) => {
+    const orgId = req.params.orgId;
+    const { name, description, category, logo_url } = req.body;
+    
+    const fields = [];
+    const params = [];
+    
+    if (name) {
+        if (name.trim().length < 3 || name.trim().length > 100) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Organization name must be 3-100 characters" 
+            });
+        }
+        fields.push('name = ?');
+        params.push(name.trim());
+    }
+    
+    if (description !== undefined) {
+        fields.push('description = ?');
+        params.push(description || null);
+    }
+    
+    if (category) {
+        const validCategories = ['sports', 'academic', 'social', 'club'];
+        if (!validCategories.includes(category)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Category must be one of: ${validCategories.join(', ')}` 
+            });
+        }
+        fields.push('category = ?');
+        params.push(category);
+    }
+    
+    if (logo_url !== undefined) {
+        fields.push('logo_url = ?');
+        params.push(logo_url || null);
+    }
+    
+    if (fields.length === 0) {
+        return res.status(400).json({ success: false, message: "No fields to update" });
+    }
+    
+    params.push(orgId);
+    
+    const sql = `UPDATE organizations SET ${fields.join(', ')} WHERE id = ?`;
+    
+    db.query(sql, params, (err, result) => {
+        if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(409).json({ success: false, message: "Organization name already exists" });
+            }
+            console.error("DB Error updating organization:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Organization not found" });
+        }
+        
+        console.log(`AUDIT: Admin (User ID: ${req.session.userId}) UPDATED Organization ID: ${orgId}`);
+        res.status(200).json({ success: true, message: "Organization updated successfully" });
+    });
+});
+
+/**
+ * DELETE /api/admin/organizations/:orgId
+ * Deletes an organization
+ */
+router.delete('/organizations/:orgId', requireAdmin, (req, res) => {
+    const orgId = req.params.orgId;
+    
+    // Prevent deletion of default organization
+    const checkSql = 'SELECT is_default FROM organizations WHERE id = ?';
+    db.query(checkSql, [orgId], (err, results) => {
+        if (err) {
+            console.error("DB Error checking organization:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+        
+        if (!results.length) {
+            return res.status(404).json({ success: false, message: "Organization not found" });
+        }
+        
+        if (results[0].is_default) {
+            return res.status(403).json({ success: false, message: "Cannot delete default organization" });
+        }
+        
+        const sql = 'DELETE FROM organizations WHERE id = ?';
+        db.query(sql, [orgId], (err, result) => {
+            if (err) {
+                console.error("DB Error deleting organization:", err);
+                return res.status(500).json({ success: false, error: "Internal Server Error" });
+            }
+            
+            console.log(`AUDIT: Admin (User ID: ${req.session.userId}) DELETED Organization ID: ${orgId}`);
+            res.status(200).json({ success: true, message: "Organization deleted successfully" });
+        });
+    });
+});
+
+/**
+ * GET /api/admin/organizations/:orgId/members
+ * Returns all members of an organization with their roles
+ */
+router.get('/organizations/:orgId/members', requireAdmin, (req, res) => {
+    const orgId = req.params.orgId;
+    
+    const sql = `
+    SELECT om.id, om.user_id, u.name, u.email, om.role, om.status, om.assigned_at
+    FROM organization_members om
+    JOIN users u ON om.user_id = u.id
+    WHERE om.organization_id = ?
+    ORDER BY om.assigned_at DESC
+    `;
+    
+    db.query(sql, [orgId], (err, results) => {
+        if (err) {
+            console.error("DB Error fetching members:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+        res.status(200).json({ success: true, members: results });
+    });
+});
+
+/**
+ * PUT /api/admin/organizations/:orgId/members/:memberId/role
+ * Updates a member's role within an organization
+ */
+router.put('/organizations/:orgId/members/:memberId/role', requireAdmin, (req, res) => {
+    const { orgId, memberId } = req.params;
+    const { role } = req.body;
+    
+    const validRoles = ['President', 'Vice President', 'Event Manager', 'Member'];
+    if (!validRoles.includes(role)) {
+        return res.status(400).json({ 
+            success: false, 
+            message: `Role must be one of: ${validRoles.join(', ')}` 
+        });
+    }
+    
+    const sql = `
+    UPDATE organization_members 
+    SET role = ?, assigned_at = CURRENT_TIMESTAMP 
+    WHERE id = ? AND organization_id = ?
+    `;
+    
+    db.query(sql, [role, memberId, orgId], (err, result) => {
+        if (err) {
+            console.error("DB Error updating member role:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Member not found in organization" });
+        }
+        
+        console.log(`AUDIT: Admin (User ID: ${req.session.userId}) UPDATED Member ${memberId} role to ${role} in Org ${orgId}`);
+        res.status(200).json({ success: true, message: `Member role updated to ${role}` });
+    });
+});
+
+// ==========================================
+// ANALYTICS ENDPOINTS (Issue #198)
+// ==========================================
+
+/**
+ * Analytics handler (aggregated stats)
+ * Provides organization/event analytics with optional filtering
+ */
 function getAnalyticsHandler(database) {
     return (req, res) => {
         const start = Date.now();
         const { organization } = req.query;
 
         let sql = `
-            SELECT 
+            SELECT
                 COUNT(DISTINCT e.id) AS total_events,
                 COUNT(t.id) AS total_tickets_issued,
                 SUM(CASE WHEN t.checked_in = 1 THEN 1 ELSE 0 END) AS total_checked_in
@@ -633,7 +763,7 @@ function getAnalyticsHandler(database) {
         database.query(sql, params, (err, rows) => {
             if (err) {
                 console.error('Admin analytics query error:', err);
-                return res.status(500).json({ error: 'Internal Server Error' });
+                return res.status(500).json({ success: false, error: 'Internal Server Error' });
             }
 
             const row = rows && rows[0] ? rows[0] : {};
@@ -666,6 +796,10 @@ function getAnalyticsHandler(database) {
     };
 }
 
+/**
+ * GET /api/admin/analytics
+ * Returns aggregated analytics for events and tickets
+ */
 router.get('/analytics', requireAdmin, getAnalyticsHandler(db));
 
 module.exports = router;

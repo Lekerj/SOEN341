@@ -66,10 +66,10 @@ app.use(
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/tickets", ticketRoutes);
-app.use("/api/admin", adminRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/organizer", organizerRoutes);
-
+app.use('/api/admin' , adminRoutes); 
+// Adding ^ for the admin.js which handles organizer role testing. 
 app.get("/api/test", (req, res) => {
   res.json({ message: "API is working!" });
 });
