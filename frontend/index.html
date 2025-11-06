@@ -19,6 +19,12 @@
                 <li><a href="index.html">Home</a></li>
                 <li><a href="browse.html">Browse</a></li>
                 <li><a href="about.html">About</a></li>
+                <li id="adminMenu" class="dropdown" style="display:none;">
+                    <a href="#" class="dropdown-toggle">Admin</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="admin-moderation.html">Event Moderation</a></li>
+                    </ul>
+                </li>
                 <li id="organizerMenu" class="dropdown" style="display:none;">
                     <a href="#" class="dropdown-toggle">Organizer</a>
                     <ul class="dropdown-menu">
@@ -45,8 +51,13 @@
       document.addEventListener('DOMContentLoaded', function () {
         try {
           const user = JSON.parse(localStorage.getItem('user') || 'null');
+          const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
           const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+
+          const adminMenu = document.getElementById('adminMenu');
           const organizerMenu = document.getElementById('organizerMenu');
+
+          if (adminMenu) adminMenu.style.display = isAdmin ? '' : 'none';
           if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
         } catch (e) {}
       });
