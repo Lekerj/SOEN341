@@ -10,7 +10,7 @@ const adminRoutes = require("./routes/admin");
 const eventRoutes = require("./routes/events");
 
 // Adding this (PERSON1): Import the organizer route file
-const organizerRoutes = require("./routes/Organizer");
+const organizerRoutes = require("./routes/organizer");
 
 //Import the database connection
 const db = require("./config/db");

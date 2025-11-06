@@ -16,10 +16,13 @@ const signalEmailNotification = (userID, decision) => {
 //router GET: /api/admin/organizer/pending (Fetches pending Requests)
 router.get('/organizer/pending', requireAdmin, (req,res) => {
     const sql = `
-    SELECT id, name, email, organization, created_at
-    FROM users
-    WHERE role = 'pending'
-    ORDER BY created_at ASC`; 
+    SELECT 
+      u.id, u.name, u.email, u.request_date, u.organization_role,
+      o.id AS organization_id, o.name AS organization_name, o.category AS organization_category
+    FROM users u
+    LEFT JOIN organizations o ON u.organization_id = o.id
+    WHERE u.organizer_auth_status = 'pending'
+    ORDER BY u.request_date ASC`; 
 
     db.query(sql, (err, results)=> {
         if(err){
@@ -34,23 +37,36 @@ router.get('/organizer/pending', requireAdmin, (req,res) => {
 // ROUTER POST /api/admin/organizer/:id/approve
 router.post('/organizers/:id/approve', requireAdmin, (req, res) => {
     const userId = req.params.id;
+    const { organization_role } = req.body || {};
+    const roleToAssign = organization_role || 'Member';
+
+    const sql = `UPDATE users 
+                 SET role = 'organizer', organizer_auth_status = 'approved', 
+                     organization_role = ?, approval_date = CURRENT_TIMESTAMP
+                 WHERE id = ?`;
     
-    // Updates role to 'organizer' only if the current role is 'pending'
-    const sql = 'UPDATE users SET role = ? WHERE id = ? AND role = "pending"';
-    
-    db.query(sql, ['organizer', userId], (err, result) => {
+    db.query(sql, [roleToAssign, userId], (err, result) => {
         if (err) {
             console.error(`DB Error approving user ${userId}:`, err);
             return res.status(500).json({ success: false, error: "Internal Server Error", message: "Database update failed during approval." });
         }
         
         if (result.affectedRows === 0) {
-             return res.status(404).json({ success: false, message: "User not found or not eligible for approval (role is not 'pending')." });
+             return res.status(404).json({ success: false, message: "User not found or not eligible for approval." });
         }
         // ADDED: Audit Log for successful rejection
         console.log(`AUDIT: Admin (User ID: ${req.session.userId}) APPROVED user ID: ${userId}`);
 
-        signalEmailNotification(userId, 'approved');
+        // Notify user of approval
+        const getOrgSql = 'SELECT organization_id FROM users WHERE id = ?';
+        db.query(getOrgSql, [userId], (e2, rows) => {
+            const orgId = !e2 && rows && rows[0] ? rows[0].organization_id : null;
+            const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
+                          VALUES (?, 'user', 'request_approved', 'Organizer request approved', 'Your organizer request has been approved.', ?, ?, 'approved')`;
+            db.query(nsql, [userId, userId, orgId], (e3) => {
+                if (e3) console.error('Notification insert failed (approval):', e3);
+            });
+        });
         
         res.status(200).json({ success: true, message: `Organizer request for ID ${userId} approved. Role updated to 'organizer'.` });
     });
@@ -60,20 +76,31 @@ router.post('/organizers/:id/approve', requireAdmin, (req, res) => {
 router.post('/organizers/:id/reject', requireAdmin, (req, res) => {
     const userId = req.params.id;
 
-    // Updates role to 'rejected' only if the current role is 'pending'
-    const sql = 'UPDATE users SET role = ? WHERE id = ? AND role = "pending"';
+    const sql = `UPDATE users 
+                 SET organizer_auth_status = 'refused', approval_date = CURRENT_TIMESTAMP
+                 WHERE id = ?`;
 
-    db.query(sql, ['rejected', userId], (err, result) => {
+    db.query(sql, [userId], (err, result) => {
         if (err) {
             console.error(`DB Error rejecting user ${userId}:`, err);
             return res.status(500).json({ success: false, error: "Internal Server Error", message: "Database update failed during rejection." });
         }
 
         if (result.affectedRows === 0) {
-             return res.status(404).json({ success: false, message: "User not found or not eligible for rejection (role is not 'pending')." });
+             return res.status(404).json({ success: false, message: "User not found or not eligible for rejection." });
         }
         console.log(`AUDIT: Admin (User ID: ${req.session.userId}) REJECTED user ID: ${userId}`);
-        signalEmailNotification(userId, 'rejected');
+
+        // Notify user of rejection
+        const getOrgSql = 'SELECT organization_id FROM users WHERE id = ?';
+        db.query(getOrgSql, [userId], (e2, rows) => {
+            const orgId = !e2 && rows && rows[0] ? rows[0].organization_id : null;
+            const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
+                          VALUES (?, 'user', 'request_refused', 'Organizer request refused', 'Your organizer request has been refused. You may modify and resubmit.', ?, ?, 'refused')`;
+            db.query(nsql, [userId, userId, orgId], (e3) => {
+                if (e3) console.error('Notification insert failed (rejection):', e3);
+            });
+        });
 
         res.status(200).json({ success: true, message: `Organizer request for ID ${userId} rejected. Role updated to 'rejected'.` });
     });
@@ -86,9 +113,10 @@ router.post('/organizers/:id/reject', requireAdmin, (req, res) => {
  */
 router.get('/users', requireAdmin, (req,res)=>{
     const sql = `
-    SELECT id, name, email, role, created_at, organization
-    FROM users
-    ORDER BY created_at DESC`;
+    SELECT u.id, u.name, u.email, u.role, u.created_at, u.organization_id, o.name AS organization_name
+    FROM users u
+    LEFT JOIN organizations o ON u.organization_id = o.id
+    ORDER BY u.created_at DESC`;
 
     db.query(sql, (err, results)=>{
         if(err){
@@ -110,7 +138,7 @@ router.put('/users/:id/role', requireAdmin, (req,res)=>{
     const { newRole } = req.body;
 
     //Define valid roles for validation
-    const VALID_ROLES = ['admin', 'organizer', 'student','user','pending','rejected'];
+    const VALID_ROLES = ['admin', 'organizer', 'student','user'];
 
     //400 Bad Request Check: Validate role input 
     if(!newRole || !VALID_ROLES.includes(newRole)){
@@ -119,19 +147,20 @@ router.put('/users/:id/role', requireAdmin, (req,res)=>{
             message: `Invalid or missing role provided. Must be one of: ${VALID_ROLES.join(', ')}.`
         })
     }
-    const sql = 'UPDATE usuers SET role = ? WHERE id = ?';
+    const sql = 'UPDATE users SET role = ? WHERE id = ?';
 
     db.query(sql,[newRole,userId], (err,result) =>{
         if(err){
             console.error(`DB Error assinging role to user ${userId}:`, err);
-            return res.status(500).json({success:false, erorr:"Internal Server Error"});
+            return res.status(500).json({success:false, error:"Internal Server Error"});
         }
-        if(results.affectedRows===0){
+        if(result.affectedRows===0){
             return res.status(404).json({success: false, message: "User not found."});
         }
 
         //Audit Trail Log:
         console.log(`AUDIT: Admin (User ID: ${req.session.userId}) assigned role '${newRole}' to User ID: ${userId}`);
+        return res.status(200).json({ success: true, message: `Role for user ${userId} updated to ${newRole}`});
     })
 })
 
@@ -144,7 +173,7 @@ router.put('/users/:id/role', requireAdmin, (req,res)=>{
 router.get('/organization', requireAdmin, (req,res)=>{
     const sql = `
     SELECT id, name, logo_url, description, created_at
-    FROM ogranization
+    FROM organizations
     ORDER BY name ASC`;
 
     db.query(sql,(err,results)=>{
@@ -153,6 +182,58 @@ router.get('/organization', requireAdmin, (req,res)=>{
             return res.status(500).json({succes: false, error: "Internal Server Error", message: "Failed to retrieve organization list."});
         }
         res.status(200).json({sucess: true, organization: results});
+    });
+});
+
+// ---- Admin Notifications Endpoints ----
+router.get('/notifications/unread-count', requireAdmin, (req, res) => {
+    const sql = `SELECT COUNT(*) AS cnt FROM notifications WHERE audience = 'admin' AND is_read = FALSE`;
+    db.query(sql, (err, rows) => {
+        if (err) {
+            console.error('DB error fetching admin unread count:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        res.status(200).json({ success: true, count: rows[0].cnt });
+    });
+});
+
+router.get('/notifications', requireAdmin, (req, res) => {
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit) || 20, 100));
+    const sql = `SELECT * FROM notifications WHERE audience = 'admin' ORDER BY created_at DESC LIMIT ?`;
+    db.query(sql, [limit], (err, rows) => {
+        if (err) {
+            console.error('DB error fetching admin notifications:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        res.status(200).json({ success: true, notifications: rows });
+    });
+});
+
+router.post('/notifications/:id/read', requireAdmin, (req, res) => {
+    const id = req.params.id;
+    const sql = `UPDATE notifications SET is_read = TRUE, read_at = CURRENT_TIMESTAMP
+                 WHERE id = ? AND audience = 'admin'`;
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error('DB error marking admin notification read:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Notification not found' });
+        }
+        res.status(200).json({ success: true });
+    });
+});
+
+router.post('/notifications/read-all', requireAdmin, (req, res) => {
+    const sql = `UPDATE notifications SET is_read = TRUE, read_at = CURRENT_TIMESTAMP
+                 WHERE audience = 'admin' AND is_read = FALSE`;
+    db.query(sql, (err) => {
+        if (err) {
+            console.error('DB error marking all admin notifications read:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        res.status(200).json({ success: true });
     });
 });
 

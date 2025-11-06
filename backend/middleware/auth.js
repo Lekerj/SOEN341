@@ -49,6 +49,63 @@ const requireAdmin = requireRole('admin');
 const requireModerator = requireAdmin; // Modertion uses the same high level admin check
 const requireOrganizer = requireRole('organizer');
 
-module.exports = { requireAuth, requireRole, requireOrganizer, requireAdmin, requireModerator};
-// Exporting the new Admin Middleware
-// Exporting  the new Moderator alias. 
+/**
+ * Middleware to check if user is an APPROVED organizer
+ * This checks both role='organizer' AND organizer_auth_status='approved'
+ */
+function requireApprovedOrganizer(req, res, next) {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Unauthorized - Please log in" });
+  }
+
+  db.query(
+    'SELECT role, organizer_auth_status FROM users WHERE id = ?',
+    [req.session.userId],
+    (err, rows) => {
+      if (err) {
+        console.error("Database error during organizer check:", err);
+        return res.status(500).json({ error: "Internal Server Error" });
+      }
+
+      if (rows.length === 0) {
+        return res.status(500).json({ error: "Internal Server Error: User not found" });
+      }
+
+      const user = rows[0];
+
+      // Check if user has organizer role
+      if (user.role !== 'organizer') {
+        console.error(`AUDIT: Forbidden access attempt. User ID: ${req.session.userId}, Role: ${user.role}, Endpoint: ${req.originalUrl}, Required Role: organizer`);
+        return res.status(403).json({ error: "Forbidden - Organizer role required" });
+      }
+
+      // Check if organizer is approved
+      if (user.organizer_auth_status !== 'approved') {
+        const status = user.organizer_auth_status || 'not requested';
+        console.error(`AUDIT: Unapproved organizer access attempt. User ID: ${req.session.userId}, Status: ${status}, Endpoint: ${req.originalUrl}`);
+        return res.status(403).json({ 
+          error: "Forbidden - Organizer approval required",
+          organizer_auth_status: user.organizer_auth_status,
+          message: status === 'pending' 
+            ? "Your organizer request is pending admin approval"
+            : status === 'refused'
+            ? "Your organizer request was refused. Please submit a new request."
+            : "Please submit an organizer request to access this feature"
+        });
+      }
+
+      req.userRole = user.role;
+      req.organizerAuthStatus = user.organizer_auth_status;
+      next();
+    }
+  );
+}
+
+module.exports = { 
+  requireAuth, 
+  requireRole, 
+  requireOrganizer, 
+  requireApprovedOrganizer,  // New middleware for approved organizers only
+  requireAdmin, 
+  requireModerator
+}; 

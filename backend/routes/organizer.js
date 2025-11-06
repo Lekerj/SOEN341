@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
-const { requireOrganizer } = require('../middleware/auth'); 
+const { requireOrganizer, requireApprovedOrganizer, requireAuth } = require('../middleware/auth'); 
 const { attendeesToCsv } = require('../utils/csv');
 
 // Utility function for basic validation 
@@ -96,10 +96,10 @@ const validateEventData = (data) => {
 
 /**
  * Route: POST /api/organizer/events
- * Function: Allows an authenticated 'organizer' user to create a new event.
- * Middleware: requireOrganizer (Checks session and role)
+ * Function: Allows an authenticated and APPROVED 'organizer' user to create a new event.
+ * Middleware: requireApprovedOrganizer (Checks session, role, and approval status)
  */
-router.post('/events', requireOrganizer, (req, res) => {
+router.post('/events', requireApprovedOrganizer, (req, res) => {
     const eventData = req.body;
 
     // 1. Validation 
@@ -155,10 +155,10 @@ router.post('/events', requireOrganizer, (req, res) => {
 
 /**
  * Route: PUT /api/organizer/events/:id
- * Function: Allows an authenticated 'organizer' user to update an existing event.
- * Middleware: requireOrganizer (Checks session and role)
+ * Function: Allows an authenticated and APPROVED 'organizer' user to update an existing event.
+ * Middleware: requireApprovedOrganizer (Checks session, role, and approval status)
  */
-router.put('/events/:id', requireOrganizer, (req, res) => {
+router.put('/events/:id', requireApprovedOrganizer, (req, res) => {
     const eventId = req.params.id;
     const organizerId = req.session.userId;
     const eventData = req.body;
@@ -375,9 +375,9 @@ router.put('/events/:id', requireOrganizer, (req, res) => {
 /**
  * Route: GET /api/organizer/events/:id/analytics
  * Function: Returns detailed analytics for a specific event owned by the organizer.
- * Middleware: requireOrganizer
+ * Middleware: requireApprovedOrganizer
  */
-router.get('/events/:id/analytics', requireOrganizer, async (req, res) => {
+router.get('/events/:id/analytics', requireApprovedOrganizer, async (req, res) => {
     const eventId = req.params.id;
     const organizerId = req.session.userId;
 
@@ -458,10 +458,10 @@ router.get('/events/:id/analytics', requireOrganizer, async (req, res) => {
 /**
  * Route: GET /api/organizer/events
  * Function: Returns all events owned by the authenticated organizer.
- * Middleware: requireOrganizer
+ * Middleware: requireApprovedOrganizer
  */
 
-router.get('/events', requireOrganizer, (req, res) => {
+router.get('/events', requireApprovedOrganizer, (req, res) => {
     const organizerId = req.session.userId;
     console.log('Fetching events for organizer:', organizerId);
     const sql = `
@@ -521,9 +521,9 @@ router.get('/events', requireOrganizer, (req, res) => {
 /**
  * Route: GET /api/organizer/events/:id/export-csv
  * Function: Provides attendee list CSV download for organizer-owned event.
- * Middleware: requireOrganizer
+ * Middleware: requireApprovedOrganizer
  */
-router.get('/events/:id/export-csv', requireOrganizer, (req, res) => {
+router.get('/events/:id/export-csv', requireApprovedOrganizer, (req, res) => {
     const eventId = req.params.id;
     const organizerId = req.session.userId;
 
@@ -572,9 +572,9 @@ router.get('/events/:id/export-csv', requireOrganizer, (req, res) => {
 /**
  * Route: GET /api/organizer/events/:id/attendees
  * Function: Returns detailed attendee info for a specific event owned by the organizer.
- * Middleware: requireOrganizer
+ * Middleware: requireApprovedOrganizer
  */
-router.get('/events/:id/attendees', requireOrganizer, async (req, res) => {
+router.get('/events/:id/attendees', requireApprovedOrganizer, async (req, res) => {
     const eventId = req.params.id;
     const organizerId = req.session.userId;
     const checkedInParam = req.query.checked_in;
@@ -635,3 +635,204 @@ router.get('/events/:id/attendees', requireOrganizer, async (req, res) => {
 });
 
 module.exports = router;
+
+/**
+ * ---- NEW: Organizer Request & Notifications Endpoints ----
+ * Keeping changes minimal and scoped to this file to avoid new route files.
+ */
+
+// Helper: insert admin notification
+function notifyAdminOfRequest(requesterId, orgId, orgName) {
+    const sql = `INSERT INTO notifications
+        (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
+        VALUES (NULL, 'admin', 'organizer_request', ?, ?, ?, ?, 'pending')`;
+    const title = 'New organizer request';
+    const message = `User ID ${requesterId} requested organizer access for organization: ${orgName}`;
+    db.query(sql, [title, message, requesterId, orgId], (err) => {
+        if (err) console.error('Failed to insert admin notification:', err);
+    });
+}
+
+// Helper: insert user notification
+function notifyUserOfDecision(userId, orgId, status) {
+    const isApproved = status === 'approved';
+    const type = isApproved ? 'request_approved' : 'request_refused';
+    const title = isApproved ? 'Organizer request approved' : 'Organizer request refused';
+    const message = isApproved
+        ? 'Your organizer request has been approved.'
+        : 'Your organizer request has been refused. You may modify and resubmit.';
+    const sql = `INSERT INTO notifications
+        (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
+        VALUES (?, 'user', ?, ?, ?, ?, ?, ?)`;
+    db.query(sql, [userId, type, title, message, userId, orgId || null, status], (err) => {
+        if (err) console.error('Failed to insert user notification:', err);
+    });
+}
+
+/**
+ * GET /api/organizer/organizations
+ * Optional query ?category=sports|academic|social|club
+ */
+router.get('/organizations', (req, res) => {
+    const { category } = req.query;
+    let sql = `SELECT id, name, category, is_default FROM organizations`;
+    const params = [];
+    if (category) {
+        sql += ` WHERE category = ?`;
+        params.push(category);
+    }
+    sql += ` ORDER BY category ASC, name ASC`;
+    db.query(sql, params, (err, results) => {
+        if (err) {
+            console.error('DB error fetching organizations:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        res.status(200).json({ success: true, organizations: results });
+    });
+});
+
+/**
+ * GET /api/organizer/status
+ * Returns current user's organizer_auth_status and organization info
+ */
+router.get('/status', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const sql = `SELECT u.organizer_auth_status, u.organization_role, u.request_date, u.approval_date,
+                                            o.id AS organization_id, o.name AS organization_name, o.category AS organization_category
+                             FROM users u
+                             LEFT JOIN organizations o ON u.organization_id = o.id
+                             WHERE u.id = ?`;
+    db.query(sql, [userId], (err, rows) => {
+        if (err) {
+            console.error('DB error fetching organizer status:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+        res.status(200).json({ success: true, status: rows[0] });
+    });
+});
+
+/**
+ * POST /api/organizer/request
+ * Body: { organization_id } OR { new_organization_name, category }
+ * Sets organizer_auth_status='pending', organization_role='Member', request_date=NOW(), approval_date=NULL
+ */
+router.post('/request', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const { organization_id, new_organization_name, category } = req.body || {};
+
+    // Validate input
+    if (!organization_id && !new_organization_name) {
+        return res.status(400).json({ success: false, error: 'Provide organization_id or new_organization_name' });
+    }
+
+    function finalizeWithOrgId(orgId, orgName) {
+        const sql = `UPDATE users
+                                 SET organization_id = ?, organizer_auth_status = 'pending', organization_role = 'Member',
+                                         request_date = CURRENT_TIMESTAMP, approval_date = NULL
+                                 WHERE id = ?`;
+        db.query(sql, [orgId, userId], (err) => {
+            if (err) {
+                console.error('DB error updating user organizer request:', err);
+                return res.status(500).json({ success: false, error: 'Internal Server Error' });
+            }
+            // Notify admins of new/updated request
+            notifyAdminOfRequest(userId, orgId, orgName);
+            res.status(200).json({ success: true, message: 'Request submitted. Status set to pending.' });
+        });
+    }
+
+    if (organization_id) {
+        // Use existing organization
+        db.query('SELECT id, name FROM organizations WHERE id = ?', [organization_id], (err, rows) => {
+            if (err) {
+                console.error('DB error fetching organization:', err);
+                return res.status(500).json({ success: false, error: 'Internal Server Error' });
+            }
+            if (!rows || rows.length === 0) {
+                return res.status(400).json({ success: false, error: 'Invalid organization_id' });
+            }
+            finalizeWithOrgId(rows[0].id, rows[0].name);
+        });
+    } else {
+        // Create new organization then proceed
+        if (!category || !['sports','academic','social','club'].includes(category)) {
+            return res.status(400).json({ success: false, error: 'Valid category required for new organization' });
+        }
+        const insertOrg = `INSERT INTO organizations (name, description, category, is_default)
+                                             VALUES (?, ?, ?, FALSE)`;
+        const desc = `Requested by user ${userId}`;
+        db.query(insertOrg, [new_organization_name, desc, category], (err, result) => {
+            if (err) {
+                console.error('DB error creating organization:', err);
+                return res.status(500).json({ success: false, error: 'Failed to create organization' });
+            }
+            finalizeWithOrgId(result.insertId, new_organization_name);
+        });
+    }
+});
+
+/**
+ * ---- User Notifications (Organizer/User side) ----
+ */
+router.get('/notifications/unread-count', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const sql = `SELECT COUNT(*) AS cnt
+                             FROM notifications
+                             WHERE audience = 'user' AND user_id = ? AND is_read = FALSE`;
+    db.query(sql, [userId], (err, rows) => {
+        if (err) {
+            console.error('DB error fetching unread count:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        res.status(200).json({ success: true, count: rows[0].cnt });
+    });
+});
+
+router.get('/notifications', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit) || 20, 100));
+    const sql = `SELECT * FROM notifications
+                             WHERE audience = 'user' AND user_id = ?
+                             ORDER BY created_at DESC
+                             LIMIT ?`;
+    db.query(sql, [userId, limit], (err, rows) => {
+        if (err) {
+            console.error('DB error fetching notifications:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        res.status(200).json({ success: true, notifications: rows });
+    });
+});
+
+router.post('/notifications/:id/read', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const id = req.params.id;
+    const sql = `UPDATE notifications SET is_read = TRUE, read_at = CURRENT_TIMESTAMP
+                             WHERE id = ? AND audience = 'user' AND user_id = ?`;
+    db.query(sql, [id, userId], (err, result) => {
+        if (err) {
+            console.error('DB error marking notification read:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'Notification not found' });
+        }
+        res.status(200).json({ success: true });
+    });
+});
+
+router.post('/notifications/read-all', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const sql = `UPDATE notifications SET is_read = TRUE, read_at = CURRENT_TIMESTAMP
+                             WHERE audience = 'user' AND user_id = ? AND is_read = FALSE`;
+    db.query(sql, [userId], (err) => {
+        if (err) {
+            console.error('DB error marking all notifications read:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        res.status(200).json({ success: true });
+    });
+});
