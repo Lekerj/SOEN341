@@ -754,6 +754,87 @@
             return div.innerHTML;
         }
 
+        // View request details
+        function viewDetails(requestId) {
+            const request = allRequests.find(r => r.id === requestId);
+            if (!request) return;
+
+            currentRequestId = requestId;
+            document.getElementById('requestOrgName').textContent = request.organization_name || 'N/A';
+            document.getElementById('requestUserName').textContent = request.user_name || 'Unknown';
+            document.getElementById('requestEmail').textContent = request.user_email || 'N/A';
+            document.getElementById('requestType').textContent = request.request_type || 'N/A';
+            document.getElementById('requestDetails').textContent = request.details || 'No details provided';
+            document.getElementById('requestDate').textContent = formatDate(request.created_at);
+            document.getElementById('requestStatus').textContent = request.status;
+
+            const modal = document.getElementById('requestModal');
+            if (request.status === 'pending') {
+                document.getElementById('approveBtn').style.display = 'inline-block';
+                document.getElementById('rejectBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('approveBtn').style.display = 'none';
+                document.getElementById('rejectBtn').style.display = 'none';
+            }
+
+            modal.classList.add('active');
+        }
+
+        // Close modal
+        function closeModal() {
+            const modal = document.getElementById('requestModal');
+            modal.classList.remove('active');
+        }
+
+        // Approve request
+        async function approveRequest() {
+            if (!currentRequestId) return;
+
+            try {
+                const response = await fetch(apiUrl(`/api/admin/organizers/${currentRequestId}/approve`), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) throw new Error('Failed to approve request');
+
+                showAlert('success', 'Request approved successfully');
+                closeModal();
+                loadRequests();
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('error', error.message || 'Failed to approve request');
+            }
+        }
+
+        // Reject request
+        async function rejectRequest() {
+            if (!currentRequestId) return;
+
+            const reason = prompt('Please provide a reason for rejection:');
+            if (!reason) return;
+
+            try {
+                const response = await fetch(apiUrl(`/api/admin/organizers/${currentRequestId}/reject`), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason: reason })
+                });
+
+                if (!response.ok) throw new Error('Failed to reject request');
+
+                showAlert('success', 'Request rejected successfully');
+                closeModal();
+                loadRequests();
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('error', error.message || 'Failed to reject request');
+            }
+        }
+
+        // Track current request ID
+        let currentRequestId = null;
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             checkAdminAuth();

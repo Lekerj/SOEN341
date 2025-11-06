@@ -556,6 +556,35 @@
             return div.innerHTML;
         }
 
+        // Cancel a pending request
+        async function cancelRequest(requestId) {
+            if (!confirm('Are you sure you want to cancel this request?')) return;
+
+            try {
+                const response = await fetch(apiUrl(`/api/organizer/request/${requestId}`), {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('Failed to cancel request');
+
+                showAlert('success', 'Request cancelled successfully');
+                loadRequests();
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('error', error.message || 'Failed to cancel request');
+            }
+        }
+
+        // View organization details
+        function viewOrganization(organizationId) {
+            if (!organizationId) {
+                showAlert('info', 'Organization details not available');
+                return;
+            }
+            // Navigate to organization detail or show info
+            window.location.href = `/admin-organization-management.html?id=${organizationId}`;
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
