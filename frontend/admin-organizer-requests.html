@@ -759,7 +759,8 @@
             const request = allRequests.find(r => r.id === requestId);
             if (!request) return;
 
-            currentRequestId = requestId;
+            // Store user_id for approve/reject, not request id
+            currentRequestId = request.user_id;
             document.getElementById('requestOrgName').textContent = request.organization_name || 'N/A';
             document.getElementById('requestUserName').textContent = request.user_name || 'Unknown';
             document.getElementById('requestEmail').textContent = request.user_email || 'N/A';

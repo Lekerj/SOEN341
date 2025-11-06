@@ -457,6 +457,62 @@ router.get('/requests', requireAuth, (req, res) => {
     });
 });
 
+// DELETE /api/organizer/request/:id
+// Allows user to cancel a pending organizer request
+router.delete('/request/:id', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const requestId = req.params.id;
+
+    // First verify the request belongs to the user and is pending
+    db.query(
+        'SELECT id, status FROM organizer_requests WHERE id = ? AND user_id = ?',
+        [requestId, userId],
+        (err, rows) => {
+            if (err) {
+                console.error('DB error checking request:', err);
+                return res.status(500).json({ success: false, error: 'Internal Server Error' });
+            }
+
+            if (!rows || rows.length === 0) {
+                return res.status(404).json({ success: false, error: 'Request not found' });
+            }
+
+            const request = rows[0];
+            if (request.status !== 'pending') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Can only cancel pending requests'
+                });
+            }
+
+            // Delete the request
+            db.query(
+                'DELETE FROM organizer_requests WHERE id = ? AND user_id = ?',
+                [requestId, userId],
+                (err2) => {
+                    if (err2) {
+                        console.error('DB error deleting request:', err2);
+                        return res.status(500).json({ success: false, error: 'Internal Server Error' });
+                    }
+
+                    // Reset user's organizer status
+                    db.query(
+                        'UPDATE users SET organizer_auth_status = NULL, organization_id = NULL WHERE id = ?',
+                        [userId],
+                        (err3) => {
+                            if (err3) {
+                                console.error('DB error resetting user status:', err3);
+                                return res.status(500).json({ success: false, error: 'Internal Server Error' });
+                            }
+                            res.status(200).json({ success: true, message: 'Request cancelled successfully' });
+                        }
+                    );
+                }
+            );
+        }
+    );
+});
+
 // GET /api/organizer/memberships
 // Returns all organization memberships for the current user
 router.get('/memberships', requireAuth, (req, res) => {
