@@ -237,7 +237,7 @@ router.put('/events/:id', requireApprovedOrganizer, (req, res) => {
 
 // POST /api/organizer/request
 // Submit a NEW organizer request. If status is 'refused', allows resubmission. Blocks if 'pending' exists.
-router.post('/request', requireAuth, (req, res) => {
+router.post('/request', requireOrganizer, (req, res) => {
     const userId = req.session.userId;
     const { organization_id, new_organization_name, category, details } = req.body || {};
 
@@ -246,13 +246,21 @@ router.post('/request', requireAuth, (req, res) => {
     }
 
     // Check for existing pending request - user should use PATCH to modify it instead
-    db.query('SELECT organizer_auth_status FROM users WHERE id = ?', [userId], (err, userRows) => {
+    db.query('SELECT organizer_auth_status, role FROM users WHERE id = ?', [userId], (err, userRows) => {
         if (err) {
             console.error('DB error checking user status:', err);
             return res.status(500).json({ success: false, error: 'Internal Server Error' });
         }
         
         const currentStatus = userRows[0]?.organizer_auth_status;
+        const currentRole = userRows[0]?.role;
+
+        if (currentRole !== 'organizer') {
+            return res.status(403).json({
+                success: false,
+                error: 'Only organizer accounts can submit organizer authorization requests.'
+            });
+        }
         
         if (currentStatus === 'pending') {
             return res.status(400).json({ 
@@ -281,8 +289,9 @@ router.post('/request', requireAuth, (req, res) => {
                     return res.status(500).json({ success: false, error: 'Internal Server Error' });
                 }
                 // Update user status to pending (role should already be 'organizer' from registration)
+                // Set auth status to pending; keep organization_role NULL until admin approval assigns a role
                 const sql = `UPDATE users
-                    SET organization_id = ?, organizer_auth_status = 'pending', organization_role = 'Member',
+                    SET organization_id = ?, organizer_auth_status = 'pending', organization_role = NULL,
                         request_date = CURRENT_TIMESTAMP, approval_date = NULL
                     WHERE id = ?`;
                 db.query(sql, [orgId, userId], (err2) => {
@@ -291,7 +300,7 @@ router.post('/request', requireAuth, (req, res) => {
                         return res.status(500).json({ success: false, error: 'Internal Server Error' });
                     }
                     // Notify admins of new/updated request
-                    notifyAdminOfRequest(userId, orgId, orgName);
+                    // Notification to admin deferred until notification system finalized
                     res.status(200).json({ success: true, message: 'Request submitted. Status set to pending.' });
                 });
             });
@@ -328,13 +337,17 @@ router.post('/request', requireAuth, (req, res) => {
 
 // PATCH /api/organizer/request/:id
 // Modify a PENDING request (change organization or details). Cannot modify refused/approved requests.
-router.patch('/request/:id', requireAuth, (req, res) => {
+router.patch('/request/:id', requireOrganizer, (req, res) => {
     const userId = req.session.userId;
     const requestId = req.params.id;
     const { organization_id, new_organization_name, category, details } = req.body || {};
 
     // Fetch the existing request
-    db.query('SELECT * FROM organizer_requests WHERE id = ? AND user_id = ?', [requestId, userId], (err, rows) => {
+    const fetchSql = `SELECT r.*, o.name AS organization_name
+                      FROM organizer_requests r
+                      LEFT JOIN organizations o ON r.organization_id = o.id
+                      WHERE r.id = ? AND r.user_id = ?`;
+    db.query(fetchSql, [requestId, userId], (err, rows) => {
         if (err) {
             console.error('DB error fetching request:', err);
             return res.status(500).json({ success: false, error: 'Internal Server Error' });
@@ -362,21 +375,18 @@ router.patch('/request/:id', requireAuth, (req, res) => {
         if (details !== undefined) updates.details = details;
         
         // Handle organization change
-        function applyUpdate(finalOrgId) {
+        function applyUpdate(finalOrgId, requestType, orgNameForNotification) {
             const setClauses = [];
             const values = [];
             
             if (finalOrgId !== undefined && finalOrgId !== request.organization_id) {
                 setClauses.push('organization_id = ?');
                 values.push(finalOrgId);
-                // Update request_type if switching between join/create
-                if (finalOrgId && !request.organization_id) {
-                    setClauses.push('request_type = ?');
-                    values.push('join');
-                } else if (!finalOrgId && request.organization_id) {
-                    setClauses.push('request_type = ?');
-                    values.push('create');
-                }
+            }
+
+            if (requestType && requestType !== request.request_type) {
+                setClauses.push('request_type = ?');
+                values.push(requestType);
             }
             
             if (updates.details !== undefined) {
@@ -404,14 +414,16 @@ router.patch('/request/:id', requireAuth, (req, res) => {
                         if (err3) console.error('DB error updating user org:', err3);
                     });
                 }
-                
+
+                // Admin notification for updates deferred; keep logic minimal
+
                 res.status(200).json({ success: true, message: 'Request updated successfully' });
             });
         }
         
         // Handle organization_id change
         if (organization_id !== undefined) {
-            db.query('SELECT id FROM organizations WHERE id = ?', [organization_id], (err, orgRows) => {
+            db.query('SELECT id, name FROM organizations WHERE id = ?', [organization_id], (err, orgRows) => {
                 if (err) {
                     console.error('DB error fetching organization:', err);
                     return res.status(500).json({ success: false, error: 'Internal Server Error' });
@@ -419,7 +431,7 @@ router.patch('/request/:id', requireAuth, (req, res) => {
                 if (!orgRows || orgRows.length === 0) {
                     return res.status(400).json({ success: false, error: 'Invalid organization_id' });
                 }
-                applyUpdate(organization_id);
+                applyUpdate(organization_id, 'join', orgRows[0].name);
             });
         } else if (new_organization_name) {
             // Creating new organization - validate category
@@ -432,11 +444,11 @@ router.patch('/request/:id', requireAuth, (req, res) => {
                     console.error('DB error creating organization:', err);
                     return res.status(500).json({ success: false, error: 'Failed to create organization' });
                 }
-                applyUpdate(result.insertId);
+                applyUpdate(result.insertId, 'create', new_organization_name);
             });
         } else {
             // Just updating details
-            applyUpdate();
+            applyUpdate(undefined, undefined, request.organization_name);
         }
     });
 });
@@ -747,32 +759,7 @@ module.exports = router;
  */
 
 // Helper: insert admin notification
-function notifyAdminOfRequest(requesterId, orgId, orgName) {
-    const sql = `INSERT INTO notifications
-        (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
-        VALUES (NULL, 'admin', 'organizer_request', ?, ?, ?, ?, 'pending')`;
-    const title = 'New organizer request';
-    const message = `User ID ${requesterId} requested organizer access for organization: ${orgName}`;
-    db.query(sql, [title, message, requesterId, orgId], (err) => {
-        if (err) console.error('Failed to insert admin notification:', err);
-    });
-}
-
-// Helper: insert user notification
-function notifyUserOfDecision(userId, orgId, status) {
-    const isApproved = status === 'approved';
-    const type = isApproved ? 'request_approved' : 'request_refused';
-    const title = isApproved ? 'Organizer request approved' : 'Organizer request refused';
-    const message = isApproved
-        ? 'Your organizer request has been approved.'
-        : 'Your organizer request has been refused. You may modify and resubmit.';
-    const sql = `INSERT INTO notifications
-        (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
-        VALUES (?, 'user', ?, ?, ?, ?, ?, ?)`;
-    db.query(sql, [userId, type, title, message, userId, orgId || null, status], (err) => {
-        if (err) console.error('Failed to insert user notification:', err);
-    });
-}
+// Notification helpers removed for now; will be reintroduced when notification workflow is finalized.
 
 /**
  * GET /api/organizer/organizations
