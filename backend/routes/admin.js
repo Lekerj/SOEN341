@@ -57,15 +57,23 @@ router.post('/organizers/:id/approve', requireAdmin, (req, res) => {
         // ADDED: Audit Log for successful rejection
         console.log(`AUDIT: Admin (User ID: ${req.session.userId}) APPROVED user ID: ${userId}`);
 
-        // Notify user of approval
+        // Fetch organization_id to add membership & notify user
         const getOrgSql = 'SELECT organization_id FROM users WHERE id = ?';
         db.query(getOrgSql, [userId], (e2, rows) => {
-            const orgId = !e2 && rows && rows[0] ? rows[0].organization_id : null;
-            const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
-                          VALUES (?, 'user', 'request_approved', 'Organizer request approved', 'Your organizer request has been approved.', ?, ?, 'approved')`;
-            db.query(nsql, [userId, userId, orgId], (e3) => {
-                if (e3) console.error('Notification insert failed (approval):', e3);
-            });
+            if (e2) {
+                console.error('Failed fetching org for approved user:', e2);
+            } else if (rows && rows[0] && rows[0].organization_id) {
+                const orgId = rows[0].organization_id;
+                // Insert membership if not already present
+                const memberSql = `INSERT IGNORE INTO organization_members (user_id, organization_id, role, status) VALUES (?, ?, ?, 'active')`;
+                db.query(memberSql, [userId, orgId, roleToAssign], (e3) => {
+                    if (e3) console.error('Membership insert failed:', e3);
+                });
+                // Notify user
+                const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
+                              VALUES (?, 'user', 'request_approved', 'Organizer request approved', 'Your organizer request has been approved.', ?, ?, 'approved')`;
+                db.query(nsql, [userId, userId, orgId], (e4) => { if (e4) console.error('Notification insert failed (approval):', e4); });
+            }
         });
         
         res.status(200).json({ success: true, message: `Organizer request for ID ${userId} approved. Role updated to 'organizer'.` });
@@ -182,6 +190,95 @@ router.get('/organization', requireAdmin, (req,res)=>{
             return res.status(500).json({succes: false, error: "Internal Server Error", message: "Failed to retrieve organization list."});
         }
         res.status(200).json({sucess: true, organization: results});
+    });
+});
+
+/**
+ * GET /api/admin/organizer/requests
+ * Returns list of organizer_requests with pending status for review.
+ */
+router.get('/organizer/requests', requireAdmin, (req, res) => {
+    const sql = `SELECT r.id, r.user_id, r.organization_id, r.request_type, r.status, r.details, r.created_at,
+                        u.name AS user_name, u.email AS user_email,
+                        o.name AS organization_name, o.category AS organization_category
+                 FROM organizer_requests r
+                 LEFT JOIN users u ON r.user_id = u.id
+                 LEFT JOIN organizations o ON r.organization_id = o.id
+                 WHERE r.status = 'pending'
+                 ORDER BY r.created_at ASC`;
+    db.query(sql, (err, rows) => {
+        if (err) {
+            console.error('DB error fetching pending organizer requests:', err);
+            return res.status(500).json({ success:false, error:'Internal Server Error' });
+        }
+        res.status(200).json({ success:true, requests: rows });
+    });
+});
+
+/**
+ * PATCH /api/admin/organizer/requests/:id/decision
+ * Body: { decision: 'approved' | 'refused', role? }
+ * Applies decision to organizer_requests row & updates users / memberships.
+ */
+router.patch('/organizer/requests/:id/decision', requireAdmin, (req, res) => {
+    const requestId = req.params.id;
+    const { decision, role } = req.body || {};
+    if (!['approved','refused'].includes(decision)) {
+        return res.status(400).json({ success:false, error:'decision must be approved or refused'});
+    }
+    // Fetch request & user
+    const fetchSql = `SELECT r.*, u.role AS user_role, u.organizer_auth_status, u.id AS user_id, u.organization_id AS user_org_id
+                      FROM organizer_requests r
+                      JOIN users u ON r.user_id = u.id
+                      WHERE r.id = ?`;
+    db.query(fetchSql, [requestId], (err, rows) => {
+        if (err) { console.error('DB error fetching request:', err); return res.status(500).json({ success:false, error:'Internal'}); }
+        if (!rows.length) return res.status(404).json({ success:false, error:'Request not found' });
+        const reqRow = rows[0];
+        // Update request status
+        db.query('UPDATE organizer_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [decision, requestId], (e2) => {
+            if (e2) { console.error('DB error updating request status:', e2); return res.status(500).json({ success:false, error:'Internal'}); }
+            if (decision === 'approved') {
+                // Update user record
+                db.query(`UPDATE users SET role='organizer', organizer_auth_status='approved', organization_role=?, approval_date=CURRENT_TIMESTAMP WHERE id=?`, [role || 'Member', reqRow.user_id], (e3) => {
+                    if (e3) { console.error('User update fail:', e3); }
+                    // Insert membership
+                    if (reqRow.organization_id) {
+                        db.query(`INSERT IGNORE INTO organization_members (user_id, organization_id, role, status) VALUES (?, ?, ?, 'active')`, [reqRow.user_id, reqRow.organization_id, role || 'Member']);
+                    }
+                    // Notify user
+                    const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
+                                   VALUES (?, 'user', 'request_approved', 'Organizer request approved', 'Your organizer request has been approved.', ?, ?, 'approved')`;
+                    db.query(nsql, [reqRow.user_id, reqRow.user_id, reqRow.organization_id]);
+                });
+            } else { // refused
+                db.query(`UPDATE users SET organizer_auth_status='refused', approval_date=CURRENT_TIMESTAMP WHERE id=?`, [reqRow.user_id], (e4) => {
+                    if (e4) console.error('User refusal update fail:', e4);
+                    const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
+                                   VALUES (?, 'user', 'request_refused', 'Organizer request refused', 'Your organizer request has been refused. You may modify and resubmit.', ?, ?, 'refused')`;
+                    db.query(nsql, [reqRow.user_id, reqRow.user_id, reqRow.organization_id]);
+                });
+            }
+            return res.status(200).json({ success:true, message:`Request ${requestId} ${decision}` });
+        });
+    });
+});
+
+/**
+ * PUT /api/admin/members/:id/role
+ * Body: { role }
+ * Updates role of a membership row in organization_members.
+ */
+router.put('/members/:id/role', requireAdmin, (req, res) => {
+    const membershipId = req.params.id;
+    const { role } = req.body || {};
+    const VALID = ['Member','Event Manager','Vice President','President'];
+    if (!VALID.includes(role)) return res.status(400).json({ success:false, error:`Invalid role. Must be one of ${VALID.join(', ')}` });
+    const sql = `UPDATE organization_members SET role = ?, assigned_at = CURRENT_TIMESTAMP WHERE id = ?`;
+    db.query(sql, [role, membershipId], (err, result) => {
+        if (err) { console.error('DB membership role update error:', err); return res.status(500).json({ success:false, error:'Internal Server Error'}); }
+        if (result.affectedRows === 0) return res.status(404).json({ success:false, error:'Membership not found'});
+        return res.status(200).json({ success:true, message:`Membership ${membershipId} role updated to ${role}` });
     });
 });
 

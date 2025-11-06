@@ -29,6 +29,8 @@ const DB_CONFIG = {
 const SQL_FILES_ORDER = [
   // 1. Drop all tables first (reverse order of dependencies)
   'DROP TABLE IF EXISTS notifications;',
+  'DROP TABLE IF EXISTS organization_members;',
+  'DROP TABLE IF EXISTS organizer_requests;',
   'DROP TABLE IF EXISTS tickets;',
   'DROP TABLE IF EXISTS events;',
   'DROP TABLE IF EXISTS users;',
@@ -40,6 +42,8 @@ const SQL_FILES_ORDER = [
   '../sql/events_table.sql',
   '../sql/tickets_table.sql',
   '../sql/notifications_table.sql',
+  '../sql/organizer_requests.sql',
+  '../sql/organization_members.sql',
   
   // 3. Seed data
   '../sql/seed_organizations.sql',
@@ -76,7 +80,9 @@ async function resetDatabase() {
     // Step 1: Drop all tables
     console.log('🗑️  Dropping all existing tables...');
     await connection.query('SET FOREIGN_KEY_CHECKS = 0;');
-    await connection.query('DROP TABLE IF EXISTS notifications;');
+  await connection.query('DROP TABLE IF EXISTS notifications;');
+  await connection.query('DROP TABLE IF EXISTS organization_members;');
+  await connection.query('DROP TABLE IF EXISTS organizer_requests;');
     await connection.query('DROP TABLE IF EXISTS tickets;');
     await connection.query('DROP TABLE IF EXISTS events;');
     await connection.query('DROP TABLE IF EXISTS users;');
@@ -104,10 +110,20 @@ async function resetDatabase() {
     await executeSqlFile(connection, '../sql/tickets_table.sql');
     console.log('✅ Tickets table created\n');
 
-    // Step 6: Create notifications table
+  // Step 6: Create notifications table
     console.log('🔔 Creating notifications table...');
     await executeSqlFile(connection, '../sql/notifications_table.sql');
     console.log('✅ Notifications table created\n');
+
+  // Step 6b: Create organizer_requests table
+  console.log('📨 Creating organizer_requests table...');
+  await executeSqlFile(connection, '../sql/organizer_requests.sql');
+  console.log('✅ organizer_requests table created\n');
+
+  // Step 6c: Create organization_members table
+  console.log('👥 Creating organization_members table...');
+  await executeSqlFile(connection, '../sql/organization_members.sql');
+  console.log('✅ organization_members table created\n');
 
     // Step 7: Seed organizations
     console.log('🏢 Seeding organizations...');
@@ -150,21 +166,24 @@ async function resetDatabase() {
     console.log('   Status: NULL (needs to submit request)\n');
 
     // Test approved organizer
-    const [concordiaTech] = await connection.query(
-      'SELECT id FROM organizations WHERE name = "Concordia Tech Society" LIMIT 1'
-    );
-    
-    if (concordiaTech.length > 0) {
+    // Create an approved organizer using any available organization (fallback-safe)
+    let [orgRow] = await connection.query('SELECT id, name FROM organizations WHERE name = "Concordia Tech Society" LIMIT 1');
+    if (!orgRow.length) {
+      [orgRow] = await connection.query('SELECT id, name FROM organizations ORDER BY id LIMIT 1');
+    }
+    if (orgRow.length) {
       const approvedOrganizerPassword = await bcrypt.hash('Approved123!', 10);
       await connection.query(
         `INSERT INTO users (name, email, password_hash, role, organizer_auth_status, organization_id, organization_role, approval_date) 
          VALUES (?, ?, ?, 'organizer', 'approved', ?, 'President', NOW())`,
-        ['Approved Organizer', 'approved@test.com', approvedOrganizerPassword, concordiaTech[0].id]
+        ['Approved Organizer', 'approved@test.com', approvedOrganizerPassword, orgRow[0].id]
       );
       console.log('✅ Approved organizer created (approved@test.com / Approved123!)');
       console.log('   Status: APPROVED');
-      console.log('   Organization: Concordia Tech Society');
+      console.log(`   Organization: ${orgRow[0].name}`);
       console.log('   Role: President\n');
+    } else {
+      console.log('⚠️  No organizations found to attach approved organizer; skipping approved organizer seed');
     }
 
     // Step 10: Seed sample events (optional)
