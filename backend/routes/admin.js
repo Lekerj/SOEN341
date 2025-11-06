@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
->>>>>>> c1314db (API and Routes implemented)
->>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
@@ -18,10 +14,13 @@ const signalEmailNotification = (userID, decision) => {
 // Endpoint: GET /api/admin/organizer/pending (Fetch pending organizer requests)
 router.get('/organizer/pending', requireAdmin, (req, res) => {
     const sql = `
-        SELECT id, name, email, organization, created_at
-        FROM users
-        WHERE role = 'pending'
-        ORDER BY created_at ASC`;
+        SELECT 
+            u.id, u.name, u.email, u.request_date, u.organization_role,
+            o.id AS organization_id, o.name AS organization_name, o.category AS organization_category
+        FROM users u
+        LEFT JOIN organizations o ON u.organization_id = o.id
+        WHERE u.organizer_auth_status = 'pending'
+        ORDER BY u.request_date ASC`;
 
     db.query(sql, (err, results) => {
         if (err) {
@@ -35,38 +34,27 @@ router.get('/organizer/pending', requireAdmin, (req, res) => {
 // ROUTER POST /api/admin/organizers/:id/approve
 router.post('/organizers/:id/approve', requireAdmin, (req, res) => {
     const userId = req.params.id;
-<<<<<<< HEAD
     const { organization_role } = req.body || {};
     const roleToAssign = organization_role || 'Member';
 
-    // Updates role to 'organizer' only if the current role is 'pending'
-    const sql = 'UPDATE users SET role = ?, organizer_auth_status = ?, organization_role = ?, approval_date = CURRENT_TIMESTAMP WHERE id = ? AND (role = ? OR organizer_auth_status = ? OR organizer_auth_status IS NULL)';
+    const sql = `UPDATE users 
+                             SET role = 'organizer', organizer_auth_status = 'approved', 
+                                     organization_role = ?, approval_date = CURRENT_TIMESTAMP
+                             WHERE id = ?`;
 
-    db.query(sql, ['organizer', 'approved', roleToAssign, userId, 'pending', 'pending'], (err, result) => {
-=======
-
-    // Updates role to 'organizer' only if the current role is 'pending'
-    const sql = 'UPDATE users SET role = ? WHERE id = ? AND role = "pending"';
-
-    db.query(sql, ['organizer', userId], (err, result) => {
->>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
+    db.query(sql, [roleToAssign, userId], (err, result) => {
         if (err) {
             console.error(`DB Error approving user ${userId}:`, err);
             return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Database update failed during approval.' });
         }
 
         if (result.affectedRows === 0) {
-<<<<<<< HEAD
             return res.status(404).json({ success: false, message: "User not found or not eligible for approval." });
-=======
-            return res.status(404).json({ success: false, message: "User not found or not eligible for approval (role is not 'pending')." });
->>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
         }
 
         // Audit Log for successful approval
         console.log(`AUDIT: Admin (User ID: ${req.session.userId}) APPROVED user ID: ${userId}`);
 
-<<<<<<< HEAD
         // Fetch organization_id to add membership & notify user
         const getOrgSql = 'SELECT organization_id FROM users WHERE id = ?';
         db.query(getOrgSql, [userId], (e2, rows) => {
@@ -86,9 +74,8 @@ router.post('/organizers/:id/approve', requireAdmin, (req, res) => {
             }
         });
 
-=======
->>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
-        signalEmailNotification(userId, 'approved');
+        // Also send signal/email if available
+        try { signalEmailNotification(userId, 'approved'); } catch (e) { /* ignore */ }
 
         res.status(200).json({ success: true, message: `Organizer request for ID ${userId} approved. Role updated to 'organizer'.` });
     });
@@ -98,23 +85,17 @@ router.post('/organizers/:id/approve', requireAdmin, (req, res) => {
 router.post('/organizers/:id/reject', requireAdmin, (req, res) => {
     const userId = req.params.id;
 
-<<<<<<< HEAD
-    const sql = `UPDATE users SET organizer_auth_status = 'refused', approval_date = CURRENT_TIMESTAMP WHERE id = ?`;
+    const sql = `UPDATE users 
+                             SET organizer_auth_status = 'refused', approval_date = CURRENT_TIMESTAMP
+                             WHERE id = ?`;
 
     db.query(sql, [userId], (err, result) => {
-=======
-    // Updates role to 'rejected' only if the current role is 'pending'
-    const sql = 'UPDATE users SET role = ? WHERE id = ? AND role = "pending"';
-
-    db.query(sql, ['rejected', userId], (err, result) => {
->>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
         if (err) {
             console.error(`DB Error rejecting user ${userId}:`, err);
             return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Database update failed during rejection.' });
         }
 
         if (result.affectedRows === 0) {
-<<<<<<< HEAD
             return res.status(404).json({ success: false, message: "User not found or not eligible for rejection." });
         }
 
@@ -131,120 +112,136 @@ router.post('/organizers/:id/reject', requireAdmin, (req, res) => {
             });
         });
 
-=======
-            return res.status(404).json({ success: false, message: "User not found or not eligible for rejection (role is not 'pending')." });
-        }
-
->>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
-        signalEmailNotification(userId, 'rejected');
+        try { signalEmailNotification(userId, 'rejected'); } catch (e) { /* ignore */ }
 
         res.status(200).json({ success: true, message: `Organizer request for ID ${userId} rejected. Role updated to 'rejected'.` });
     });
 });
 
-<<<<<<< HEAD
 //-- User Management Endpoints -- 
-// Route GET /api/admin/users - Return list of all users with current roles
-router.get('/users', requireAdmin, (req, res) => {
+/**
+ * Route GET /api/admin/users\
+ * AC: Return list of all users with current roles
+ */
+router.get('/users', requireAdmin, (req,res)=>{
     const sql = `
-        SELECT u.id, u.name, u.email, u.role, u.created_at, u.organization_id, o.name AS organization_name
-        FROM users u
-        LEFT JOIN organizations o ON u.organization_id = o.id
-        ORDER BY u.created_at DESC`;
+    SELECT u.id, u.name, u.email, u.role, u.created_at, u.organization_id, o.name AS organization_name
+    FROM users u
+    LEFT JOIN organizations o ON u.organization_id = o.id
+    ORDER BY u.created_at DESC`;
 
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error('DB Error Fetching all users:', err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to retrieve user list.' });
+    db.query(sql, (err, results)=>{
+        if(err){
+            console.error("DB Error Fetching all users:", err);
+            return res.status(500).json({success: false, error: "Internal Server Error", message: "Failed to retrieve user list."});
         }
-        res.status(200).json({ success: true, users: results });
-    });
-});
+        res.status(200).json({success:true, users: results});
+    })
+})
 
-// Route: PUT /api/admin/users/:id/role - Allows assigning user roles (admin, organizer, student, user)
-router.put('/users/:id/role', requireAdmin, (req, res) => {
+/**
+ * Route: PUT /api/admin/users/:id/role
+ * AC: Allows assigning user roles (admin, organizer, student, user).
+ * AC: Role types validated.
+ */
+
+router.put('/users/:id/role', requireAdmin, (req,res)=>{
     const userId = req.params.id;
     const { newRole } = req.body;
 
-    // Define valid roles for validation
-    const VALID_ROLES = ['admin', 'organizer', 'student', 'user'];
+    //Define valid roles for validation
+    const VALID_ROLES = ['admin', 'organizer', 'student','user'];
 
-    if (!newRole || !VALID_ROLES.includes(newRole)) {
-        return res.status(400).json({ success: false, message: `Invalid or missing role provided. Must be one of: ${VALID_ROLES.join(', ')}.` });
+    //400 Bad Request Check: Validate role input 
+    if(!newRole || !VALID_ROLES.includes(newRole)){
+        return res.status(400).json({
+            success: false,
+            message: `Invalid or missing role provided. Must be one of: ${VALID_ROLES.join(', ')}.`
+        })
     }
-
     const sql = 'UPDATE users SET role = ? WHERE id = ?';
 
-    db.query(sql, [newRole, userId], (err, result) => {
-        if (err) {
-            console.error(`DB Error assigning role to user ${userId}:`, err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+    db.query(sql,[newRole,userId], (err,result) =>{
+        if(err){
+            console.error(`DB Error assinging role to user ${userId}:`, err);
+            return res.status(500).json({success:false, error:"Internal Server Error"});
         }
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'User not found.' });
+        if(result.affectedRows===0){
+            return res.status(404).json({success: false, message: "User not found."});
         }
 
-        // Audit Trail Log:
+        //Audit Trail Log:
         console.log(`AUDIT: Admin (User ID: ${req.session.userId}) assigned role '${newRole}' to User ID: ${userId}`);
-        return res.status(200).json({ success: true, message: `Role for user ${userId} updated to ${newRole}` });
-    });
-});
+        return res.status(200).json({ success: true, message: `Role for user ${userId} updated to ${newRole}`});
+    })
+})
 
-// -- Organization Management Endpoint ---
-// ROUTE: GET /api/admin/organization - Return list of all organizations with details
-router.get('/organization', requireAdmin, (req, res) => {
+// -- New Organization Management Endpoint ---
+
+/**
+ * ROUTE: GET /api/admin/organization
+ * AC: Return Lists of all organization with details
+ */
+router.get('/organization', requireAdmin, (req,res)=>{
     const sql = `
-        SELECT id, name, logo_url, description, created_at
-        FROM organizations
-        ORDER BY name ASC`;
+    SELECT id, name, logo_url, description, created_at
+    FROM organizations
+    ORDER BY name ASC`;
 
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error('DB Error Fetching all organizations:', err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to retrieve organization list.' });
+    db.query(sql,(err,results)=>{
+        if(err){
+            console.error("DB Error Fetching all organizations:", err);
+            return res.status(500).json({success: false, error: "Internal Server Error", message: "Failed to retrieve organization list."});
         }
-        res.status(200).json({ success: true, organization: results });
+        res.status(200).json({success: true, organization: results});
     });
 });
 
-// GET /api/admin/organizer/requests - Returns list of organizer_requests with pending status for review.
+/**
+ * GET /api/admin/organizer/requests
+ * Returns list of organizer_requests with pending status for review.
+ */
 router.get('/organizer/requests', requireAdmin, (req, res) => {
     const sql = `SELECT r.id, r.user_id, r.organization_id, r.request_type, r.status, r.details, r.created_at,
-                                                u.name AS user_name, u.email AS user_email,
-                                                o.name AS organization_name, o.category AS organization_category
-                                 FROM organizer_requests r
-                                 LEFT JOIN users u ON r.user_id = u.id
-                                 LEFT JOIN organizations o ON r.organization_id = o.id
-                                 WHERE r.status = 'pending'
-                                 ORDER BY r.created_at ASC`;
+                        u.name AS user_name, u.email AS user_email,
+                        o.name AS organization_name, o.category AS organization_category
+                 FROM organizer_requests r
+                 LEFT JOIN users u ON r.user_id = u.id
+                 LEFT JOIN organizations o ON r.organization_id = o.id
+                 WHERE r.status = 'pending'
+                 ORDER BY r.created_at ASC`;
     db.query(sql, (err, rows) => {
         if (err) {
             console.error('DB error fetching pending organizer requests:', err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+            return res.status(500).json({ success:false, error:'Internal Server Error' });
         }
-        res.status(200).json({ success: true, requests: rows });
+        res.status(200).json({ success:true, requests: rows });
     });
 });
 
-// PATCH /api/admin/organizer/requests/:id/decision
+/**
+ * PATCH /api/admin/organizer/requests/:id/decision
+ * Body: { decision: 'approved' | 'refused', role? }
+ * Applies decision to organizer_requests row & updates users / memberships.
+ */
 router.patch('/organizer/requests/:id/decision', requireAdmin, (req, res) => {
     const requestId = req.params.id;
     const { decision, role } = req.body || {};
-    if (!['approved', 'refused'].includes(decision)) {
-        return res.status(400).json({ success: false, error: 'decision must be approved or refused' });
+    if (!['approved','refused'].includes(decision)) {
+        return res.status(400).json({ success:false, error:'decision must be approved or refused'});
     }
     // Fetch request & user
     const fetchSql = `SELECT r.*, u.role AS user_role, u.organizer_auth_status, u.id AS user_id, u.organization_id AS user_org_id
-                                            FROM organizer_requests r
-                                            JOIN users u ON r.user_id = u.id
-                                            WHERE r.id = ?`;
+                      FROM organizer_requests r
+                      JOIN users u ON r.user_id = u.id
+                      WHERE r.id = ?`;
     db.query(fetchSql, [requestId], (err, rows) => {
-        if (err) { console.error('DB error fetching request:', err); return res.status(500).json({ success: false, error: 'Internal Server Error' }); }
-        if (!rows.length) return res.status(404).json({ success: false, error: 'Request not found' });
+        if (err) { console.error('DB error fetching request:', err); return res.status(500).json({ success:false, error:'Internal'}); }
+        if (!rows.length) return res.status(404).json({ success:false, error:'Request not found' });
         const reqRow = rows[0];
         // Update request status
         db.query('UPDATE organizer_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [decision, requestId], (e2) => {
-            if (e2) { console.error('DB error updating request status:', e2); return res.status(500).json({ success: false, error: 'Internal Server Error' }); }
+            if (e2) { console.error('DB error updating request status:', e2); return res.status(500).json({ success:false, error:'Internal'}); }
             if (decision === 'approved') {
                 // Update user record
                 db.query(`UPDATE users SET role='organizer', organizer_auth_status='approved', organization_role=?, approval_date=CURRENT_TIMESTAMP WHERE id=?`, [role || 'Member', reqRow.user_id], (e3) => {
@@ -255,33 +252,37 @@ router.patch('/organizer/requests/:id/decision', requireAdmin, (req, res) => {
                     }
                     // Notify user
                     const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
-                                                                     VALUES (?, 'user', 'request_approved', 'Organizer request approved', 'Your organizer request has been approved.', ?, ?, 'approved')`;
+                                   VALUES (?, 'user', 'request_approved', 'Organizer request approved', 'Your organizer request has been approved.', ?, ?, 'approved')`;
                     db.query(nsql, [reqRow.user_id, reqRow.user_id, reqRow.organization_id]);
                 });
             } else { // refused
                 db.query(`UPDATE users SET organizer_auth_status='refused', approval_date=CURRENT_TIMESTAMP WHERE id=?`, [reqRow.user_id], (e4) => {
                     if (e4) console.error('User refusal update fail:', e4);
                     const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
-                                                                     VALUES (?, 'user', 'request_refused', 'Organizer request refused', 'Your organizer request has been refused. You may modify and resubmit.', ?, ?, 'refused')`;
+                                   VALUES (?, 'user', 'request_refused', 'Organizer request refused', 'Your organizer request has been refused. You may modify and resubmit.', ?, ?, 'refused')`;
                     db.query(nsql, [reqRow.user_id, reqRow.user_id, reqRow.organization_id]);
                 });
             }
-            return res.status(200).json({ success: true, message: `Request ${requestId} ${decision}` });
+            return res.status(200).json({ success:true, message:`Request ${requestId} ${decision}` });
         });
     });
 });
 
-// PUT /api/admin/members/:id/role - Updates role of a membership row in organization_members.
+/**
+ * PUT /api/admin/members/:id/role
+ * Body: { role }
+ * Updates role of a membership row in organization_members.
+ */
 router.put('/members/:id/role', requireAdmin, (req, res) => {
     const membershipId = req.params.id;
     const { role } = req.body || {};
-    const VALID = ['Member', 'Event Manager', 'Vice President', 'President'];
-    if (!VALID.includes(role)) return res.status(400).json({ success: false, error: `Invalid role. Must be one of ${VALID.join(', ')}` });
+    const VALID = ['Member','Event Manager','Vice President','President'];
+    if (!VALID.includes(role)) return res.status(400).json({ success:false, error:`Invalid role. Must be one of ${VALID.join(', ')}` });
     const sql = `UPDATE organization_members SET role = ?, assigned_at = CURRENT_TIMESTAMP WHERE id = ?`;
     db.query(sql, [role, membershipId], (err, result) => {
-        if (err) { console.error('DB membership role update error:', err); return res.status(500).json({ success: false, error: 'Internal Server Error' }); }
-        if (result.affectedRows === 0) return res.status(404).json({ success: false, error: 'Membership not found' });
-        return res.status(200).json({ success: true, message: `Membership ${membershipId} role updated to ${role}` });
+        if (err) { console.error('DB membership role update error:', err); return res.status(500).json({ success:false, error:'Internal Server Error'}); }
+        if (result.affectedRows === 0) return res.status(404).json({ success:false, error:'Membership not found'});
+        return res.status(200).json({ success:true, message:`Membership ${membershipId} role updated to ${role}` });
     });
 });
 
@@ -312,7 +313,7 @@ router.get('/notifications', requireAdmin, (req, res) => {
 router.post('/notifications/:id/read', requireAdmin, (req, res) => {
     const id = req.params.id;
     const sql = `UPDATE notifications SET is_read = TRUE, read_at = CURRENT_TIMESTAMP
-                                 WHERE id = ? AND audience = 'admin'`;
+                 WHERE id = ? AND audience = 'admin'`;
     db.query(sql, [id], (err, result) => {
         if (err) {
             console.error('DB error marking admin notification read:', err);
@@ -327,7 +328,7 @@ router.post('/notifications/:id/read', requireAdmin, (req, res) => {
 
 router.post('/notifications/read-all', requireAdmin, (req, res) => {
     const sql = `UPDATE notifications SET is_read = TRUE, read_at = CURRENT_TIMESTAMP
-                                 WHERE audience = 'admin' AND is_read = FALSE`;
+                 WHERE audience = 'admin' AND is_read = FALSE`;
     db.query(sql, (err) => {
         if (err) {
             console.error('DB error marking all admin notifications read:', err);
@@ -339,12 +340,12 @@ router.post('/notifications/read-all', requireAdmin, (req, res) => {
 
 /**
  * Route: PUT /api/admin/organizations/:id
- * AC: Allows editing organizations name, logo, description.
+ * AC: Allows editing orgranizations name, logo, description.
  */
 router.put('/organizations/:id', requireAdmin, (req, res) => {
     const orgId = req.params.id;
     const { name, logo_url, description } = req.body;
-
+    
     const fields = [];
     const params = [];
 
@@ -354,7 +355,7 @@ router.put('/organizations/:id', requireAdmin, (req, res) => {
     if (description !== undefined) { fields.push('description = ?'); params.push(description); }
 
     if (fields.length === 0) {
-        return res.status(400).json({ success: false, message: 'No editable fields provided for organization update.' });
+        return res.status(400).json({ success: false, message: "No editable fields provided for organization update." });
     }
 
     params.push(orgId);
@@ -364,11 +365,11 @@ router.put('/organizations/:id', requireAdmin, (req, res) => {
     db.query(sql, params, (err, result) => {
         if (err) {
             console.error(`DB Error updating organization ${orgId}:`, err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
         }
-
+        
         if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Organization not found.' });
+            return res.status(404).json({ success: false, message: "Organization not found." });
         }
 
         // Audit Trail Log
@@ -377,27 +378,19 @@ router.put('/organizations/:id', requireAdmin, (req, res) => {
         res.status(200).json({ success: true, message: `Organization ${orgId} updated successfully.` });
     });
 });
-
-// --- EVENT MODERATION ENDPOINTS ---
-
-// Route: GET /api/admin/events - Returns list of all events with organizer info
-router.get('/events', requireAdmin, (req, res) => {
-    const sql = `
-        SELECT
-            e.*,
-            u.name AS organizer_name,
-            u.email AS organizer_email
-        FROM events e
-        LEFT JOIN users u ON e.organizer_id = u.id
-        ORDER BY e.event_date DESC
-        `;
-=======
 // --- EVENT MODERATION ENDPOINTS ---
 
 // Route: GET /api/admin/events - Returns list of all events
 router.get('/events', requireAdmin, (req, res) => {
-    const sql = `SELECT * FROM events ORDER BY event_date DESC`;
->>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
+    const sql = `
+    SELECT
+      e.*,
+      u.name AS organizer_name,
+      u.email AS organizer_email
+    FROM events e
+    LEFT JOIN users u ON e.organizer_id = u.id
+    ORDER BY e.event_date DESC
+    `;
 
     db.query(sql, (err, results) => {
         if (err) {
@@ -408,24 +401,18 @@ router.get('/events', requireAdmin, (req, res) => {
     });
 });
 
-<<<<<<< HEAD
-// Route: GET /api/admin/events/flagged - Returns flagged events with organizer info
-router.get('/events/flagged', requireAdmin, (req, res) => {
-    const sql = `
-        SELECT
-            e.*,
-            u.name AS organizer_name,
-            u.email AS organizer_email
-        FROM events e
-        LEFT JOIN users u ON e.organizer_id = u.id
-        WHERE e.is_flagged = TRUE
-        ORDER BY e.created_at DESC
-        `;
-=======
 // Route: GET /api/admin/events/flagged - Returns flagged events
 router.get('/events/flagged', requireAdmin, (req, res) => {
-    const sql = `SELECT * FROM events WHERE is_flagged = TRUE ORDER BY created_at DESC`;
->>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
+    const sql = `
+    SELECT
+      e.*,
+      u.name AS organizer_name,
+      u.email AS organizer_email
+    FROM events e
+    LEFT JOIN users u ON e.organizer_id = u.id
+    WHERE e.is_flagged = TRUE
+    ORDER BY e.created_at DESC
+    `;
 
     db.query(sql, (err, results) => {
         if (err) {
@@ -561,90 +548,3 @@ router.get('/analytics', requireAdmin, getAnalyticsHandler(db));
 
 module.exports = router;
 module.exports.getAnalyticsHandler = getAnalyticsHandler;
-<<<<<<< HEAD
-
-// Route: DELETE /api/admin/events/:id - Delete event
-router.delete('/events/:id', requireAdmin, (req, res) => {
-    const eventId = req.params.id;
-    const sql = 'DELETE FROM events WHERE id = ?';
-
-    db.query(sql, [eventId], (err, result) => {
-        if (err) {
-            console.error(`DB Error deleting event ${eventId}:`, err);
-            return res.status(500).json({ success: false, error: 'Internal Server Error' });
-        }
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Event not found.' });
-        }
-
-        // Audit Trail Log
-        console.log(`AUDIT: Moderator (User ID: ${req.session.userId}) DELETED Event ID: ${eventId}`);
-
-        res.status(200).json({ success: true, message: `Event ${eventId} successfully deleted.` });
-    });
-});
-
-// Analytics handler (aggregated stats)
-function getAnalyticsHandler(database) {
-    return (req, res) => {
-        const start = Date.now();
-        const { organization } = req.query;
-
-        let sql = `
-            SELECT 
-                COUNT(DISTINCT e.id) AS total_events,
-                COUNT(t.id) AS total_tickets_issued,
-                SUM(CASE WHEN t.checked_in = 1 THEN 1 ELSE 0 END) AS total_checked_in
-            FROM events e
-            LEFT JOIN tickets t ON t.event_id = e.id
-        `;
-        const params = [];
-
-        if (organization && organization.trim() !== "") {
-            sql += ' WHERE e.organization = ?';
-            params.push(organization.trim());
-        }
-
-        database.query(sql, params, (err, rows) => {
-            if (err) {
-                console.error('Admin analytics query error:', err);
-                return res.status(500).json({ error: 'Internal Server Error' });
-            }
-
-            const row = rows && rows[0] ? rows[0] : {};
-
-            const totalEvents = Number(row.total_events || 0);
-            const totalTickets = Number(row.total_tickets_issued || 0);
-            const totalCheckedIn = Number(row.total_checked_in || 0);
-            const totalNotCheckedIn = Math.max(totalTickets - totalCheckedIn, 0);
-            const attendanceRate = totalTickets > 0 ? totalCheckedIn / totalTickets : 0;
-
-            const duration = Date.now() - start;
-
-            return res.json({
-                success: true,
-                data: {
-                    total_events: totalEvents,
-                    total_tickets_issued: totalTickets,
-                    total_checked_in: totalCheckedIn,
-                    total_not_checked_in: totalNotCheckedIn,
-                    attendance_rate: Number(attendanceRate.toFixed(4)),
-                },
-                filters_applied: {
-                    organization: organization && organization.trim() !== "" ? organization.trim() : null,
-                },
-                meta: {
-                    query_ms: duration,
-                },
-            });
-        });
-    };
-}
-
-router.get('/analytics', requireAdmin, getAnalyticsHandler(db));
-
-module.exports = router;
-module.exports.getAnalyticsHandler = getAnalyticsHandler;
-=======
->>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
