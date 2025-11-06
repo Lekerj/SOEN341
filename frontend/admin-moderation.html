@@ -567,9 +567,22 @@
         });
 
         function checkAdmin() {
-            // This is a simple check - in production, verify with backend
-            const userRole = localStorage.getItem('userRole');
-            if (userRole !== 'admin') {
+            // Check if user is logged in and has admin role
+            try {
+                const userStr = localStorage.getItem('user');
+                if (!userStr) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                const user = JSON.parse(userStr);
+                if (user.role !== 'admin') {
+                    showAlert('Error: You do not have permission to access this page. Admin access required.', 'danger');
+                    setTimeout(() => {
+                        window.location.href = '/index.html';
+                    }, 2000);
+                }
+            } catch (e) {
+                console.error('Error checking admin status:', e);
                 window.location.href = '/login.html';
             }
         }
