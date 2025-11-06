@@ -12,107 +12,12 @@ const signalEmailNotification = (userID, decision) => {
     console.log(`[Email Notification Signal] Decision: ${decision} for User ID: ${userID}`);
 };
 
-// Endpoint for Organizer Approval
-//router GET: /api/admin/organizer/pending (Fetches pending Requests)
-router.get('/organizer/pending', requireAdmin, (req,res) => {
-    const sql = `
-    SELECT 
-      u.id, u.name, u.email, u.request_date, u.organization_role,
-      o.id AS organization_id, o.name AS organization_name, o.category AS organization_category
-    FROM users u
-    LEFT JOIN organizations o ON u.organization_id = o.id
-    WHERE u.organizer_auth_status = 'pending'
-    ORDER BY u.request_date ASC`; 
-
-    db.query(sql, (err, results)=> {
-        if(err){
-            console.error("DB Error Fetching Pending organizers:" , err);
-            return res.status(500).json({success: false, error: "Internal Server Error", message: "Failed to retrieve the pending requests."});
-        }
-        //Returns the list of pending organizers (name, email, organizations, etc...
-        res.status(200).json({success: true, pendingOrganizer: results});
-    });
-});
+// NOTE: Legacy endpoints for direct approval/rejection via users table have been removed.
+// Use GET /api/admin/organizer/requests and PATCH /api/admin/organizer/requests/:id/decision instead.
 
 // ROUTER POST /api/admin/organizer/:id/approve
-router.post('/organizers/:id/approve', requireAdmin, (req, res) => {
-    const userId = req.params.id;
-    const { organization_role } = req.body || {};
-    const roleToAssign = organization_role || 'Member';
-
-    const sql = `UPDATE users 
-                 SET role = 'organizer', organizer_auth_status = 'approved', 
-                     organization_role = ?, approval_date = CURRENT_TIMESTAMP
-                 WHERE id = ?`;
-    
-    db.query(sql, [roleToAssign, userId], (err, result) => {
-        if (err) {
-            console.error(`DB Error approving user ${userId}:`, err);
-            return res.status(500).json({ success: false, error: "Internal Server Error", message: "Database update failed during approval." });
-        }
-        
-        if (result.affectedRows === 0) {
-             return res.status(404).json({ success: false, message: "User not found or not eligible for approval." });
-        }
-        // ADDED: Audit Log for successful rejection
-        console.log(`AUDIT: Admin (User ID: ${req.session.userId}) APPROVED user ID: ${userId}`);
-
-        // Fetch organization_id to add membership & notify user
-        const getOrgSql = 'SELECT organization_id FROM users WHERE id = ?';
-        db.query(getOrgSql, [userId], (e2, rows) => {
-            if (e2) {
-                console.error('Failed fetching org for approved user:', e2);
-            } else if (rows && rows[0] && rows[0].organization_id) {
-                const orgId = rows[0].organization_id;
-                // Insert membership if not already present
-                const memberSql = `INSERT IGNORE INTO organization_members (user_id, organization_id, role, status) VALUES (?, ?, ?, 'active')`;
-                db.query(memberSql, [userId, orgId, roleToAssign], (e3) => {
-                    if (e3) console.error('Membership insert failed:', e3);
-                });
-                // Notify user
-                const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
-                              VALUES (?, 'user', 'request_approved', 'Organizer request approved', 'Your organizer request has been approved.', ?, ?, 'approved')`;
-                db.query(nsql, [userId, userId, orgId], (e4) => { if (e4) console.error('Notification insert failed (approval):', e4); });
-            }
-        });
-        
-        res.status(200).json({ success: true, message: `Organizer request for ID ${userId} approved. Role updated to 'organizer'.` });
-    });
-});
-
-// ROUTER POST /api/admin/organizer/:id/reject
-router.post('/organizers/:id/reject', requireAdmin, (req, res) => {
-    const userId = req.params.id;
-
-    const sql = `UPDATE users 
-                 SET organizer_auth_status = 'refused', approval_date = CURRENT_TIMESTAMP
-                 WHERE id = ?`;
-
-    db.query(sql, [userId], (err, result) => {
-        if (err) {
-            console.error(`DB Error rejecting user ${userId}:`, err);
-            return res.status(500).json({ success: false, error: "Internal Server Error", message: "Database update failed during rejection." });
-        }
-
-        if (result.affectedRows === 0) {
-             return res.status(404).json({ success: false, message: "User not found or not eligible for rejection." });
-        }
-        console.log(`AUDIT: Admin (User ID: ${req.session.userId}) REJECTED user ID: ${userId}`);
-
-        // Notify user of rejection
-        const getOrgSql = 'SELECT organization_id FROM users WHERE id = ?';
-        db.query(getOrgSql, [userId], (e2, rows) => {
-            const orgId = !e2 && rows && rows[0] ? rows[0].organization_id : null;
-            const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
-                          VALUES (?, 'user', 'request_refused', 'Organizer request refused', 'Your organizer request has been refused. You may modify and resubmit.', ?, ?, 'refused')`;
-            db.query(nsql, [userId, userId, orgId], (e3) => {
-                if (e3) console.error('Notification insert failed (rejection):', e3);
-            });
-        });
-
-        res.status(200).json({ success: true, message: `Organizer request for ID ${userId} rejected. Role updated to 'rejected'.` });
-    });
-});
+// (Removed) POST /api/admin/organizers/:id/approve
+// (Removed) POST /api/admin/organizers/:id/reject
 
 //-- User Management Endpoints -- 
 /**
@@ -197,21 +102,30 @@ router.get('/organization', requireAdmin, (req,res)=>{
  * GET /api/admin/organizer/requests
  * Returns list of organizer_requests with pending status for review.
  */
+// GET /api/admin/organizer/requests?status=pending|approved|refused|all
+// Returns filtered organizer requests (default: pending) including refusal_reason.
 router.get('/organizer/requests', requireAdmin, (req, res) => {
-    const sql = `SELECT r.id, r.user_id, r.organization_id, r.request_type, r.status, r.details, r.created_at,
+    const statusFilter = (req.query.status || 'pending').toLowerCase();
+    const VALID = ['pending','approved','refused','all'];
+    if (!VALID.includes(statusFilter)) {
+        return res.status(400).json({ success:false, message:`Invalid status filter. Use one of ${VALID.join(', ')}`});
+    }
+    const whereClause = statusFilter === 'all' ? '1=1' : 'r.status = ?';
+    const params = statusFilter === 'all' ? [] : [statusFilter];
+    const sql = `SELECT r.id, r.user_id, r.organization_id, r.request_type, r.status, r.refusal_reason, r.details, r.created_at, r.updated_at,
                         u.name AS user_name, u.email AS user_email,
                         o.name AS organization_name, o.category AS organization_category
                  FROM organizer_requests r
                  LEFT JOIN users u ON r.user_id = u.id
                  LEFT JOIN organizations o ON r.organization_id = o.id
-                 WHERE r.status = 'pending'
+                 WHERE ${whereClause}
                  ORDER BY r.created_at ASC`;
-    db.query(sql, (err, rows) => {
+    db.query(sql, params, (err, rows) => {
         if (err) {
-            console.error('DB error fetching pending organizer requests:', err);
-            return res.status(500).json({ success:false, error:'Internal Server Error' });
+            console.error('DB error fetching organizer requests:', err);
+            return res.status(500).json({ success:false, message:'Internal Server Error'});
         }
-        res.status(200).json({ success:true, requests: rows });
+        return res.status(200).json({ success:true, count: rows.length, requests: rows });
     });
 });
 
@@ -222,44 +136,71 @@ router.get('/organizer/requests', requireAdmin, (req, res) => {
  */
 router.patch('/organizer/requests/:id/decision', requireAdmin, (req, res) => {
     const requestId = req.params.id;
-    const { decision, role } = req.body || {};
+    const { decision, role, refusal_reason } = req.body || {};
     if (!['approved','refused'].includes(decision)) {
-        return res.status(400).json({ success:false, error:'decision must be approved or refused'});
+        return res.status(400).json({ success:false, message:'Decision must be either approved or refused.' });
     }
-    // Fetch request & user
-    const fetchSql = `SELECT r.*, u.role AS user_role, u.organizer_auth_status, u.id AS user_id, u.organization_id AS user_org_id
-                      FROM organizer_requests r
-                      JOIN users u ON r.user_id = u.id
-                      WHERE r.id = ?`;
-    db.query(fetchSql, [requestId], (err, rows) => {
-        if (err) { console.error('DB error fetching request:', err); return res.status(500).json({ success:false, error:'Internal'}); }
-        if (!rows.length) return res.status(404).json({ success:false, error:'Request not found' });
-        const reqRow = rows[0];
-        // Update request status
-        db.query('UPDATE organizer_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [decision, requestId], (e2) => {
-            if (e2) { console.error('DB error updating request status:', e2); return res.status(500).json({ success:false, error:'Internal'}); }
-            if (decision === 'approved') {
-                // Update user record
-                db.query(`UPDATE users SET role='organizer', organizer_auth_status='approved', organization_role=?, approval_date=CURRENT_TIMESTAMP WHERE id=?`, [role || 'Member', reqRow.user_id], (e3) => {
-                    if (e3) { console.error('User update fail:', e3); }
-                    // Insert membership
-                    if (reqRow.organization_id) {
-                        db.query(`INSERT IGNORE INTO organization_members (user_id, organization_id, role, status) VALUES (?, ?, ?, 'active')`, [reqRow.user_id, reqRow.organization_id, role || 'Member']);
-                    }
-                    // Notify user
-                    const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
-                                   VALUES (?, 'user', 'request_approved', 'Organizer request approved', 'Your organizer request has been approved.', ?, ?, 'approved')`;
-                    db.query(nsql, [reqRow.user_id, reqRow.user_id, reqRow.organization_id]);
-                });
-            } else { // refused
-                db.query(`UPDATE users SET organizer_auth_status='refused', approval_date=CURRENT_TIMESTAMP WHERE id=?`, [reqRow.user_id], (e4) => {
-                    if (e4) console.error('User refusal update fail:', e4);
-                    const nsql = `INSERT INTO notifications (user_id, audience, type, title, message, related_user_id, related_organization_id, related_status)
-                                   VALUES (?, 'user', 'request_refused', 'Organizer request refused', 'Your organizer request has been refused. You may modify and resubmit.', ?, ?, 'refused')`;
-                    db.query(nsql, [reqRow.user_id, reqRow.user_id, reqRow.organization_id]);
-                });
+    const trimmedReason = typeof refusal_reason === 'string' ? refusal_reason.trim() : '';
+    if (decision === 'refused' && !trimmedReason) {
+        return res.status(400).json({ success:false, message:'Refusal reason is required when declining a request.' });
+    }
+    const normalizedReason = decision === 'refused' ? trimmedReason : null;
+    const ALLOWED_ORG_ROLES = ['Member','Event Manager','Vice President','President'];
+    if (role && !ALLOWED_ORG_ROLES.includes(role)) {
+        return res.status(400).json({ success:false, message:`Invalid organization role. Use one of ${ALLOWED_ORG_ROLES.join(', ')}.` });
+    }
+    db.beginTransaction(err => {
+        if (err) { console.error('Transaction begin error:', err); return res.status(500).json({ success:false, message:'Internal Server Error'}); }
+        const fetchSql = `SELECT r.*, u.role AS user_role, u.organizer_auth_status, u.id AS user_id
+                          FROM organizer_requests r
+                          JOIN users u ON r.user_id = u.id
+                          WHERE r.id = ? FOR UPDATE`;
+        db.query(fetchSql, [requestId], (fe, rows) => {
+            if (fe) { console.error('Fetch request error:', fe); return db.rollback(() => res.status(500).json({ success:false, message:'Internal Server Error'})); }
+            if (!rows.length) return db.rollback(() => res.status(404).json({ success:false, message:'Request not found'}));
+            const reqRow = rows[0];
+            if (reqRow.status !== 'pending') {
+                return db.rollback(() => res.status(409).json({ success:false, message:`Request already decided (status=${reqRow.status}).` }));
             }
-            return res.status(200).json({ success:true, message:`Request ${requestId} ${decision}` });
+            const updateRequestSql = `UPDATE organizer_requests SET status = ?, refusal_reason = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+            const refusalReasonVal = decision === 'refused' ? normalizedReason : null;
+            db.query(updateRequestSql, [decision, refusalReasonVal, requestId], (urErr) => {
+                if (urErr) { console.error('Update request error:', urErr); return db.rollback(() => res.status(500).json({ success:false, message:'Internal Server Error'})); }
+                if (decision === 'approved') {
+                    const finalRole = role || 'Member';
+                    const updateUserSql = `UPDATE users SET role='organizer', organizer_auth_status='approved', organization_role=?, approval_date=CURRENT_TIMESTAMP WHERE id=?`;
+                    db.query(updateUserSql, [finalRole, reqRow.user_id], (uuErr) => {
+                        if (uuErr) { console.error('Update user error:', uuErr); return db.rollback(() => res.status(500).json({ success:false, message:'Internal Server Error'})); }
+                        if (reqRow.organization_id) {
+                            const memberSql = `INSERT IGNORE INTO organization_members (user_id, organization_id, role, status) VALUES (?, ?, ?, 'active')`;
+                            db.query(memberSql, [reqRow.user_id, reqRow.organization_id, finalRole], (mErr) => {
+                                if (mErr) { console.error('Membership insert error:', mErr); return db.rollback(() => res.status(500).json({ success:false, message:'Internal Server Error'})); }
+                                // Notifications will be implemented later; commit transaction now
+                                db.commit(cErr => {
+                                    if (cErr) { console.error('Commit error:', cErr); return db.rollback(() => res.status(500).json({ success:false, message:'Internal Server Error'})); }
+                                    return res.status(200).json({ success:true, message:`Request ${requestId} approved`, data:{ request_id: requestId, user_id: reqRow.user_id, role: finalRole } });
+                                });
+                            });
+                        } else {
+                            // No organization membership to add
+                            db.commit(cErr => {
+                                if (cErr) { console.error('Commit error:', cErr); return db.rollback(() => res.status(500).json({ success:false, message:'Internal Server Error'})); }
+                                return res.status(200).json({ success:true, message:`Request ${requestId} approved`, data:{ request_id: requestId, user_id: reqRow.user_id, role: finalRole } });
+                            });
+                        }
+                    });
+                } else { // refused
+                    const updateUserSql = `UPDATE users SET organizer_auth_status='refused', organization_role = NULL, approval_date=NULL WHERE id=?`;
+                    db.query(updateUserSql, [reqRow.user_id], (uuErr) => {
+                        if (uuErr) { console.error('Update user refusal error:', uuErr); return db.rollback(() => res.status(500).json({ success:false, message:'Internal Server Error'})); }
+                        // Notifications will be implemented later; commit transaction now
+                        db.commit(cErr => {
+                            if (cErr) { console.error('Commit error:', cErr); return db.rollback(() => res.status(500).json({ success:false, message:'Internal Server Error'})); }
+                            return res.status(200).json({ success:true, message:`Request ${requestId} refused`, data:{ request_id: requestId, user_id: reqRow.user_id, refusal_reason: refusalReasonVal } });
+                        });
+                    });
+                }
+            });
         });
     });
 });
