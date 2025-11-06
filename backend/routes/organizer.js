@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const { requireOrganizer } = require('../middleware/auth'); 
+const { attendeesToCsv } = require('../utils/csv');
 
 // Utility function for basic validation 
 const validateEventData = (data) => {
@@ -516,6 +517,57 @@ router.get('/events', requireOrganizer, (req, res) => {
     });
 });
 
+
+/**
+ * Route: GET /api/organizer/events/:id/export-csv
+ * Function: Provides attendee list CSV download for organizer-owned event.
+ * Middleware: requireOrganizer
+ */
+router.get('/events/:id/export-csv', requireOrganizer, (req, res) => {
+    const eventId = req.params.id;
+    const organizerId = req.session.userId;
+
+    const ownershipSql = 'SELECT organizer_id FROM events WHERE id = ?';
+    db.query(ownershipSql, [eventId], (err, eventResults) => {
+        if (err) {
+            console.error('DB error during event ownership check:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to verify event ownership.' });
+        }
+        if (eventResults.length === 0) {
+            return res.status(404).json({ success: false, error: 'Event not found.' });
+        }
+        if (eventResults[0].organizer_id !== organizerId) {
+            return res.status(403).json({ success: false, error: 'Unauthorized', message: 'You do not own this event.' });
+        }
+
+        const attendeeSql = `
+            SELECT 
+              u.name, u.email,
+              t.ticket_type, t.qr_code,
+              t.checked_in, t.created_at as claimed_at
+            FROM tickets t
+            JOIN users u ON t.user_id = u.id
+            WHERE t.event_id = ?
+            ORDER BY t.created_at DESC
+        `;
+
+        db.query(attendeeSql, [eventId], (err, attendeeResults) => {
+            if (err) {
+                console.error('DB error during attendee query:', err);
+                return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to fetch attendees.' });
+            }
+
+            const csvContent = '\uFEFF' + attendeesToCsv(attendeeResults);
+
+            const today = new Date().toISOString().split('T')[0];
+            const filename = `event-${eventId}-attendees-${today}.csv`;
+
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            return res.status(200).send(csvContent);
+        });
+    });
+});
 
 /**
  * Route: GET /api/organizer/events/:id/attendees

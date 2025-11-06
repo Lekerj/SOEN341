@@ -54,7 +54,7 @@ router.get('/', (req, res) => {
 
     let sql = `
     SELECT 
-        e.id, e.title, e.description, e.event_date, e.event_time, 
+        e.id, e.organizer_id, e.title, e.description, e.event_date, e.event_time, 
         e.location, e.price, e.category, e.organization, 
         e.capacity, e.tickets_available, e.image_url,
         e.moderation_status,
