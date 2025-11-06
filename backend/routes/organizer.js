@@ -109,9 +109,8 @@ router.post('/events', requireApprovedOrganizer, (req, res) => {
         return res.status(400).json({ success: false, error: "Invalid Data", message: validationError });
     }
 
-    // 2. Prepare Data 
-    const organizer_Id = req.session.userId; 
-    const tickets_Available = eventData.capacity; 
+    // 2. Prepare Data
+    const organizer_Id = req.session.userId;
 
     const {
         title, description, event_date, event_time, location, 
@@ -120,14 +119,14 @@ router.post('/events', requireApprovedOrganizer, (req, res) => {
 
     //Important Note, the Columns in the SQL string must match the order of variables in the 'params' array
     const sql = `
-        INSERT INTO events 
-        (organizer_id, title, description, event_date, event_time, location, capacity, organization, category, price, tickets_available)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO events
+        (organizer_id, title, description, event_date, event_time, location, capacity, organization, category, price)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    
+
     const params = [
-        organizer_Id, title, description || null, event_date, event_time, location, 
-        capacity, organization, category, price, tickets_Available
+        organizer_Id, title, description || null, event_date, event_time, location,
+        capacity, organization, category, price
     ];
 
     // 3. Execute Database Insertion 
@@ -141,7 +140,6 @@ router.post('/events', requireApprovedOrganizer, (req, res) => {
         const newEvent = {
             id: result.insertId, // The ID is critical for the success response
             organizer_id: organizer_Id,
-            tickets_available: tickets_Available,
             ...eventData
         };
 
@@ -500,12 +498,12 @@ router.get('/events/:id/analytics', requireApprovedOrganizer, async (req, res) =
 
         // 2. Get main metrics
         const metricsSql = `
-            SELECT 
-              (e.capacity - e.tickets_available) AS tickets_issued,
+            SELECT
+              COUNT(t.id) AS tickets_issued,
               COUNT(CASE WHEN t.checked_in = TRUE THEN 1 END) AS tickets_checked_in,
-              e.tickets_available AS remaining_capacity,
-              ((COUNT(CASE WHEN t.checked_in = TRUE THEN 1 END) / NULLIF((e.capacity - e.tickets_available),0)) * 100) AS attendance_rate,
-              ((e.capacity - e.tickets_available) * e.price) AS total_revenue
+              (e.capacity - COUNT(t.id)) AS remaining_capacity,
+              (CASE WHEN COUNT(t.id) > 0 THEN (COUNT(CASE WHEN t.checked_in = TRUE THEN 1 END) / COUNT(t.id)) * 100 ELSE 0 END) AS attendance_rate,
+              (COUNT(t.id) * e.price) AS total_revenue
             FROM events e
             LEFT JOIN tickets t ON e.id = t.event_id
             WHERE e.id = ? AND e.organizer_id = ?
@@ -570,12 +568,12 @@ router.get('/events', requireApprovedOrganizer, (req, res) => {
     const organizerId = req.session.userId;
     console.log('Fetching events for organizer:', organizerId);
     const sql = `
-        SELECT e.*, 
-            (e.capacity - e.tickets_available) AS tickets_issued,
+        SELECT e.*,
+            COUNT(t.id) AS tickets_issued,
             COUNT(CASE WHEN t.checked_in = TRUE THEN 1 END) AS tickets_checked_in,
-            e.tickets_available AS remaining_capacity,
-            (CASE WHEN (e.capacity - e.tickets_available) > 0 THEN (COUNT(CASE WHEN t.checked_in = TRUE THEN 1 END) / (e.capacity - e.tickets_available)) * 100 ELSE 0 END) AS attendance_rate,
-            ((e.capacity - e.tickets_available) * e.price) AS total_revenue
+            (e.capacity - COUNT(t.id)) AS remaining_capacity,
+            (CASE WHEN COUNT(t.id) > 0 THEN (COUNT(CASE WHEN t.checked_in = TRUE THEN 1 END) / COUNT(t.id)) * 100 ELSE 0 END) AS attendance_rate,
+            (COUNT(t.id) * e.price) AS total_revenue
         FROM events e
         LEFT JOIN tickets t ON e.id = t.event_id
         WHERE e.organizer_id = ?
@@ -588,7 +586,6 @@ router.get('/events', requireApprovedOrganizer, (req, res) => {
             return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Failed to fetch events.' });
         }
         console.log('Found events:', results.length);
-        console.log('Events:', JSON.stringify(results, null, 2));
 
         // For each event, fetch timeline data
         const eventsWithTimeline = await Promise.all(results.map(event => {
@@ -612,7 +609,7 @@ router.get('/events', requireApprovedOrganizer, (req, res) => {
                         ? Number(event.attendance_rate).toFixed(2)
                         : 0;
                     event.total_revenue = event.total_revenue || 0;
-                    event.remaining_capacity = event.remaining_capacity || event.tickets_available;
+                    event.remaining_capacity = event.remaining_capacity || 0;
                     resolve(event);
                 });
             });
