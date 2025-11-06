@@ -49,6 +49,7 @@ const requireAdmin = requireRole('admin');
 const requireModerator = requireAdmin; // Modertion uses the same high level admin check
 const requireOrganizer = requireRole('organizer');
 
+<<<<<<< HEAD
 /**
  * Middleware to check if user is an APPROVED organizer
  * This checks both role='organizer' AND organizer_auth_status='approved'
@@ -109,3 +110,8 @@ module.exports = {
   requireAdmin, 
   requireModerator
 }; 
+=======
+module.exports = { requireAuth, requireRole, requireOrganizer, requireAdmin, requireModerator};
+// Exporting the new Admin Middleware
+// Exporting  the new Moderator alias. 
+>>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0

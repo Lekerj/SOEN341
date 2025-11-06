@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+>>>>>>> c1314db (API and Routes implemented)
+>>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
@@ -31,6 +35,7 @@ router.get('/organizer/pending', requireAdmin, (req, res) => {
 // ROUTER POST /api/admin/organizers/:id/approve
 router.post('/organizers/:id/approve', requireAdmin, (req, res) => {
     const userId = req.params.id;
+<<<<<<< HEAD
     const { organization_role } = req.body || {};
     const roleToAssign = organization_role || 'Member';
 
@@ -38,18 +43,30 @@ router.post('/organizers/:id/approve', requireAdmin, (req, res) => {
     const sql = 'UPDATE users SET role = ?, organizer_auth_status = ?, organization_role = ?, approval_date = CURRENT_TIMESTAMP WHERE id = ? AND (role = ? OR organizer_auth_status = ? OR organizer_auth_status IS NULL)';
 
     db.query(sql, ['organizer', 'approved', roleToAssign, userId, 'pending', 'pending'], (err, result) => {
+=======
+
+    // Updates role to 'organizer' only if the current role is 'pending'
+    const sql = 'UPDATE users SET role = ? WHERE id = ? AND role = "pending"';
+
+    db.query(sql, ['organizer', userId], (err, result) => {
+>>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
         if (err) {
             console.error(`DB Error approving user ${userId}:`, err);
             return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Database update failed during approval.' });
         }
 
         if (result.affectedRows === 0) {
+<<<<<<< HEAD
             return res.status(404).json({ success: false, message: "User not found or not eligible for approval." });
+=======
+            return res.status(404).json({ success: false, message: "User not found or not eligible for approval (role is not 'pending')." });
+>>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
         }
 
         // Audit Log for successful approval
         console.log(`AUDIT: Admin (User ID: ${req.session.userId}) APPROVED user ID: ${userId}`);
 
+<<<<<<< HEAD
         // Fetch organization_id to add membership & notify user
         const getOrgSql = 'SELECT organization_id FROM users WHERE id = ?';
         db.query(getOrgSql, [userId], (e2, rows) => {
@@ -69,6 +86,8 @@ router.post('/organizers/:id/approve', requireAdmin, (req, res) => {
             }
         });
 
+=======
+>>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
         signalEmailNotification(userId, 'approved');
 
         res.status(200).json({ success: true, message: `Organizer request for ID ${userId} approved. Role updated to 'organizer'.` });
@@ -79,15 +98,23 @@ router.post('/organizers/:id/approve', requireAdmin, (req, res) => {
 router.post('/organizers/:id/reject', requireAdmin, (req, res) => {
     const userId = req.params.id;
 
+<<<<<<< HEAD
     const sql = `UPDATE users SET organizer_auth_status = 'refused', approval_date = CURRENT_TIMESTAMP WHERE id = ?`;
 
     db.query(sql, [userId], (err, result) => {
+=======
+    // Updates role to 'rejected' only if the current role is 'pending'
+    const sql = 'UPDATE users SET role = ? WHERE id = ? AND role = "pending"';
+
+    db.query(sql, ['rejected', userId], (err, result) => {
+>>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
         if (err) {
             console.error(`DB Error rejecting user ${userId}:`, err);
             return res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Database update failed during rejection.' });
         }
 
         if (result.affectedRows === 0) {
+<<<<<<< HEAD
             return res.status(404).json({ success: false, message: "User not found or not eligible for rejection." });
         }
 
@@ -104,12 +131,18 @@ router.post('/organizers/:id/reject', requireAdmin, (req, res) => {
             });
         });
 
+=======
+            return res.status(404).json({ success: false, message: "User not found or not eligible for rejection (role is not 'pending')." });
+        }
+
+>>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
         signalEmailNotification(userId, 'rejected');
 
         res.status(200).json({ success: true, message: `Organizer request for ID ${userId} rejected. Role updated to 'rejected'.` });
     });
 });
 
+<<<<<<< HEAD
 //-- User Management Endpoints -- 
 // Route GET /api/admin/users - Return list of all users with current roles
 router.get('/users', requireAdmin, (req, res) => {
@@ -358,6 +391,13 @@ router.get('/events', requireAdmin, (req, res) => {
         LEFT JOIN users u ON e.organizer_id = u.id
         ORDER BY e.event_date DESC
         `;
+=======
+// --- EVENT MODERATION ENDPOINTS ---
+
+// Route: GET /api/admin/events - Returns list of all events
+router.get('/events', requireAdmin, (req, res) => {
+    const sql = `SELECT * FROM events ORDER BY event_date DESC`;
+>>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
 
     db.query(sql, (err, results) => {
         if (err) {
@@ -368,6 +408,7 @@ router.get('/events', requireAdmin, (req, res) => {
     });
 });
 
+<<<<<<< HEAD
 // Route: GET /api/admin/events/flagged - Returns flagged events with organizer info
 router.get('/events/flagged', requireAdmin, (req, res) => {
     const sql = `
@@ -380,6 +421,11 @@ router.get('/events/flagged', requireAdmin, (req, res) => {
         WHERE e.is_flagged = TRUE
         ORDER BY e.created_at DESC
         `;
+=======
+// Route: GET /api/admin/events/flagged - Returns flagged events
+router.get('/events/flagged', requireAdmin, (req, res) => {
+    const sql = `SELECT * FROM events WHERE is_flagged = TRUE ORDER BY created_at DESC`;
+>>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
 
     db.query(sql, (err, results) => {
         if (err) {
@@ -515,6 +561,7 @@ router.get('/analytics', requireAdmin, getAnalyticsHandler(db));
 
 module.exports = router;
 module.exports.getAnalyticsHandler = getAnalyticsHandler;
+<<<<<<< HEAD
 
 // Route: DELETE /api/admin/events/:id - Delete event
 router.delete('/events/:id', requireAdmin, (req, res) => {
@@ -599,3 +646,5 @@ router.get('/analytics', requireAdmin, getAnalyticsHandler(db));
 
 module.exports = router;
 module.exports.getAnalyticsHandler = getAnalyticsHandler;
+=======
+>>>>>>> 88473ddf5e0af440b4c6438876bcbc703d1189e0
