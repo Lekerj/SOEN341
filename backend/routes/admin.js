@@ -732,4 +732,75 @@ router.put('/organizations/:orgId/members/:memberId/role', requireAdmin, (req, r
     });
 });
 
+// ==========================================
+// ANALYTICS ENDPOINTS (Issue #198)
+// ==========================================
+
+/**
+ * Analytics handler (aggregated stats)
+ * Provides organization/event analytics with optional filtering
+ */
+function getAnalyticsHandler(database) {
+    return (req, res) => {
+        const start = Date.now();
+        const { organization } = req.query;
+
+        let sql = `
+            SELECT
+                COUNT(DISTINCT e.id) AS total_events,
+                COUNT(t.id) AS total_tickets_issued,
+                SUM(CASE WHEN t.checked_in = 1 THEN 1 ELSE 0 END) AS total_checked_in
+            FROM events e
+            LEFT JOIN tickets t ON t.event_id = e.id
+        `;
+        const params = [];
+
+        if (organization && organization.trim() !== "") {
+            sql += ' WHERE e.organization = ?';
+            params.push(organization.trim());
+        }
+
+        database.query(sql, params, (err, rows) => {
+            if (err) {
+                console.error('Admin analytics query error:', err);
+                return res.status(500).json({ success: false, error: 'Internal Server Error' });
+            }
+
+            const row = rows && rows[0] ? rows[0] : {};
+
+            const totalEvents = Number(row.total_events || 0);
+            const totalTickets = Number(row.total_tickets_issued || 0);
+            const totalCheckedIn = Number(row.total_checked_in || 0);
+            const totalNotCheckedIn = Math.max(totalTickets - totalCheckedIn, 0);
+            const attendanceRate = totalTickets > 0 ? totalCheckedIn / totalTickets : 0;
+
+            const duration = Date.now() - start;
+
+            return res.json({
+                success: true,
+                data: {
+                    total_events: totalEvents,
+                    total_tickets_issued: totalTickets,
+                    total_checked_in: totalCheckedIn,
+                    total_not_checked_in: totalNotCheckedIn,
+                    attendance_rate: Number(attendanceRate.toFixed(4)),
+                },
+                filters_applied: {
+                    organization: organization && organization.trim() !== "" ? organization.trim() : null,
+                },
+                meta: {
+                    query_ms: duration,
+                },
+            });
+        });
+    };
+}
+
+/**
+ * GET /api/admin/analytics
+ * Returns aggregated analytics for events and tickets
+ */
+router.get('/analytics', requireAdmin, getAnalyticsHandler(db));
+
 module.exports = router;
+module.exports.getAnalyticsHandler = getAnalyticsHandler;

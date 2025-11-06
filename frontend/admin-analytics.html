@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics & Reports - Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        /* Navbar */
+        nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav .brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        nav .nav-center {
+            display: flex;
+            gap: 2rem;
+            flex: 1;
+            justify-content: center;
+        }
+
+        nav a, nav button {
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        nav a:hover, nav button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        nav .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        nav .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        nav .user-info span {
+            font-size: 0.9rem;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            color: #333;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .filter-group select {
+            padding: 0.6rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            background-color: white;
+        }
+
+        button {
+            padding: 0.6rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: #764ba2;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #63388e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3);
+        }
+
+        /* Statistics Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card .label {
+            color: #999;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .unit {
+            color: #999;
+            font-size: 0.85rem;
+        }
+
+        .stat-card.accent-1 .value {
+            color: #667eea;
+        }
+
+        .stat-card.accent-2 .value {
+            color: #764ba2;
+        }
+
+        .stat-card.accent-3 .value {
+            color: #f093fb;
+        }
+
+        .stat-card.accent-4 .value {
+            color: #4facfe;
+        }
+
+        /* Charts Section */
+        .charts-section {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .charts-section h2 {
+            margin-bottom: 2rem;
+            color: #333;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 1rem;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            padding: 1rem;
+        }
+
+        .chart-title {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #999;
+            font-size: 1.1rem;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-right: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Error State */
+        .error-message {
+            background-color: #fee;
+            border: 1px solid #fcc;
+            border-radius: 4px;
+            padding: 1rem;
+            color: #c33;
+            margin-bottom: 1rem;
+        }
+
+        /* Data Table */
+        .data-table-section {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .data-table-section h2 {
+            margin-bottom: 1.5rem;
+            color: #333;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 1rem;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+
+        table thead {
+            background-color: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+        }
+
+        table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+        }
+
+        table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        table tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            nav .nav-center {
+                width: 100%;
+                justify-content: flex-start;
+                gap: 1rem;
+                flex-direction: column;
+            }
+
+            nav a, nav button {
+                padding: 0.5rem 0;
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .controls {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .filter-group {
+                width: 100%;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .filter-group select {
+                width: 100%;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+
+            table th, table td {
+                padding: 0.5rem;
+            }
+        }
+
+        .export-success {
+            background-color: #efe;
+            border: 1px solid #cfc;
+            border-radius: 4px;
+            padding: 1rem;
+            color: #3c3;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .export-success.show {
+            display: block;
+        }
+
+        /* Meta Info */
+        .meta-info {
+            font-size: 0.85rem;
+            color: #999;
+            margin-top: 1rem;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="brand">📊 Analytics Dashboard</div>
+        <div class="nav-center">
+            <a href="index.html" id="homeLink">Home</a>
+            <a href="admin-dashboard.html">Dashboard</a>
+            <a href="admin-organization-management.html">Organizations</a>
+            <a href="admin-moderation.html">Event Moderation</a>
+            <a href="admin-analytics.html" style="color: #ffd700;">Analytics & Reports</a>
+        </div>
+        <div class="nav-right">
+            <div class="user-info">
+                <span id="userGreeting">Welcome!</span>
+                <button id="logoutBtn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Analytics & Reports</h1>
+            <div class="controls">
+                <div class="filter-group">
+                    <label for="organizationFilter">Filter by Organization:</label>
+                    <select id="organizationFilter">
+                        <option value="">All Organizations</option>
+                    </select>
+                </div>
+                <button class="btn-primary" id="refreshBtn">🔄 Refresh</button>
+                <button class="btn-secondary" id="exportBtn">📥 Export CSV</button>
+            </div>
+        </div>
+
+        <!-- Export Success Message -->
+        <div class="export-success" id="exportSuccess">
+            ✓ Analytics data exported successfully to CSV file
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-message" id="errorMessage" style="display: none;"></div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card accent-1">
+                <div class="label">Total Events</div>
+                <div class="value" id="totalEvents">-</div>
+                <div class="unit">events created</div>
+            </div>
+            <div class="stat-card accent-2">
+                <div class="label">Total Tickets Issued</div>
+                <div class="value" id="totalTickets">-</div>
+                <div class="unit">tickets sold</div>
+            </div>
+            <div class="stat-card accent-3">
+                <div class="label">Attendees Checked In</div>
+                <div class="value" id="checkedIn">-</div>
+                <div class="unit">attendees</div>
+            </div>
+            <div class="stat-card accent-4">
+                <div class="label">Attendance Rate</div>
+                <div class="value" id="attendanceRate">-</div>
+                <div class="unit">% of issued tickets</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-section">
+            <h2>📈 Visualizations</h2>
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <div class="chart-title">Attendance Status</div>
+                    <canvas id="attendanceChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Ticket Summary</div>
+                    <canvas id="ticketChart"></canvas>
+                </div>
+            </div>
+            <div class="meta-info">
+                <span id="metaInfo">Query time: -ms</span>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="data-table-section">
+            <h2>📋 Summary Data</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody">
+                        <tr>
+                            <td colspan="3" class="loading">
+                                <div class="spinner"></div>
+                                Loading analytics data...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getApiBase } from './utils/api.js';
+
+        // Helper function to build API URL
+        function apiUrl(path) {
+            return `${getApiBase()}${path}`;
+        }
+
+        // State
+        let currentAnalytics = null;
+        let allOrganizations = [];
+        let charts = {};
+
+        // DOM Elements
+        const organizationFilter = document.getElementById('organizationFilter');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const userGreeting = document.getElementById('userGreeting');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const exportSuccess = document.getElementById('exportSuccess');
+
+        // Admin Authentication Check
+        function checkAdminAuth() {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                const user = JSON.parse(userStr);
+                if (String(user.role || '').toLowerCase() !== 'admin') {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Update greeting
+                if (user.name) {
+                    userGreeting.textContent = `Welcome, ${user.name}!`;
+                }
+            } catch (e) {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Logout handler
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        });
+
+        // Load organizations for filter dropdown
+        async function loadOrganizations() {
+            try {
+                const response = await fetch(apiUrl('/api/admin/organizations'));
+                if (!response.ok) throw new Error('Failed to fetch organizations');
+
+                const result = await response.json();
+                if (result.success && result.data) {
+                    allOrganizations = result.data;
+                    updateOrganizationOptions();
+                }
+            } catch (error) {
+                console.error('Error loading organizations:', error);
+            }
+        }
+
+        function updateOrganizationOptions() {
+            const options = allOrganizations.map(org =>
+                `<option value="${org.name}">${org.name}</option>`
+            );
+            organizationFilter.innerHTML = '<option value="">All Organizations</option>' + options.join('');
+        }
+
+        // Fetch analytics data
+        async function fetchAnalytics() {
+            try {
+                hideError();
+                const organization = organizationFilter.value;
+                const url = apiUrl('/api/admin/analytics') +
+                    (organization ? `?organization=${encodeURIComponent(organization)}` : '');
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to fetch analytics');
+
+                const result = await response.json();
+                if (result.success) {
+                    currentAnalytics = result.data;
+                    updateUI();
+
+                    // Update meta info
+                    document.getElementById('metaInfo').textContent =
+                        `Query time: ${result.meta.query_ms}ms | Filter: ${organization || 'None'}`;
+                }
+            } catch (error) {
+                showError(error.message);
+                console.error('Analytics fetch error:', error);
+            }
+        }
+
+        // Update all UI elements with analytics data
+        function updateUI() {
+            if (!currentAnalytics) return;
+
+            const {
+                total_events,
+                total_tickets_issued,
+                total_checked_in,
+                attendance_rate
+            } = currentAnalytics;
+
+            // Update stat cards
+            document.getElementById('totalEvents').textContent = total_events;
+            document.getElementById('totalTickets').textContent = total_tickets_issued;
+            document.getElementById('checkedIn').textContent = total_checked_in;
+            document.getElementById('attendanceRate').textContent =
+                (attendance_rate * 100).toFixed(1) + '%';
+
+            // Update charts
+            updateCharts();
+
+            // Update data table
+            updateDataTable();
+        }
+
+        // Update charts
+        function updateCharts() {
+            const {
+                total_checked_in,
+                total_not_checked_in,
+                total_tickets_issued,
+                total_events
+            } = currentAnalytics;
+
+            // Destroy existing charts if they exist
+            if (charts.attendance) charts.attendance.destroy();
+            if (charts.ticket) charts.ticket.destroy();
+
+            // Attendance Chart (Doughnut)
+            const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+            charts.attendance = new Chart(attendanceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Checked In', 'Not Checked In'],
+                    datasets: [{
+                        data: [total_checked_in, total_not_checked_in],
+                        backgroundColor: ['#667eea', '#f5a5a5'],
+                        borderColor: ['#667eea', '#f5a5a5'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                font: { size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Ticket Chart (Bar)
+            const ticketCtx = document.getElementById('ticketChart').getContext('2d');
+            charts.ticket = new Chart(ticketCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Events', 'Tickets', 'Attended'],
+                    datasets: [{
+                        label: 'Count',
+                        data: [total_events, total_tickets_issued, total_checked_in],
+                        backgroundColor: ['#667eea', '#764ba2', '#f093fb'],
+                        borderColor: ['#667eea', '#764ba2', '#f093fb'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'x',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                padding: 20,
+                                font: { size: 12 }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update data table
+        function updateDataTable() {
+            const {
+                total_events,
+                total_tickets_issued,
+                total_checked_in,
+                attendance_rate
+            } = currentAnalytics;
+
+            const rows = [
+                {
+                    metric: 'Total Events Created',
+                    value: total_events,
+                    description: 'Number of events in the system'
+                },
+                {
+                    metric: 'Total Tickets Issued',
+                    value: total_tickets_issued,
+                    description: 'Total tickets sold or issued'
+                },
+                {
+                    metric: 'Total Attendees Checked In',
+                    value: total_checked_in,
+                    description: 'Number of attendees who checked in'
+                },
+                {
+                    metric: 'Not Yet Checked In',
+                    value: total_tickets_issued - total_checked_in,
+                    description: 'Attendees with tickets but not checked in'
+                },
+                {
+                    metric: 'Attendance Rate',
+                    value: (attendance_rate * 100).toFixed(1) + '%',
+                    description: 'Percentage of ticket holders who attended'
+                }
+            ];
+
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = rows.map(row => `
+                <tr>
+                    <td><strong>${row.metric}</strong></td>
+                    <td>${row.value}</td>
+                    <td>${row.description}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            if (!currentAnalytics) {
+                showError('No data to export. Please load analytics first.');
+                return;
+            }
+
+            const {
+                total_events,
+                total_tickets_issued,
+                total_checked_in,
+                attendance_rate
+            } = currentAnalytics;
+
+            const organization = organizationFilter.value || 'All Organizations';
+            const timestamp = new Date().toISOString().split('T')[0];
+
+            const csvContent = [
+                ['Analytics Report'],
+                ['Generated:', new Date().toLocaleString()],
+                ['Organization Filter:', organization],
+                [''],
+                ['Metric', 'Value'],
+                ['Total Events', total_events],
+                ['Total Tickets Issued', total_tickets_issued],
+                ['Total Checked In', total_checked_in],
+                ['Not Checked In', total_tickets_issued - total_checked_in],
+                ['Attendance Rate (%)', (attendance_rate * 100).toFixed(1)],
+            ]
+            .map(row => row.map(cell => `"${cell}"`).join(','))
+            .join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `analytics-${timestamp}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            // Show success message
+            exportSuccess.classList.add('show');
+            setTimeout(() => {
+                exportSuccess.classList.remove('show');
+            }, 3000);
+        }
+
+        // Error handling
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        // Event listeners
+        refreshBtn.addEventListener('click', fetchAnalytics);
+        exportBtn.addEventListener('click', exportToCSV);
+        organizationFilter.addEventListener('change', fetchAnalytics);
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAdminAuth();
+            loadOrganizations();
+            fetchAnalytics();
+        });
+    </script>
+</body>
+</html>
