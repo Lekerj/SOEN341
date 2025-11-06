@@ -568,7 +568,9 @@ router.get('/events', requireApprovedOrganizer, (req, res) => {
     const organizerId = req.session.userId;
     console.log('Fetching events for organizer:', organizerId);
     const sql = `
-        SELECT e.*,
+        SELECT e.id, e.title, e.description, e.organizer_id, e.organization,
+               e.event_date, e.event_time, e.location, e.capacity, e.price,
+               e.category, e.is_flagged, e.moderation_notes, e.created_at, e.updated_at,
             COUNT(t.id) AS tickets_issued,
             COUNT(CASE WHEN t.checked_in = TRUE THEN 1 END) AS tickets_checked_in,
             (e.capacity - COUNT(t.id)) AS remaining_capacity,
@@ -577,7 +579,9 @@ router.get('/events', requireApprovedOrganizer, (req, res) => {
         FROM events e
         LEFT JOIN tickets t ON e.id = t.event_id
         WHERE e.organizer_id = ?
-        GROUP BY e.id
+        GROUP BY e.id, e.title, e.description, e.organizer_id, e.organization,
+                 e.event_date, e.event_time, e.location, e.capacity, e.price,
+                 e.category, e.is_flagged, e.moderation_notes, e.created_at, e.updated_at
         ORDER BY e.event_date ASC, e.event_time ASC
     `;
     db.query(sql, [organizerId], async (err, results) => {
