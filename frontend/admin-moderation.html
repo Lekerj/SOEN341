@@ -15,7 +15,97 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding-top: 70px;
+            padding-bottom: 20px;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        /* Navbar Styles */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1rem 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-logo {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .navbar-logo:hover {
+            opacity: 0.8;
+        }
+
+        .navbar-menu {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+            align-items: center;
+            margin: 0;
+        }
+
+        .navbar-menu li {
+            margin: 0;
+        }
+
+        .navbar-menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+
+        .navbar-menu a:hover,
+        .navbar-menu a.active {
+            opacity: 0.8;
+            border-bottom: 2px solid white;
+            padding-bottom: 5px;
+        }
+
+        .btn-logout {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: #ff5252;
+        }
+
+        .text-muted {
+            color: rgba(255, 255, 255, 0.8);
+            margin-right: 15px;
+        }
+
+        #userLinks {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .container {
@@ -433,6 +523,21 @@
     </style>
 </head>
 <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="admin-moderation.html" class="active">Admin Panel</a></li>
+                <li id="userLinks" style="display: none;">
+                    <span id="welcomeMessage" class="text-muted"></span>
+                    <button onclick="logout()" class="btn btn-logout">Logout</button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
     <div class="container">
         <div class="header">
             <h1>🔍 Event Moderation Dashboard</h1>
@@ -570,6 +675,7 @@
         // Check authentication on page load
         window.addEventListener('DOMContentLoaded', () => {
             checkAdmin();
+            setupNavbar();
             loadEvents();
             setupEventListeners();
         });
@@ -588,10 +694,53 @@
                     setTimeout(() => {
                         window.location.href = '/index.html';
                     }, 2000);
+                    return;
                 }
             } catch (e) {
                 console.error('Error checking admin status:', e);
                 window.location.href = '/login.html';
+            }
+        }
+
+        function setupNavbar() {
+            // Setup user links in navbar
+            try {
+                const userStr = localStorage.getItem('user');
+                if (userStr) {
+                    const user = JSON.parse(userStr);
+                    const userLinks = document.getElementById('userLinks');
+                    const welcomeMessage = document.getElementById('welcomeMessage');
+                    if (userLinks && welcomeMessage) {
+                        welcomeMessage.textContent = `Welcome, ${user.name || user.email}!`;
+                        userLinks.style.display = 'flex';
+                    }
+                }
+            } catch (e) {
+                console.error('Error setting up navbar:', e);
+            }
+        }
+
+        async function logout() {
+            const confirmLogout = confirm('Are you sure you want to log out?');
+            if (!confirmLogout) {
+                return;
+            }
+
+            try {
+                const response = await fetch(apiUrl('/api/auth/logout'), {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    localStorage.removeItem('user');
+                    window.location.href = '/index.html';
+                } else {
+                    showAlert('Logout failed. Please try again.', 'danger');
+                }
+            } catch (err) {
+                console.error('Logout error:', err);
+                showAlert('Error during logout: ' + err.message, 'danger');
             }
         }
 
