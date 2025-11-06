@@ -495,4 +495,241 @@ router.delete('/events/:id', requireAdmin, (req, res) => {
     });
 });
 
+// ==========================================
+// ORGANIZATION MANAGEMENT ENDPOINTS (Issue #201)
+// ==========================================
+
+/**
+ * GET /api/admin/organizations
+ * Returns all organizations with their details
+ */
+router.get('/organizations', requireAdmin, (req, res) => {
+    const sql = `
+    SELECT id, name, description, category, is_default, logo_url, created_at
+    FROM organizations
+    ORDER BY name ASC
+    `;
+    
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error("DB Error fetching organizations:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+        res.status(200).json({ success: true, organizations: results });
+    });
+});
+
+/**
+ * POST /api/admin/organizations
+ * Creates a new organization
+ */
+router.post('/organizations', requireAdmin, (req, res) => {
+    const { name, description, category, logo_url } = req.body;
+    
+    // Validation
+    if (!name || name.trim().length < 3 || name.trim().length > 100) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Organization name must be 3-100 characters" 
+        });
+    }
+    
+    const validCategories = ['sports', 'academic', 'social', 'club'];
+    if (!validCategories.includes(category)) {
+        return res.status(400).json({ 
+            success: false, 
+            message: `Category must be one of: ${validCategories.join(', ')}` 
+        });
+    }
+    
+    const sql = `
+    INSERT INTO organizations (name, description, category, logo_url, is_default)
+    VALUES (?, ?, ?, ?, FALSE)
+    `;
+    
+    db.query(sql, [name.trim(), description || null, category, logo_url || null], (err, result) => {
+        if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(409).json({ success: false, message: "Organization name already exists" });
+            }
+            console.error("DB Error creating organization:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+        
+        console.log(`AUDIT: Admin (User ID: ${req.session.userId}) CREATED Organization: ${name}`);
+        res.status(201).json({ 
+            success: true, 
+            message: "Organization created successfully",
+            id: result.insertId 
+        });
+    });
+});
+
+/**
+ * PUT /api/admin/organizations/:orgId
+ * Updates an existing organization
+ */
+router.put('/organizations/:orgId', requireAdmin, (req, res) => {
+    const orgId = req.params.orgId;
+    const { name, description, category, logo_url } = req.body;
+    
+    const fields = [];
+    const params = [];
+    
+    if (name) {
+        if (name.trim().length < 3 || name.trim().length > 100) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Organization name must be 3-100 characters" 
+            });
+        }
+        fields.push('name = ?');
+        params.push(name.trim());
+    }
+    
+    if (description !== undefined) {
+        fields.push('description = ?');
+        params.push(description || null);
+    }
+    
+    if (category) {
+        const validCategories = ['sports', 'academic', 'social', 'club'];
+        if (!validCategories.includes(category)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Category must be one of: ${validCategories.join(', ')}` 
+            });
+        }
+        fields.push('category = ?');
+        params.push(category);
+    }
+    
+    if (logo_url !== undefined) {
+        fields.push('logo_url = ?');
+        params.push(logo_url || null);
+    }
+    
+    if (fields.length === 0) {
+        return res.status(400).json({ success: false, message: "No fields to update" });
+    }
+    
+    params.push(orgId);
+    
+    const sql = `UPDATE organizations SET ${fields.join(', ')} WHERE id = ?`;
+    
+    db.query(sql, params, (err, result) => {
+        if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(409).json({ success: false, message: "Organization name already exists" });
+            }
+            console.error("DB Error updating organization:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Organization not found" });
+        }
+        
+        console.log(`AUDIT: Admin (User ID: ${req.session.userId}) UPDATED Organization ID: ${orgId}`);
+        res.status(200).json({ success: true, message: "Organization updated successfully" });
+    });
+});
+
+/**
+ * DELETE /api/admin/organizations/:orgId
+ * Deletes an organization
+ */
+router.delete('/organizations/:orgId', requireAdmin, (req, res) => {
+    const orgId = req.params.orgId;
+    
+    // Prevent deletion of default organization
+    const checkSql = 'SELECT is_default FROM organizations WHERE id = ?';
+    db.query(checkSql, [orgId], (err, results) => {
+        if (err) {
+            console.error("DB Error checking organization:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+        
+        if (!results.length) {
+            return res.status(404).json({ success: false, message: "Organization not found" });
+        }
+        
+        if (results[0].is_default) {
+            return res.status(403).json({ success: false, message: "Cannot delete default organization" });
+        }
+        
+        const sql = 'DELETE FROM organizations WHERE id = ?';
+        db.query(sql, [orgId], (err, result) => {
+            if (err) {
+                console.error("DB Error deleting organization:", err);
+                return res.status(500).json({ success: false, error: "Internal Server Error" });
+            }
+            
+            console.log(`AUDIT: Admin (User ID: ${req.session.userId}) DELETED Organization ID: ${orgId}`);
+            res.status(200).json({ success: true, message: "Organization deleted successfully" });
+        });
+    });
+});
+
+/**
+ * GET /api/admin/organizations/:orgId/members
+ * Returns all members of an organization with their roles
+ */
+router.get('/organizations/:orgId/members', requireAdmin, (req, res) => {
+    const orgId = req.params.orgId;
+    
+    const sql = `
+    SELECT om.id, om.user_id, u.name, u.email, om.role, om.status, om.assigned_at
+    FROM organization_members om
+    JOIN users u ON om.user_id = u.id
+    WHERE om.organization_id = ?
+    ORDER BY om.assigned_at DESC
+    `;
+    
+    db.query(sql, [orgId], (err, results) => {
+        if (err) {
+            console.error("DB Error fetching members:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+        res.status(200).json({ success: true, members: results });
+    });
+});
+
+/**
+ * PUT /api/admin/organizations/:orgId/members/:memberId/role
+ * Updates a member's role within an organization
+ */
+router.put('/organizations/:orgId/members/:memberId/role', requireAdmin, (req, res) => {
+    const { orgId, memberId } = req.params;
+    const { role } = req.body;
+    
+    const validRoles = ['President', 'Vice President', 'Event Manager', 'Member'];
+    if (!validRoles.includes(role)) {
+        return res.status(400).json({ 
+            success: false, 
+            message: `Role must be one of: ${validRoles.join(', ')}` 
+        });
+    }
+    
+    const sql = `
+    UPDATE organization_members 
+    SET role = ?, assigned_at = CURRENT_TIMESTAMP 
+    WHERE id = ? AND organization_id = ?
+    `;
+    
+    db.query(sql, [role, memberId, orgId], (err, result) => {
+        if (err) {
+            console.error("DB Error updating member role:", err);
+            return res.status(500).json({ success: false, error: "Internal Server Error" });
+        }
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Member not found in organization" });
+        }
+        
+        console.log(`AUDIT: Admin (User ID: ${req.session.userId}) UPDATED Member ${memberId} role to ${role} in Org ${orgId}`);
+        res.status(200).json({ success: true, message: `Member role updated to ${role}` });
+    });
+});
+
 module.exports = router;
