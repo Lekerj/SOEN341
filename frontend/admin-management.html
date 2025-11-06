@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Management Dashboard - ConEvents</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">
+        🎫 ConEvents
+      </a>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="browse.html">Browse</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="profile.html">Profile</a></li>
+        <li id="authLinks">
+          <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </li>
+        <li id="userLinks" style="display: none;">
+          <span id="welcomeMessage" class="text-muted"></span>
+          <div id="adminMenu" class="admin-menu" hidden>
+            <button type="button" class="btn btn-secondary btn-sm admin-menu-toggle">
+              Admin <span aria-hidden="true" class="admin-menu-caret">&#9662;</span>
+            </button>
+            <div class="admin-menu-list" role="menu">
+              <a href="admin-moderation.html" class="admin-menu-link" role="menuitem">Moderation Dashboard</a>
+              <a href="admin-management.html" class="admin-menu-link" role="menuitem" aria-current="page">Organization &amp; Roles</a>
+            </div>
+          </div>
+          <button type="button" onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="container">
+      <section class="admin-dashboard management-dashboard">
+        <header class="dashboard-header">
+          <h1>Organization &amp; Role Management</h1>
+          <p class="dashboard-subtitle">
+            Keep organizations up-to-date and manage user permissions across the platform.
+          </p>
+        </header>
+
+        <div id="statusMessage" class="status-banner" role="status" aria-live="polite" hidden></div>
+
+        <div class="management-panels">
+          <div class="card-panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Organizations</h2>
+                <p class="panel-subtitle">Edit details and review assigned organizers.</p>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" id="newOrganizationButton">Add Organization</button>
+            </div>
+            <div id="organizationsEmptyState" class="empty-state" hidden>
+              No organizations yet. Create one to get started.
+            </div>
+            <div id="organizationsList" class="organization-grid"></div>
+          </div>
+
+          <div class="card-panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">User Roles</h2>
+                <p class="panel-subtitle">Assign admin, organizer, and student roles. Changes apply immediately.</p>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table class="management-table" aria-describedby="statusMessage">
+                <thead>
+                  <tr>
+                    <th scope="col">User</th>
+                    <th scope="col">Contact</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">Organization</th>
+                    <th scope="col" class="actions-column">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody"></tbody>
+              </table>
+            </div>
+            <div id="usersEmptyState" class="empty-state" hidden>
+              No users found.
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Organization Modal -->
+  <div id="organizationModal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="organizationModalTitle">
+    <div class="modal-content">
+      <header class="modal-header">
+        <h2 id="organizationModalTitle">Organization</h2>
+        <button type="button" class="modal-close" data-close-modal aria-label="Close organization dialog">&times;</button>
+      </header>
+      <form id="organizationForm" class="modal-body">
+        <div class="form-grid">
+          <label class="form-field">
+            <span class="form-label">Name</span>
+            <input id="organizationName" name="name" type="text" class="form-control" maxlength="150" required />
+          </label>
+          <label class="form-field">
+            <span class="form-label">Logo URL</span>
+            <input id="organizationLogo" name="logo_url" type="url" class="form-control" placeholder="https://example.com/logo.png" />
+          </label>
+        </div>
+        <label class="form-field">
+          <span class="form-label">Description</span>
+          <textarea id="organizationDescription" name="description" rows="4" class="form-control" placeholder="Brief summary of the organization"></textarea>
+        </label>
+        <div id="organizationFormMessage" class="form-feedback" role="alert" hidden></div>
+        <footer class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-close-modal>Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="organizationSubmitButton">Save organization</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { getApiBase, apiFetch } from './utils/api.js';
+
+    const state = {
+      organizations: [],
+      users: [],
+      editingOrganizationId: null,
+    };
+
+    const banner = document.getElementById('statusMessage');
+    const organizationsList = document.getElementById('organizationsList');
+    const organizationsEmptyState = document.getElementById('organizationsEmptyState');
+    const usersTableBody = document.getElementById('usersTableBody');
+    const usersEmptyState = document.getElementById('usersEmptyState');
+    const organizationModal = document.getElementById('organizationModal');
+    const organizationForm = document.getElementById('organizationForm');
+    const organizationFormMessage = document.getElementById('organizationFormMessage');
+    const organizationSubmitButton = document.getElementById('organizationSubmitButton');
+    const adminMenu = document.getElementById('adminMenu');
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (organizationModal) closeModal(organizationModal);
+      bootstrapSession();
+      attachEventListeners();
+    });
+
+    function attachEventListeners() {
+      const newOrganizationButton = document.getElementById('newOrganizationButton');
+      if (newOrganizationButton) {
+        newOrganizationButton.addEventListener('click', () => openOrganizationModal());
+      }
+
+      organizationForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(organizationForm);
+        const payload = {
+          name: formData.get('name')?.trim(),
+          logo_url: formData.get('logo_url')?.trim() || null,
+          description: formData.get('description')?.trim() || null,
+        };
+
+        if (!payload.name || payload.name.length === 0) {
+          setFormFeedback(organizationFormMessage, 'Organization name is required.', 'error');
+          return;
+        }
+
+        try {
+          organizationSubmitButton.disabled = true;
+          organizationSubmitButton.textContent = state.editingOrganizationId ? 'Saving…' : 'Creating…';
+
+          const endpoint = state.editingOrganizationId
+            ? `/api/admin/organizations/${state.editingOrganizationId}`
+            : '/api/admin/organizations';
+          const method = state.editingOrganizationId ? 'PUT' : 'POST';
+
+          const response = await apiFetch(endpoint, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await safeJson(response);
+
+          if (!response.ok) {
+            setFormFeedback(organizationFormMessage, data?.message || data?.error || 'Unable to save organization.', 'error');
+            return;
+          }
+
+          setStatus(data?.message || 'Organization saved successfully.', 'success');
+          closeModal(organizationModal);
+          await loadManagementData();
+        } catch (error) {
+          console.error('Failed to save organization', error);
+          setFormFeedback(organizationFormMessage, 'Unexpected error saving organization. Please try again.', 'error');
+        } finally {
+          organizationSubmitButton.disabled = false;
+          organizationSubmitButton.textContent = state.editingOrganizationId ? 'Save organization' : 'Create organization';
+        }
+      });
+
+      document.querySelectorAll('[data-close-modal]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const modal = btn.closest('.modal-backdrop');
+          if (modal) closeModal(modal);
+        });
+      });
+
+      if (organizationModal) {
+        organizationModal.addEventListener('click', (event) => {
+          if (event.target === organizationModal) closeModal(organizationModal);
+        });
+      }
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !organizationModal.hasAttribute('hidden')) {
+          closeModal(organizationModal);
+        }
+      });
+
+      usersTableBody.addEventListener('click', async (event) => {
+        const button = event.target instanceof HTMLElement ? event.target.closest('button[data-action="save-user"]') : null;
+        if (!button) return;
+
+        const userId = Number(button.dataset.userId);
+        if (Number.isNaN(userId)) return;
+
+        await updateUserRow(userId, button);
+      });
+    }
+
+    async function bootstrapSession() {
+      const authLinks = document.getElementById('authLinks');
+      const userLinks = document.getElementById('userLinks');
+      const welcome = document.getElementById('welcomeMessage');
+      const stored = safeParse(localStorage.getItem('user'));
+      toggleAdminMenu(false);
+
+      try {
+        const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
+        if (!resp.ok) {
+          if (authLinks) authLinks.style.display = 'flex';
+          if (userLinks) userLinks.style.display = 'none';
+          if (resp.status === 401) {
+            localStorage.removeItem('user');
+            setStatus('You need to log in as an administrator to access this dashboard.', 'error');
+          } else {
+            setStatus('Unable to verify your session. Please try again later.', 'error');
+          }
+          return;
+        }
+
+        const { user } = await resp.json();
+        if (userLinks) {
+          userLinks.style.display = 'flex';
+          userLinks.style.gap = '1rem';
+          userLinks.style.alignItems = 'center';
+        }
+        if (authLinks) authLinks.style.display = 'none';
+        if (welcome && user?.name) {
+          welcome.textContent = `Welcome, ${user.name}!`;
+        }
+        localStorage.setItem('user', JSON.stringify(user));
+
+        if (user.role !== 'admin') {
+          setStatus('Only administrators can access this dashboard.', 'error');
+          toggleAdminMenu(false);
+          return;
+        }
+
+        toggleAdminMenu(true);
+        await loadManagementData();
+      } catch (error) {
+        console.error('Session bootstrap failed', error);
+        setStatus('Unable to verify your session right now. Please try again later.', 'error');
+        if (stored) {
+          if (authLinks) authLinks.style.display = 'none';
+          if (userLinks) userLinks.style.display = 'flex';
+        }
+      }
+    }
+
+    async function loadManagementData() {
+      try {
+        setStatus('', 'info');
+        const [orgResp, userResp] = await Promise.all([
+          apiFetch('/api/admin/organizations'),
+          apiFetch('/api/admin/users'),
+        ]);
+
+        const orgData = await safeJson(orgResp);
+        const userData = await safeJson(userResp);
+
+        if (!orgResp.ok) {
+          throw new Error(orgData?.message || orgData?.error || 'Failed fetching organizations');
+        }
+        if (!userResp.ok) {
+          throw new Error(userData?.message || userData?.error || 'Failed fetching users');
+        }
+
+        state.organizations = Array.isArray(orgData?.organizations) ? orgData.organizations : [];
+        state.users = Array.isArray(userData?.users) ? userData.users : [];
+
+        renderOrganizations();
+        renderUsers();
+      } catch (error) {
+        console.error('Failed to load management data', error);
+        setStatus(error.message || 'Unexpected error loading data.', 'error');
+      }
+    }
+
+    async function updateUserRow(userId, button) {
+      const row = button.closest('tr');
+      if (!row) return;
+
+      const roleSelect = row.querySelector('select[data-field="role"]');
+      const orgSelect = row.querySelector('select[data-field="organization"]');
+
+      const payload = {};
+      if (roleSelect) payload.newRole = roleSelect.value;
+      if (orgSelect) {
+        const value = orgSelect.value;
+        payload.organizationId = value === '' ? null : Number(value);
+      }
+
+      button.disabled = true;
+      const originalText = button.textContent;
+      button.textContent = 'Saving…';
+
+      try {
+        const response = await apiFetch(`/api/admin/users/${userId}/role`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await safeJson(response);
+
+        if (!response.ok) {
+          setStatus(data?.message || data?.error || 'Unable to update user.', 'error');
+          return;
+        }
+
+        setStatus(data?.message || 'User updated successfully.', 'success');
+        await loadManagementData();
+      } catch (error) {
+        console.error('Failed to update user', error);
+        setStatus('Unexpected error updating user. Please try again.', 'error');
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    }
+
+    function renderOrganizations() {
+      organizationsList.innerHTML = '';
+
+      if (!state.organizations.length) {
+        organizationsEmptyState.hidden = false;
+        return;
+      }
+
+      organizationsEmptyState.hidden = true;
+
+      const fragment = document.createDocumentFragment();
+      state.organizations.forEach((org) => {
+        const card = document.createElement('article');
+        card.className = 'organization-card';
+
+        const memberList = org.members?.length
+          ? org.members.map((member) => `<li><strong>${escapeHtml(member.name)}</strong><span>${escapeHtml(member.email)}</span><em>${escapeHtml(member.role)}</em></li>`).join('')
+          : '<li class="empty">No assigned organizers yet.</li>';
+
+        card.innerHTML = `
+          <header class="organization-card-header">
+            <div>
+              <h3>${escapeHtml(org.name)}</h3>
+              <p class="organization-meta">Created ${formatDate(org.created_at)}</p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" data-org-id="${org.id}" data-action="edit-organization">Edit</button>
+          </header>
+          <div class="organization-body">
+            ${org.logo_url ? `<div class="organization-logo"><img src="${escapeAttribute(org.logo_url)}" alt="${escapeAttribute(org.name)} logo" /></div>` : ''}
+            <p class="organization-description">${escapeHtml(org.description || 'No description provided.')}</p>
+          </div>
+          <footer class="organization-footer">
+            <h4>Organizers</h4>
+            <ul class="organization-members">${memberList}</ul>
+          </footer>
+        `;
+
+        const editButton = card.querySelector('button[data-action="edit-organization"]');
+        if (editButton) {
+          editButton.addEventListener('click', () => openOrganizationModal(org));
+        }
+
+        fragment.appendChild(card);
+      });
+
+      organizationsList.appendChild(fragment);
+    }
+
+    function renderUsers() {
+      usersTableBody.innerHTML = '';
+
+      if (!state.users.length) {
+        usersEmptyState.hidden = false;
+        return;
+      }
+
+      usersEmptyState.hidden = true;
+
+      const roles = ['admin', 'organizer', 'student', 'user', 'pending', 'rejected'];
+      const fragment = document.createDocumentFragment();
+      state.users.forEach((user) => {
+        const row = document.createElement('tr');
+        const organizationOptions = [
+          '<option value="">No organization</option>',
+          ...state.organizations.map((org) => `<option value="${org.id}" ${user.organization_id === org.id ? 'selected' : ''}>${escapeHtml(org.name)}</option>`),
+        ].join('');
+
+        const roleOptions = roles.map((role) => `<option value="${role}" ${user.role === role ? 'selected' : ''}>${role.charAt(0).toUpperCase() + role.slice(1)}</option>`).join('');
+
+        row.innerHTML = `
+          <td>
+            <div class="user-primary">
+              <span class="user-name">${escapeHtml(user.name)}</span>
+              <span class="user-id">#${user.id}</span>
+            </div>
+            <div class="user-created">Joined ${formatDate(user.created_at)}</div>
+          </td>
+          <td>
+            <div>${escapeHtml(user.email)}</div>
+          </td>
+          <td>
+            <select class="form-control" data-field="role">
+              ${roleOptions}
+            </select>
+          </td>
+          <td>
+            <select class="form-control" data-field="organization">
+              ${organizationOptions}
+            </select>
+          </td>
+          <td class="actions-column">
+            <button type="button" class="btn btn-primary btn-sm" data-action="save-user" data-user-id="${user.id}">Save</button>
+          </td>
+        `;
+
+        fragment.appendChild(row);
+      });
+
+      usersTableBody.appendChild(fragment);
+    }
+
+    function openOrganizationModal(org = null) {
+      state.editingOrganizationId = org?.id || null;
+      organizationForm.reset();
+      setFormFeedback(organizationFormMessage, '', 'info');
+
+      if (org) {
+        document.getElementById('organizationModalTitle').textContent = 'Edit organization';
+        document.getElementById('organizationName').value = org.name || '';
+        document.getElementById('organizationLogo').value = org.logo_url || '';
+        document.getElementById('organizationDescription').value = org.description || '';
+        organizationSubmitButton.textContent = 'Save organization';
+      } else {
+        document.getElementById('organizationModalTitle').textContent = 'Add organization';
+        organizationSubmitButton.textContent = 'Create organization';
+      }
+
+      openModal(organizationModal);
+    }
+
+    function setStatus(message, variant = 'info') {
+      if (!message) {
+        banner.hidden = true;
+        banner.textContent = '';
+        return;
+      }
+      banner.textContent = message;
+      banner.className = `status-banner status-${variant}`;
+      banner.hidden = false;
+    }
+
+    function setFormFeedback(node, message, variant = 'info') {
+      if (!node) return;
+      if (!message) {
+        node.hidden = true;
+        node.textContent = '';
+        node.className = 'form-feedback';
+        return;
+      }
+      node.hidden = false;
+      node.textContent = message;
+      node.className = `form-feedback form-feedback-${variant}`;
+    }
+
+    function toggleAdminMenu(isAdmin) {
+      if (!adminMenu) return;
+      adminMenu.hidden = !isAdmin;
+    }
+
+    function openModal(modal) {
+      modal.removeAttribute('hidden');
+      document.body.classList.add('modal-open');
+    }
+
+    function closeModal(modal) {
+      modal.setAttribute('hidden', '');
+      if (modal === organizationModal) {
+        state.editingOrganizationId = null;
+        organizationForm.reset();
+        setFormFeedback(organizationFormMessage, '', 'info');
+      }
+      if (document.querySelectorAll('.modal-backdrop:not([hidden])').length === 0) {
+        document.body.classList.remove('modal-open');
+      }
+    }
+
+    function safeParse(value) {
+      try {
+        return value ? JSON.parse(value) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    async function safeJson(response) {
+      try {
+        return await response.json();
+      } catch {
+        return null;
+      }
+    }
+
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return '';
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value).replace(/`/g, '&#96;');
+    }
+
+    function formatDate(value) {
+      if (!value) return '—';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    window.logout = async function logout() {
+      try {
+        const resp = await fetch(`${getApiBase()}/api/auth/logout`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+        localStorage.removeItem('user');
+        if (resp.ok) {
+          window.location.href = 'index.html';
+        } else {
+          setStatus('Logout failed. Please try again.', 'error');
+        }
+      } catch (error) {
+        console.warn('Logout failed:', error);
+        localStorage.removeItem('user');
+        window.location.href = 'index.html';
+      }
+    };
+  </script>
+</body>
+
+</html>

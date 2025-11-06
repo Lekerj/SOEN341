@@ -1,8 +1,5 @@
 -- seed_organizers.sql
 --
--- Seed data for organizers, events and tickets used in tests.
---
--- Instructions:
 -- 1. Run `node backend/scripts/seed_organizers.js` to create organizer and student users
 --    with bcrypt-hashed passwords, then execute the SQL statements below to create events
 --    and tickets. The Node script reads this SQL file and runs it after creating users.
@@ -15,12 +12,27 @@
 --      student1@example.com    | password: studentPass1
 --      student2@example.com    | password: studentPass2
 --
--- Notes / assumptions:
--- - The `users` table stores bcrypt hashes in `password_hash`. This SQL file does not
---   attempt to generate bcrypt hashes itself. Use the accompanying Node script to create
---   users so passwords are hashed correctly.
--- - The SQL below uses subqueries (SELECT id FROM users WHERE email=...) to look up
---   organizer and user IDs. Ensure users exist before running this SQL.
+
+-- =====================================================
+-- Organizations
+-- =====================================================
+
+INSERT INTO organizations (name, logo_url, description)
+VALUES
+  ('Music Club', NULL, 'Student-led club organizing musical events and performances.'),
+  ('CS Club', NULL, 'Computer science community hosting talks, hackathons, and workshops.'),
+  ('Sports Council', NULL, 'Coordinates athletic events and intramurals across campus.'),
+  ('Chess Club', NULL, 'Weekly chess meetups for players of all skill levels.')
+ON DUPLICATE KEY UPDATE
+  logo_url = VALUES(logo_url),
+  description = VALUES(description);
+
+-- Ensure organizer accounts created by the seed script reference the organizations above
+UPDATE users SET organization_id = (SELECT id FROM organizations WHERE name = 'Music Club')
+WHERE email IN ('organizer1@example.com');
+
+UPDATE users SET organization_id = (SELECT id FROM organizations WHERE name = 'Sports Council')
+WHERE email IN ('organizer2@example.com');
 
 -- =====================================================
 -- Events

@@ -933,6 +933,215 @@ select.form-control {
   margin: var(--spacing-2xl) 0;
 }
 
+.management-panels {
+  display: grid;
+  gap: var(--spacing-xl);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.panel-title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-family: var(--font-family-heading);
+  color: var(--dark-gray);
+}
+
+.panel-subtitle {
+  margin: var(--spacing-xs) 0 0;
+  color: var(--medium-gray);
+  font-size: 0.95rem;
+}
+
+.organization-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.organization-card {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-lg);
+  display: grid;
+  gap: var(--spacing-md);
+  position: relative;
+}
+
+.organization-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.organization-card-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--dark-gray);
+}
+
+.organization-meta {
+  margin: var(--spacing-xs) 0 0;
+  color: var(--medium-gray);
+  font-size: 0.85rem;
+}
+
+.organization-body {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.organization-logo {
+  background: rgba(145, 35, 56, 0.06);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-sm);
+  display: inline-flex;
+  max-width: 160px;
+  align-items: center;
+  justify-content: center;
+}
+
+.organization-logo img {
+  max-width: 100%;
+  border-radius: var(--radius-md);
+}
+
+.organization-description {
+  margin: 0;
+  color: var(--medium-gray);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.organization-footer {
+  border-top: 1px solid rgba(145, 35, 56, 0.12);
+  padding-top: var(--spacing-md);
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.organization-footer h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dark-gray);
+}
+
+.organization-members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--spacing-xs);
+}
+
+.organization-members li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  background: rgba(145, 35, 56, 0.05);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.9rem;
+}
+
+.organization-members li.empty {
+  justify-content: flex-start;
+  color: var(--medium-gray);
+  font-style: italic;
+  background: transparent;
+  padding-left: 0;
+}
+
+.organization-members li span {
+  color: var(--medium-gray);
+}
+
+.organization-members li em {
+  color: var(--primary-maroon);
+  font-style: normal;
+  font-weight: 600;
+}
+
+.management-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.management-table thead th {
+  text-align: left;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--medium-gray);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid rgba(145, 35, 56, 0.15);
+}
+
+.management-table tbody td {
+  padding: var(--spacing-md) var(--spacing-sm);
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(145, 35, 56, 0.1);
+}
+
+.user-primary {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-weight: 600;
+  color: var(--dark-gray);
+}
+
+.user-id {
+  font-size: var(--font-size-xs);
+  color: var(--medium-gray);
+  background: rgba(145, 35, 56, 0.08);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.user-created {
+  font-size: 0.85rem;
+  color: var(--medium-gray);
+  margin-top: var(--spacing-xs);
+}
+
+.management-table select.form-control {
+  min-width: 160px;
+}
+
+@media (max-width: 768px) {
+  .management-table thead {
+    display: none;
+  }
+
+  .management-table tbody tr {
+    display: grid;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) 0;
+  }
+
+  .management-table tbody td {
+    border: none;
+    padding: 0;
+  }
+
+  .management-table tbody td.actions-column {
+    margin-top: var(--spacing-sm);
+  }
+}
+
 .dashboard-header {
   background: linear-gradient(135deg, rgba(145, 35, 56, 0.92) 0%, rgba(107, 44, 145, 0.92) 100%);
   color: var(--white);

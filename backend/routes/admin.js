@@ -84,20 +84,29 @@ router.post('/organizers/:id/reject', requireAdmin, (req, res) => {
  * Route GET /api/admin/users\
  * AC: Return list of all users with current roles
  */
-router.get('/users', requireAdmin, (req,res)=>{
+router.get('/users', requireAdmin, (req, res) => {
     const sql = `
-    SELECT id, name, email, role, created_at, organization
-    FROM users
-    ORDER BY created_at DESC`;
+    SELECT 
+        u.id,
+        u.name,
+        u.email,
+        u.role,
+        u.created_at,
+        u.organization_id,
+        o.name AS organization_name,
+        o.logo_url AS organization_logo
+    FROM users u
+    LEFT JOIN organizations o ON u.organization_id = o.id
+    ORDER BY u.created_at DESC`;
 
-    db.query(sql, (err, results)=>{
-        if(err){
+    db.query(sql, (err, results) => {
+        if (err) {
             console.error("DB Error Fetching all users:", err);
-            return res.status(500).json({success: false, error: "Internal Server Error", message: "Failed to retrieve user list."});
+            return res.status(500).json({ success: false, error: "Internal Server Error", message: "Failed to retrieve user list." });
         }
-        res.status(200).json({success:true, users: results});
-    })
-})
+        res.status(200).json({ success: true, users: results });
+    });
+});
 
 /**
  * Route: PUT /api/admin/users/:id/role
@@ -105,35 +114,69 @@ router.get('/users', requireAdmin, (req,res)=>{
  * AC: Role types validated.
  */
 
-router.put('/users/:id/role', requireAdmin, (req,res)=>{
+router.put('/users/:id/role', requireAdmin, (req, res) => {
     const userId = req.params.id;
-    const { newRole } = req.body;
+    const { newRole, organizationId } = req.body;
 
-    //Define valid roles for validation
-    const VALID_ROLES = ['admin', 'organizer', 'student','user','pending','rejected'];
+    const VALID_ROLES = ['admin', 'organizer', 'student', 'user', 'pending', 'rejected'];
 
-    //400 Bad Request Check: Validate role input 
-    if(!newRole || !VALID_ROLES.includes(newRole)){
+    const fields = [];
+    const params = [];
+
+    if (newRole !== undefined) {
+        if (!VALID_ROLES.includes(newRole)) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid role provided. Must be one of: ${VALID_ROLES.join(', ')}`,
+            });
+        }
+        fields.push('role = ?');
+        params.push(newRole);
+    }
+
+    if (organizationId !== undefined) {
+        const orgValue = organizationId === null || organizationId === '' ? null : Number(organizationId);
+        if (orgValue !== null && Number.isNaN(orgValue)) {
+            return res.status(400).json({
+                success: false,
+                message: 'organizationId must be a number or null.',
+            });
+        }
+        fields.push('organization_id = ?');
+        params.push(orgValue);
+    }
+
+    if (fields.length === 0) {
         return res.status(400).json({
             success: false,
-            message: `Invalid or missing role provided. Must be one of: ${VALID_ROLES.join(', ')}.`
-        })
+            message: 'No fields provided to update.',
+        });
     }
-    const sql = 'UPDATE usuers SET role = ? WHERE id = ?';
 
-    db.query(sql,[newRole,userId], (err,result) =>{
-        if(err){
-            console.error(`DB Error assinging role to user ${userId}:`, err);
-            return res.status(500).json({success:false, erorr:"Internal Server Error"});
-        }
-        if(results.affectedRows===0){
-            return res.status(404).json({success: false, message: "User not found."});
+    params.push(userId);
+
+    const sql = `UPDATE users SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+
+    db.query(sql, params, (err, result) => {
+        if (err) {
+            console.error(`DB Error assigning role to user ${userId}:`, err);
+            if (err.code === 'ER_NO_REFERENCED_ROW_2' || err.code === 'ER_NO_REFERENCED_ROW') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Organization not found. Please choose a valid organization.',
+                });
+            }
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
         }
 
-        //Audit Trail Log:
-        console.log(`AUDIT: Admin (User ID: ${req.session.userId}) assigned role '${newRole}' to User ID: ${userId}`);
-    })
-})
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        console.log(`AUDIT: Admin (User ID: ${req.session.userId}) updated user ID ${userId} with fields: ${fields.join(', ')}`);
+        res.status(200).json({ success: true, message: 'User updated successfully.' });
+    });
+});
 
 // -- New Organization Management Endpoint ---
 
@@ -141,19 +184,58 @@ router.put('/users/:id/role', requireAdmin, (req,res)=>{
  * ROUTE: GET /api/admin/organization
  * AC: Return Lists of all organization with details
  */
-router.get('/organization', requireAdmin, (req,res)=>{
-    const sql = `
-    SELECT id, name, logo_url, description, created_at
-    FROM ogranization
-    ORDER BY name ASC`;
+function fetchOrganizations(res) {
+    const orgSql = `
+        SELECT id, name, logo_url, description, created_at, updated_at
+        FROM organizations
+        ORDER BY name ASC`;
 
-    db.query(sql,(err,results)=>{
-        if(err){
-            console.error("DB Error Fetching all organizations:", err);
-            return res.status(500).json({succes: false, error: "Internal Server Error", message: "Failed to retrieve organization list."});
+    const memberSql = `
+        SELECT u.id, u.name, u.email, u.role, u.organization_id
+        FROM users u
+        WHERE u.organization_id IS NOT NULL
+          AND u.role IN ('organizer', 'admin')
+        ORDER BY u.name ASC`;
+
+    db.query(orgSql, (orgErr, orgResults) => {
+        if (orgErr) {
+            console.error("DB Error fetching organizations:", orgErr);
+            return res.status(500).json({ success: false, error: "Internal Server Error", message: "Failed to retrieve organization list." });
         }
-        res.status(200).json({sucess: true, organization: results});
+
+        db.query(memberSql, (memberErr, memberResults) => {
+            if (memberErr) {
+                console.error("DB Error fetching organization members:", memberErr);
+                return res.status(500).json({ success: false, error: "Internal Server Error", message: "Failed to retrieve organization members." });
+            }
+
+            const membersByOrg = memberResults.reduce((acc, user) => {
+                if (!acc[user.organization_id]) acc[user.organization_id] = [];
+                acc[user.organization_id].push({
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                });
+                return acc;
+            }, {});
+
+            const payload = orgResults.map((org) => ({
+                ...org,
+                members: membersByOrg[org.id] || [],
+            }));
+
+            res.status(200).json({ success: true, organizations: payload });
+        });
     });
+}
+
+router.get('/organizations', requireAdmin, (req, res) => {
+    fetchOrganizations(res);
+});
+
+router.get('/organization', requireAdmin, (req, res) => {
+    fetchOrganizations(res);
 });
 
 /**
@@ -168,14 +250,15 @@ router.put('/organizations/:id', requireAdmin, (req, res) => {
     const params = [];
 
     // Dynamic whitelisting for update
-    if (name) { fields.push('name = ?'); params.push(name); }
-    if (logo_url) { fields.push('logo_url = ?'); params.push(logo_url); }
+    if (name !== undefined) { fields.push('name = ?'); params.push(name); }
+    if (logo_url !== undefined) { fields.push('logo_url = ?'); params.push(logo_url); }
     if (description !== undefined) { fields.push('description = ?'); params.push(description); }
 
     if (fields.length === 0) {
         return res.status(400).json({ success: false, message: "No editable fields provided for organization update." });
     }
 
+    fields.push('updated_at = CURRENT_TIMESTAMP');
     params.push(orgId);
 
     const sql = `UPDATE organizations SET ${fields.join(', ')} WHERE id = ?`;
@@ -194,6 +277,28 @@ router.put('/organizations/:id', requireAdmin, (req, res) => {
         console.log(`AUDIT: Admin (User ID: ${req.session.userId}) edited Organization ID: ${orgId}. Fields: ${fields.join(', ')}`);
 
         res.status(200).json({ success: true, message: `Organization ${orgId} updated successfully.` });
+    });
+});
+
+router.post('/organizations', requireAdmin, (req, res) => {
+    const { name, logo_url, description } = req.body;
+
+    if (!name || !name.trim()) {
+        return res.status(400).json({ success: false, message: 'Organization name is required.' });
+    }
+
+    const sql = `INSERT INTO organizations (name, logo_url, description) VALUES (?, ?, ?)`;
+    db.query(sql, [name.trim(), logo_url || null, description || null], (err, result) => {
+        if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(409).json({ success: false, message: 'An organization with that name already exists.' });
+            }
+            console.error('DB Error creating organization:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+
+        console.log(`AUDIT: Admin (User ID: ${req.session.userId}) created organization ID: ${result.insertId}`);
+        res.status(201).json({ success: true, message: 'Organization created successfully.', organizationId: result.insertId });
     });
 });
 // --- EVENT MODERATION ENDPOINTS ---

@@ -90,16 +90,22 @@ EXIT;
 
 **macOS:**
 ```bash
+mysql -u 341 -pPass341! convenevents < backend/sql/organizations_table.sql
 mysql -u 341 -pPass341! convenevents < backend/sql/users_table.sql
 mysql -u 341 -pPass341! convenevents < backend/sql/events_table.sql
 mysql -u 341 -pPass341! convenevents < backend/sql/tickets_table.sql
+mysql -u 341 -pPass341! convenevents < backend/sql/alter_users_add_organization_id.sql
+mysql -u 341 -pPass341! convenevents < backend/sql/alter_events_add_moderation_columns.sql
 ```
 
 **Windows:**
 ```bash
+mysql -u 341 -pPass341! convenevents < backend\sql\organizations_table.sql
 mysql -u 341 -pPass341! convenevents < backend\sql\users_table.sql
 mysql -u 341 -pPass341! convenevents < backend\sql\events_table.sql
 mysql -u 341 -pPass341! convenevents < backend\sql\tickets_table.sql
+mysql -u 341 -pPass341! convenevents < backend\sql\alter_users_add_organization_id.sql
+mysql -u 341 -pPass341! convenevents < backend\sql\alter_events_add_moderation_columns.sql
 ```
 
 ### Step 4: Install Dependencies
@@ -148,16 +154,22 @@ npm --prefix frontend --no-save install http-server
 
 **macOS:**
 ```bash
+mysql -u 341 -pPass341! convenevents < backend/sql/organizations_table.sql
 mysql -u 341 -pPass341! convenevents < backend/sql/users_table.sql
 mysql -u 341 -pPass341! convenevents < backend/sql/events_table.sql
 mysql -u 341 -pPass341! convenevents < backend/sql/tickets_table.sql
+mysql -u 341 -pPass341! convenevents < backend/sql/alter_users_add_organization_id.sql
+mysql -u 341 -pPass341! convenevents < backend/sql/alter_events_add_moderation_columns.sql
 ```
 
 **Windows:**
 ```bash
+mysql -u 341 -pPass341! convenevents < backend\sql\organizations_table.sql
 mysql -u 341 -pPass341! convenevents < backend\sql\users_table.sql
 mysql -u 341 -pPass341! convenevents < backend\sql\events_table.sql
 mysql -u 341 -pPass341! convenevents < backend\sql\tickets_table.sql
+mysql -u 341 -pPass341! convenevents < backend\sql\alter_users_add_organization_id.sql
+mysql -u 341 -pPass341! convenevents < backend\sql\alter_events_add_moderation_columns.sql
 ```
 
 **Alternative (using MySQL shell):**
@@ -168,9 +180,12 @@ mysql -u 341 -pPass341! convenevents
 
 Then run:
 ```sql
+SOURCE backend/sql/organizations_table.sql;
 SOURCE backend/sql/users_table.sql;
 SOURCE backend/sql/events_table.sql;
 SOURCE backend/sql/tickets_table.sql;
+SOURCE backend/sql/alter_users_add_organization_id.sql;
+SOURCE backend/sql/alter_events_add_moderation_columns.sql;
 EXIT;
 ```
 
