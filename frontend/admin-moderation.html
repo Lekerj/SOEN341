@@ -552,12 +552,20 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        // Import API utility
+        import { getApiBase } from './utils/api.js';
+
         let currentFilter = 'all';
         let searchQuery = '';
         let allEvents = [];
         let currentEditingId = null;
         let currentDeleteId = null;
+
+        // Helper to get API base URL
+        function apiUrl(path) {
+            return `${getApiBase()}${path}`;
+        }
 
         // Check authentication on page load
         window.addEventListener('DOMContentLoaded', () => {
@@ -625,7 +633,7 @@
             document.getElementById('eventsTable').style.display = 'none';
             document.getElementById('emptyState').style.display = 'none';
 
-            fetch('/api/admin/events')
+            fetch(apiUrl('/api/admin/events'), { credentials: 'include' })
                 .then(res => {
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     return res.json();
@@ -742,9 +750,10 @@
                 category: document.getElementById('editCategory').value
             };
 
-            fetch(`/api/admin/events/${currentEditingId}`, {
+            fetch(apiUrl(`/api/admin/events/${currentEditingId}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(updateData)
             })
                 .then(res => {
@@ -776,9 +785,10 @@
         function confirmDelete() {
             if (!currentDeleteId) return;
 
-            fetch(`/api/admin/events/${currentDeleteId}`, {
+            fetch(apiUrl(`/api/admin/events/${currentDeleteId}`), {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
             })
                 .then(res => {
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -799,9 +809,10 @@
             const event = allEvents.find(e => e.id === eventId);
             if (!event) return;
 
-            fetch(`/api/admin/events/${eventId}`, {
+            fetch(apiUrl(`/api/admin/events/${eventId}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ is_flagged: true })
             })
                 .then(res => {
@@ -819,9 +830,10 @@
         }
 
         function unflagEvent(eventId) {
-            fetch(`/api/admin/events/${eventId}`, {
+            fetch(apiUrl(`/api/admin/events/${eventId}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ is_flagged: false })
             })
                 .then(res => {
