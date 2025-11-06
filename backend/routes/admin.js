@@ -266,6 +266,9 @@ router.put('/organizations/:id', requireAdmin, (req, res) => {
     db.query(sql, params, (err, result) => {
         if (err) {
             console.error(`DB Error updating organization ${orgId}:`, err);
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(409).json({ success: false, message: 'An organization with that name already exists.' });
+            }
             return res.status(500).json({ success: false, error: "Internal Server Error" });
         }
         
