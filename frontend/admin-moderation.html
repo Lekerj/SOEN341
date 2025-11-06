@@ -837,7 +837,7 @@
                     <td class="event-title" title="${event.title}">${event.title}</td>
                     <td>${formatDate(event.event_date)}</td>
                     <td>${event.location}</td>
-                    <td>${event.organizer_id || 'N/A'}</td>
+                    <td title="${event.organizer_email || 'N/A'}">${event.organizer_name || 'Unknown'}</td>
                     <td>
                         <span class="status-badge ${event.is_flagged ? 'status-flagged' : 'status-active'}">
                             ${event.is_flagged ? '🚩 Flagged' : '✓ Active'}

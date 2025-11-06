@@ -281,10 +281,18 @@ router.put('/organizations/:id', requireAdmin, (req, res) => {
 
 /**
  * Route: GET /api/admin/events
- * AC: Returns list of all event details.
+ * AC: Returns list of all event details with organizer information.
  */
 router.get('/events', requireAdmin, (req, res) => {
-    const sql = `SELECT * FROM events ORDER BY event_date DESC`;
+    const sql = `
+    SELECT
+      e.*,
+      u.name AS organizer_name,
+      u.email AS organizer_email
+    FROM events e
+    LEFT JOIN users u ON e.organizer_id = u.id
+    ORDER BY e.event_date DESC
+    `;
 
     db.query(sql, (err, results) => {
         if (err) {
@@ -300,7 +308,16 @@ router.get('/events', requireAdmin, (req, res) => {
  * ADDED: Returns list of flagged/reported events only. (Required for Task #194)
  */
 router.get('/events/flagged', requireAdmin, (req, res) => {
-    const sql = `SELECT * FROM events WHERE is_flagged = TRUE ORDER BY created_at DESC`;
+    const sql = `
+    SELECT
+      e.*,
+      u.name AS organizer_name,
+      u.email AS organizer_email
+    FROM events e
+    LEFT JOIN users u ON e.organizer_id = u.id
+    WHERE e.is_flagged = TRUE
+    ORDER BY e.created_at DESC
+    `;
 
     db.query(sql, (err, results) => {
         if (err) {
