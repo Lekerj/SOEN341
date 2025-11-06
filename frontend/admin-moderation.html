@@ -1083,8 +1083,11 @@
         }
 
         function logout() {
-            localStorage.removeItem('user');
-            window.location.href = 'login.html';
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                window.location.href = '/login.html';
+            }
         }
     </script>
 </body>
