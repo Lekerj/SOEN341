@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Moderation Dashboard - Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 25px 30px;
+            background: #f8f9fa;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 40px 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .search-box input::placeholder {
+            color: #999;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .filter-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            padding: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            font-weight: 600;
+            color: #333;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th:hover {
+            background: #e9ecef;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            color: #555;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .event-title {
+            font-weight: 500;
+            color: #667eea;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-completed {
+            background: #cfe2ff;
+            color: #084298;
+        }
+
+        .status-flagged {
+            background: #f8d7da;
+            color: #842029;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-edit {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #5568d3;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .btn-flag {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-flag:hover {
+            background: #e0a800;
+        }
+
+        .btn-unflag {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-unflag:hover {
+            background: #218838;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 30px;
+            color: #999;
+        }
+
+        .empty-state h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px 20px;
+            margin: 20px 30px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #842029;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+            border-top: 2px solid #f0f0f0;
+            padding-top: 20px;
+        }
+
+        .btn-cancel {
+            background: #f0f0f0;
+            color: #333;
+            padding: 10px 20px;
+        }
+
+        .btn-cancel:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-confirm {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+        }
+
+        .btn-confirm:hover {
+            background: #5568d3;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+
+            .search-box {
+                min-width: 100%;
+            }
+
+            .filter-buttons {
+                width: 100%;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 10px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Event Moderation Dashboard</h1>
+            <p>Review, edit, and manage all events on the platform</p>
+        </div>
+
+        <div id="alerts-container"></div>
+
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search by event title...">
+            </div>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">All Events</button>
+                <button class="filter-btn" data-filter="flagged">Flagged Only</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div id="loadingIndicator" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Loading events...</p>
+            </div>
+
+            <table id="eventsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Event ID</th>
+                        <th>Title</th>
+                        <th>Date</th>
+                        <th>Location</th>
+                        <th>Organizer</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+
+            <div id="emptyState" class="empty-state">
+                <h2>No events found</h2>
+                <p>There are no events to moderate at this time.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Event Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Event</h2>
+                <button class="close-btn" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form id="editForm">
+                <div class="form-group">
+                    <label for="editTitle">Title</label>
+                    <input type="text" id="editTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="editDescription">Description</label>
+                    <textarea id="editDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editDate">Date</label>
+                    <input type="date" id="editDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="editTime">Time</label>
+                    <input type="time" id="editTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="editLocation">Location</label>
+                    <input type="text" id="editLocation" required>
+                </div>
+                <div class="form-group">
+                    <label for="editCapacity">Capacity</label>
+                    <input type="number" id="editCapacity" required>
+                </div>
+                <div class="form-group">
+                    <label for="editPrice">Price</label>
+                    <input type="number" id="editPrice" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="editCategory">Category</label>
+                    <input type="text" id="editCategory">
+                </div>
+                <div class="form-group">
+                    <label for="editNotes">Moderation Notes</label>
+                    <textarea id="editNotes" placeholder="Add any notes about moderation..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-cancel" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn btn-confirm">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Delete Event</h2>
+                <button class="close-btn" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <p style="margin-bottom: 20px; color: #555;">
+                Are you sure you want to delete this event? This action cannot be undone.
+            </p>
+            <p style="margin-bottom: 20px; padding: 15px; background: #f8d7da; border-radius: 6px; color: #842029;">
+                <strong>Event:</strong> <span id="deleteEventTitle"></span>
+            </p>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button type="button" class="btn btn-delete" onclick="confirmDelete()">Delete Event</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let allEvents = [];
+        let currentEditingId = null;
+        let currentDeleteId = null;
+
+        // Check authentication on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            checkAdmin();
+            loadEvents();
+            setupEventListeners();
+        });
+
+        function checkAdmin() {
+            // This is a simple check - in production, verify with backend
+            const userRole = localStorage.getItem('userRole');
+            if (userRole !== 'admin') {
+                window.location.href = '/login.html';
+            }
+        }
+
+        function setupEventListeners() {
+            // Search
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase();
+                filterAndDisplayEvents();
+            });
+
+            // Filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentFilter = e.target.dataset.filter;
+                    filterAndDisplayEvents();
+                });
+            });
+
+            // Edit form submit
+            document.getElementById('editForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                submitEditForm();
+            });
+
+            // Close modals on outside click
+            document.getElementById('editModal').addEventListener('click', (e) => {
+                if (e.target.id === 'editModal') closeEditModal();
+            });
+
+            document.getElementById('deleteModal').addEventListener('click', (e) => {
+                if (e.target.id === 'deleteModal') closeDeleteModal();
+            });
+        }
+
+        function loadEvents() {
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('eventsTable').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+
+            fetch('/api/admin/events')
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
+                .then(data => {
+                    allEvents = data.events || [];
+                    filterAndDisplayEvents();
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                })
+                .catch(err => {
+                    console.error('Error loading events:', err);
+                    showAlert('Failed to load events: ' + err.message, 'danger');
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                });
+        }
+
+        function filterAndDisplayEvents() {
+            let filtered = allEvents;
+
+            // Apply filter
+            if (currentFilter === 'flagged') {
+                filtered = filtered.filter(e => e.is_flagged);
+            }
+
+            // Apply search
+            if (searchQuery) {
+                filtered = filtered.filter(e =>
+                    e.title.toLowerCase().includes(searchQuery)
+                );
+            }
+
+            displayEvents(filtered);
+        }
+
+        function displayEvents(events) {
+            const tableBody = document.getElementById('tableBody');
+            const table = document.getElementById('eventsTable');
+            const emptyState = document.getElementById('emptyState');
+
+            if (events.length === 0) {
+                table.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            table.style.display = 'table';
+            emptyState.style.display = 'none';
+
+            tableBody.innerHTML = events.map(event => `
+                <tr>
+                    <td>#${event.id}</td>
+                    <td class="event-title" title="${event.title}">${event.title}</td>
+                    <td>${formatDate(event.event_date)}</td>
+                    <td>${event.location}</td>
+                    <td>${event.organizer_id || 'N/A'}</td>
+                    <td>
+                        <span class="status-badge ${event.is_flagged ? 'status-flagged' : 'status-active'}">
+                            ${event.is_flagged ? '🚩 Flagged' : '✓ Active'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn btn-edit" onclick="openEditModal(${event.id})">✏️ Edit</button>
+                            <button class="btn btn-delete" onclick="openDeleteModal(${event.id}, '${event.title}')">🗑️ Delete</button>
+                            ${event.is_flagged
+                                ? `<button class="btn btn-unflag" onclick="unflagEvent(${event.id})">✓ Unflag</button>`
+                                : `<button class="btn btn-flag" onclick="flagEvent(${event.id})">🚩 Flag</button>`
+                            }
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openEditModal(eventId) {
+            currentEditingId = eventId;
+            const event = allEvents.find(e => e.id === eventId);
+
+            if (!event) {
+                showAlert('Event not found', 'danger');
+                return;
+            }
+
+            document.getElementById('editTitle').value = event.title;
+            document.getElementById('editDescription').value = event.description || '';
+            document.getElementById('editDate').value = event.event_date;
+            document.getElementById('editTime').value = event.event_time || '';
+            document.getElementById('editLocation').value = event.location;
+            document.getElementById('editCapacity').value = event.capacity || '';
+            document.getElementById('editPrice').value = event.price || '';
+            document.getElementById('editCategory').value = event.category || '';
+            document.getElementById('editNotes').value = event.moderation_notes || '';
+
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('show');
+            document.getElementById('editForm').reset();
+            currentEditingId = null;
+        }
+
+        function submitEditForm() {
+            if (!currentEditingId) return;
+
+            const updateData = {
+                title: document.getElementById('editTitle').value,
+                description: document.getElementById('editDescription').value,
+                event_date: document.getElementById('editDate').value,
+                event_time: document.getElementById('editTime').value,
+                location: document.getElementById('editLocation').value,
+                capacity: document.getElementById('editCapacity').value,
+                price: document.getElementById('editPrice').value,
+                category: document.getElementById('editCategory').value
+            };
+
+            fetch(`/api/admin/events/${currentEditingId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updateData)
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
+                .then(data => {
+                    showAlert('Event updated successfully! 🎉', 'success');
+                    closeEditModal();
+                    loadEvents();
+                })
+                .catch(err => {
+                    console.error('Error updating event:', err);
+                    showAlert('Failed to update event: ' + err.message, 'danger');
+                });
+        }
+
+        function openDeleteModal(eventId, title) {
+            currentDeleteId = eventId;
+            document.getElementById('deleteEventTitle').textContent = title;
+            document.getElementById('deleteModal').classList.add('show');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('show');
+            currentDeleteId = null;
+        }
+
+        function confirmDelete() {
+            if (!currentDeleteId) return;
+
+            fetch(`/api/admin/events/${currentDeleteId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
+                .then(data => {
+                    showAlert('Event deleted successfully! 🗑️', 'success');
+                    closeDeleteModal();
+                    loadEvents();
+                })
+                .catch(err => {
+                    console.error('Error deleting event:', err);
+                    showAlert('Failed to delete event: ' + err.message, 'danger');
+                });
+        }
+
+        function flagEvent(eventId) {
+            const event = allEvents.find(e => e.id === eventId);
+            if (!event) return;
+
+            fetch(`/api/admin/events/${eventId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_flagged: true })
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
+                .then(data => {
+                    showAlert('Event flagged for review 🚩', 'success');
+                    loadEvents();
+                })
+                .catch(err => {
+                    console.error('Error flagging event:', err);
+                    showAlert('Failed to flag event: ' + err.message, 'danger');
+                });
+        }
+
+        function unflagEvent(eventId) {
+            fetch(`/api/admin/events/${eventId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_flagged: false })
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
+                .then(data => {
+                    showAlert('Event unflagged ✓', 'success');
+                    loadEvents();
+                })
+                .catch(err => {
+                    console.error('Error unflagging event:', err);
+                    showAlert('Failed to unflag event: ' + err.message, 'danger');
+                });
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alerts-container');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+
+            container.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
