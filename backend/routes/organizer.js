@@ -150,225 +150,330 @@ router.post('/events', requireApprovedOrganizer, (req, res) => {
             message: "Event successfully created.",
             event: newEvent
         });
-    });
-});
+
+    }); // end db.query for event creation
+
+}); // end POST /api/organizer/events
 
 /**
  * Route: PUT /api/organizer/events/:id
- * Function: Allows an authenticated and APPROVED 'organizer' user to update an existing event.
- * Middleware: requireApprovedOrganizer (Checks session, role, and approval status)
+ * Function: Allows an authenticated and APPROVED organizer to update their own event.
  */
 router.put('/events/:id', requireApprovedOrganizer, (req, res) => {
     const eventId = req.params.id;
     const organizerId = req.session.userId;
-    const eventData = req.body;
+    const eventData = req.body || {};
 
-    // 1. Validate provided event data (only validate fields that are being updated)
-    const validateUpdateData = (data) => {
-        const errors = [];
-        const validCategories = ["sports","academic","social","club"];
+    const validCategories = ["sports","academic","social","club"];
+    const errors = [];
 
-        // Title validation if provided
-        if (data.title !== undefined) {
-            if (!data.title) {
-                errors.push('title: Required.');
-            } else if (typeof data.title !== 'string' || data.title.length > 255) {
-                errors.push('title: Must be a string, max 255 characters.');
-            }
-        }
-
-        // Description validation if provided
-        if (data.description !== undefined && data.description && data.description.length > 5000) {
-            errors.push('description: Must not exceed 5000 characters.');
-        }
-
-        // Location validation if provided
-        if (data.location !== undefined) {
-            if (!data.location) {
-                errors.push('location: Required.');
-            } else if (typeof data.location !== 'string' || data.location.length > 255) {
-                errors.push('location: Must be a string, max 255 characters.');
-            }
-        }
-
-        // Organization validation if provided
-        if (data.organization !== undefined) {
-            if (!data.organization) {
-                errors.push('organization: Required.');
-            } else if (typeof data.organization !== 'string' || data.organization.length > 100) {
-                errors.push('organization: Must be a string, max 100 characters.');
-            }
-        }
-
-        // event_date validation if provided
-        if (data.event_date !== undefined) {
-            if (!data.event_date) {
-                errors.push('event_date: Required.');
-            } else if (!/^\d{4}-\d{2}-\d{2}$/.test(data.event_date) || isNaN(Date.parse(data.event_date))) {
-                errors.push('event_date: Must be in YYYY-MM-DD format.');
-            } else {
-                const eventDate = new Date(data.event_date);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                if (eventDate < today) {
-                    errors.push('event_date: Must be a date in the future or today.');
-                }
-            }
-        }
-
-        // event_time validation if provided
-        if (data.event_time !== undefined) {
-            if (!data.event_time) {
-                errors.push('event_time: Required.');
-            } else if (!/^\d{2}:\d{2}:\d{2}$/.test(data.event_time)) {
-                errors.push('event_time: Must be in HH:MM:SS format.');
-            }
-        }
-
-        // Capacity validation if provided
-        if (data.capacity !== undefined) {
-            const capacityInt = parseInt(data.capacity);
-            if (isNaN(capacityInt) || capacityInt < 1 || capacityInt > 10000) {
-                errors.push('capacity: Required, must be an integer between 1 and 10000.');
-            }
-        }
-
-        // Price validation if provided
-        if (data.price !== undefined) {
-            const priceString = String(data.price);
-            const priceFloat = parseFloat(priceString);
-            if (isNaN(priceFloat) || priceFloat < 0) {
-                errors.push('price: Required, must be a non-negative number.');
-            } else if (!/^\d+(\.\d{1,2})?$/.test(priceString)) {
-                errors.push('price: Must have at most two decimal places (e.g., 10 or 10.99).');
-            }
-        }
-
-        // Category validation if provided
-        if (data.category !== undefined) {
-            if (!data.category || !validCategories.includes(data.category)) {
-                errors.push(`category: Required, must be one of: ${validCategories.join(', ')}.`);
-            }
-        }
-
-        return errors;
-    };
-
-    // Validate the update data
-    const validationErrors = validateUpdateData(eventData);
-    if (validationErrors.length > 0) {
-        console.warn('Event update validation failed:', validationErrors);
-        return res.status(400).json({ success: false, error: "Invalid Data", message: validationErrors });
+    // Validate only provided fields
+    if (eventData.title !== undefined) {
+        if (!eventData.title) errors.push('title: Required if provided.');
+        else if (typeof eventData.title !== 'string' || eventData.title.length > 255) errors.push('title: Must be string <=255 chars.');
     }
-
-    // 2. Verify ownership of the event (Issue #113)
-    const ownershipCheckSql = 'SELECT organizer_id FROM events WHERE id = ?';
-    db.query(ownershipCheckSql, [eventId], (err, results) => {
-        if (err) {
-            console.error("Database error during ownership check:", err);
-            return res.status(500).json({ success: false, error: "Internal Server Error", message: "Failed to verify event ownership." });
+    if (eventData.description !== undefined && eventData.description && eventData.description.length > 5000) {
+        errors.push('description: Must be <=5000 chars.');
+    }
+    if (eventData.location !== undefined) {
+        if (!eventData.location) errors.push('location: Required if provided.');
+        else if (typeof eventData.location !== 'string' || eventData.location.length > 255) errors.push('location: Must be string <=255 chars.');
+    }
+    if (eventData.organization !== undefined) {
+        if (!eventData.organization) errors.push('organization: Required if provided.');
+        else if (typeof eventData.organization !== 'string' || eventData.organization.length > 100) errors.push('organization: Must be string <=100 chars.');
+    }
+    if (eventData.event_date !== undefined) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(eventData.event_date) || isNaN(Date.parse(eventData.event_date))) {
+            errors.push('event_date: Must be YYYY-MM-DD');
+        } else {
+            const d = new Date(eventData.event_date);
+            const today = new Date(); today.setHours(0,0,0,0);
+            if (d < today) errors.push('event_date: Cannot be in the past');
         }
+    }
+    if (eventData.event_time !== undefined) {
+        if (!/^\d{2}:\d{2}:\d{2}$/.test(eventData.event_time)) errors.push('event_time: Must be HH:MM:SS');
+    }
+    if (eventData.capacity !== undefined) {
+        const cInt = parseInt(eventData.capacity); if (isNaN(cInt) || cInt < 1 || cInt > 10000) errors.push('capacity: 1-10000');
+    }
+    if (eventData.price !== undefined) {
+        const pStr = String(eventData.price); const pF = parseFloat(pStr);
+        if (isNaN(pF) || pF < 0) errors.push('price: Non-negative number');
+        else if (!/^\d+(\.\d{1,2})?$/.test(pStr)) errors.push('price: Max two decimals');
+    }
+    if (eventData.category !== undefined) {
+        if (!validCategories.includes(eventData.category)) errors.push(`category: Must be one of ${validCategories.join(', ')}`);
+    }
+    if (errors.length) return res.status(400).json({ success:false, errors });
 
-        // Check if event exists (404)
-        if (results.length === 0) {
-            console.warn(`Event update attempt for non-existent event ID: ${eventId}`);
-            return res.status(404).json({ success: false, error: "Event not found" });
-        }
+    // Ownership check
+    db.query('SELECT organizer_id FROM events WHERE id = ?', [eventId], (err, rows) => {
+        if (err) { console.error('DB ownership check error:', err); return res.status(500).json({ success:false, error:'Internal Server Error' }); }
+        if (!rows.length) return res.status(404).json({ success:false, error:'Event not found' });
+        if (rows[0].organizer_id !== organizerId) return res.status(403).json({ success:false, error:'Unauthorized' });
 
-        // Check if organizer owns the event (403)
-        const event = results[0];
-        if (event.organizer_id !== organizerId) {
-            console.warn(`Unauthorized event update attempt: User ${organizerId} tried to update event owned by ${event.organizer_id}`);
-            return res.status(403).json({ success: false, error: "Unauthorized", message: "You can only update your own events" });
-        }
-
-        // 3. Build dynamic SQL UPDATE query based on provided fields
-        const updateFields = [];
-        const updateValues = [];
-
-        if (eventData.title !== undefined) {
-            updateFields.push('title = ?');
-            updateValues.push(eventData.title);
-        }
-        if (eventData.description !== undefined) {
-            updateFields.push('description = ?');
-            updateValues.push(eventData.description || null);
-        }
-        if (eventData.event_date !== undefined) {
-            updateFields.push('event_date = ?');
-            updateValues.push(eventData.event_date);
-        }
-        if (eventData.event_time !== undefined) {
-            updateFields.push('event_time = ?');
-            updateValues.push(eventData.event_time);
-        }
-        if (eventData.location !== undefined) {
-            updateFields.push('location = ?');
-            updateValues.push(eventData.location);
-        }
-        if (eventData.capacity !== undefined) {
-            updateFields.push('capacity = ?');
-            updateValues.push(eventData.capacity);
-        }
-        if (eventData.price !== undefined) {
-            updateFields.push('price = ?');
-            updateValues.push(eventData.price);
-        }
-        if (eventData.organization !== undefined) {
-            updateFields.push('organization = ?');
-            updateValues.push(eventData.organization);
-        }
-        if (eventData.category !== undefined) {
-            updateFields.push('category = ?');
-            updateValues.push(eventData.category);
-        }
-
-        // Always update the updated_at timestamp
-        updateFields.push('updated_at = CURRENT_TIMESTAMP');
-
-        // If no fields provided, return error
-        if (updateFields.length === 1) { // Only updated_at would be set
-            console.warn('Event update attempt with no fields provided');
-            return res.status(400).json({ success: false, error: "Invalid Data", message: "At least one field must be provided for update." });
-        }
-
-        // Add event ID to values for WHERE clause
-        updateValues.push(eventId);
-
-        const updateSql = `
-            UPDATE events
-            SET ${updateFields.join(', ')}
-            WHERE id = ?
-        `;
-
-        // 4. Execute database update
-        db.query(updateSql, updateValues, (err, result) => {
-            if (err) {
-                console.error("Database error during event update:", err);
-                return res.status(500).json({ success: false, error: "Internal Server Error", message: "Failed to update event due to a database issue." });
-            }
-
-            // 5. Fetch the updated event and return it
-            const fetchSql = 'SELECT * FROM events WHERE id = ?';
-            db.query(fetchSql, [eventId], (err, results) => {
-                if (err) {
-                    console.error("Database error fetching updated event:", err);
-                    return res.status(500).json({ success: false, error: "Internal Server Error", message: "Failed to fetch updated event." });
-                }
-
-                if (results.length === 0) {
-                    console.error("Updated event not found after update");
-                    return res.status(500).json({ success: false, error: "Internal Server Error", message: "Event was updated but could not be retrieved." });
-                }
-
-                const updatedEvent = results[0];
-                res.status(200).json({
-                    success: true,
-                    message: "Event successfully updated.",
-                    event: updatedEvent
-                });
+        const setClauses = [];
+        const values = [];
+        ['title','description','event_date','event_time','location','capacity','price','organization','category'].forEach(field => {
+            if (eventData[field] !== undefined) { setClauses.push(`${field} = ?`); values.push(eventData[field] || null); }
+        });
+        if (!setClauses.length) return res.status(400).json({ success:false, error:'No fields provided for update' });
+        setClauses.push('updated_at = CURRENT_TIMESTAMP');
+        values.push(eventId);
+        const updateSql = `UPDATE events SET ${setClauses.join(', ')} WHERE id = ?`;
+        db.query(updateSql, values, (e2) => {
+            if (e2) { console.error('DB event update error:', e2); return res.status(500).json({ success:false, error:'Failed to update event'}); }
+            db.query('SELECT * FROM events WHERE id = ?', [eventId], (e3, rs2) => {
+                if (e3) { console.error('DB fetch updated event error:', e3); return res.status(500).json({ success:false, error:'Fetch failed'}); }
+                if (!rs2.length) return res.status(500).json({ success:false, error:'Updated event not retrievable'});
+                return res.status(200).json({ success:true, message:'Event updated', event: rs2[0] });
             });
         });
+    });
+});
+
+
+// POST /api/organizer/request
+// Submit a NEW organizer request. If status is 'refused', allows resubmission. Blocks if 'pending' exists.
+router.post('/request', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const { organization_id, new_organization_name, category, details } = req.body || {};
+
+    if (!organization_id && !new_organization_name) {
+        return res.status(400).json({ success: false, error: 'Provide organization_id or new_organization_name' });
+    }
+
+    // Check for existing pending request - user should use PATCH to modify it instead
+    db.query('SELECT organizer_auth_status FROM users WHERE id = ?', [userId], (err, userRows) => {
+        if (err) {
+            console.error('DB error checking user status:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        
+        const currentStatus = userRows[0]?.organizer_auth_status;
+        
+        if (currentStatus === 'pending') {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'You already have a pending request. Use PATCH /api/organizer/request/:id to modify it.' 
+            });
+        }
+        
+        if (currentStatus === 'approved') {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'You are already an approved organizer.' 
+            });
+        }
+        
+        // Status is 'refused' or NULL - allow new submission
+        function finalizeWithOrgId(orgId, orgName) {
+            // Insert new request into organizer_requests (history/audit)
+            const insertRequest = `INSERT INTO organizer_requests
+                (user_id, organization_id, request_type, status, details)
+                VALUES (?, ?, ?, 'pending', ?)`;
+            const reqType = organization_id ? 'join' : 'create';
+            db.query(insertRequest, [userId, orgId, reqType, details || null], (err) => {
+                if (err) {
+                    console.error('DB error inserting organizer request:', err);
+                    return res.status(500).json({ success: false, error: 'Internal Server Error' });
+                }
+                // Update user status to pending (role should already be 'organizer' from registration)
+                const sql = `UPDATE users
+                    SET organization_id = ?, organizer_auth_status = 'pending', organization_role = 'Member',
+                        request_date = CURRENT_TIMESTAMP, approval_date = NULL
+                    WHERE id = ?`;
+                db.query(sql, [orgId, userId], (err2) => {
+                    if (err2) {
+                        console.error('DB error updating user organizer request:', err2);
+                        return res.status(500).json({ success: false, error: 'Internal Server Error' });
+                    }
+                    // Notify admins of new/updated request
+                    notifyAdminOfRequest(userId, orgId, orgName);
+                    res.status(200).json({ success: true, message: 'Request submitted. Status set to pending.' });
+                });
+            });
+        }
+
+        if (organization_id) {
+            db.query('SELECT id, name FROM organizations WHERE id = ?', [organization_id], (err, rows) => {
+                if (err) {
+                    console.error('DB error fetching organization:', err);
+                    return res.status(500).json({ success: false, error: 'Internal Server Error' });
+                }
+                if (!rows || rows.length === 0) {
+                    return res.status(400).json({ success: false, error: 'Invalid organization_id' });
+                }
+                finalizeWithOrgId(rows[0].id, rows[0].name);
+            });
+        } else {
+            if (!category || !['sports','academic','social','club'].includes(category)) {
+                return res.status(400).json({ success: false, error: 'Valid category required for new organization' });
+            }
+            const insertOrg = `INSERT INTO organizations (name, description, category, is_default)
+                VALUES (?, ?, ?, FALSE)`;
+            const desc = `Requested by user ${userId}`;
+            db.query(insertOrg, [new_organization_name, desc, category], (err, result) => {
+            if (err) {
+                console.error('DB error creating organization:', err);
+                return res.status(500).json({ success: false, error: 'Failed to create organization' });
+            }
+            finalizeWithOrgId(result.insertId, new_organization_name);
+        });
+        }
+    });
+});
+
+// PATCH /api/organizer/request/:id
+// Modify a PENDING request (change organization or details). Cannot modify refused/approved requests.
+router.patch('/request/:id', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const requestId = req.params.id;
+    const { organization_id, new_organization_name, category, details } = req.body || {};
+
+    // Fetch the existing request
+    db.query('SELECT * FROM organizer_requests WHERE id = ? AND user_id = ?', [requestId, userId], (err, rows) => {
+        if (err) {
+            console.error('DB error fetching request:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Request not found or not owned by you' });
+        }
+        
+        const request = rows[0];
+        
+        // Only allow modification if status is 'pending'
+        if (request.status !== 'pending') {
+            return res.status(400).json({ 
+                success: false, 
+                error: `Cannot modify ${request.status} request. Only pending requests can be modified.`,
+                hint: request.status === 'refused' 
+                    ? 'Submit a new request instead using POST /api/organizer/request'
+                    : 'Request already processed'
+            });
+        }
+        
+        // Determine what to update
+        const updates = {};
+        if (details !== undefined) updates.details = details;
+        
+        // Handle organization change
+        function applyUpdate(finalOrgId) {
+            const setClauses = [];
+            const values = [];
+            
+            if (finalOrgId !== undefined && finalOrgId !== request.organization_id) {
+                setClauses.push('organization_id = ?');
+                values.push(finalOrgId);
+                // Update request_type if switching between join/create
+                if (finalOrgId && !request.organization_id) {
+                    setClauses.push('request_type = ?');
+                    values.push('join');
+                } else if (!finalOrgId && request.organization_id) {
+                    setClauses.push('request_type = ?');
+                    values.push('create');
+                }
+            }
+            
+            if (updates.details !== undefined) {
+                setClauses.push('details = ?');
+                values.push(updates.details);
+            }
+            
+            if (setClauses.length === 0) {
+                return res.status(400).json({ success: false, error: 'No changes provided' });
+            }
+            
+            setClauses.push('updated_at = CURRENT_TIMESTAMP');
+            values.push(requestId);
+            
+            const updateSql = `UPDATE organizer_requests SET ${setClauses.join(', ')} WHERE id = ?`;
+            db.query(updateSql, values, (err2) => {
+                if (err2) {
+                    console.error('DB error updating request:', err2);
+                    return res.status(500).json({ success: false, error: 'Internal Server Error' });
+                }
+                
+                // Also update users table if organization changed
+                if (finalOrgId !== undefined && finalOrgId !== request.organization_id) {
+                    db.query('UPDATE users SET organization_id = ? WHERE id = ?', [finalOrgId, userId], (err3) => {
+                        if (err3) console.error('DB error updating user org:', err3);
+                    });
+                }
+                
+                res.status(200).json({ success: true, message: 'Request updated successfully' });
+            });
+        }
+        
+        // Handle organization_id change
+        if (organization_id !== undefined) {
+            db.query('SELECT id FROM organizations WHERE id = ?', [organization_id], (err, orgRows) => {
+                if (err) {
+                    console.error('DB error fetching organization:', err);
+                    return res.status(500).json({ success: false, error: 'Internal Server Error' });
+                }
+                if (!orgRows || orgRows.length === 0) {
+                    return res.status(400).json({ success: false, error: 'Invalid organization_id' });
+                }
+                applyUpdate(organization_id);
+            });
+        } else if (new_organization_name) {
+            // Creating new organization - validate category
+            if (!category || !['sports','academic','social','club'].includes(category)) {
+                return res.status(400).json({ success: false, error: 'Valid category required for new organization' });
+            }
+            const insertOrg = `INSERT INTO organizations (name, description, category, is_default) VALUES (?, ?, ?, FALSE)`;
+            db.query(insertOrg, [new_organization_name, `Requested by user ${userId}`, category], (err, result) => {
+                if (err) {
+                    console.error('DB error creating organization:', err);
+                    return res.status(500).json({ success: false, error: 'Failed to create organization' });
+                }
+                applyUpdate(result.insertId);
+            });
+        } else {
+            // Just updating details
+            applyUpdate();
+        }
+    });
+});
+
+// GET /api/organizer/requests
+// Returns all requests submitted by the current user
+router.get('/requests', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const sql = `SELECT r.*, o.name AS organization_name, o.category AS organization_category
+        FROM organizer_requests r
+        LEFT JOIN organizations o ON r.organization_id = o.id
+        WHERE r.user_id = ?
+        ORDER BY r.created_at DESC`;
+    db.query(sql, [userId], (err, rows) => {
+        if (err) {
+            console.error('DB error fetching organizer requests:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        res.status(200).json({ success: true, requests: rows });
+    });
+});
+
+// GET /api/organizer/memberships
+// Returns all organization memberships for the current user
+router.get('/memberships', requireAuth, (req, res) => {
+    const userId = req.session.userId;
+    const sql = `SELECT m.*, o.name AS organization_name, o.category AS organization_category
+        FROM organization_members m
+        LEFT JOIN organizations o ON m.organization_id = o.id
+        WHERE m.user_id = ?
+        ORDER BY m.assigned_at DESC`;
+    db.query(sql, [userId], (err, rows) => {
+        if (err) {
+            console.error('DB error fetching organization memberships:', err);
+            return res.status(500).json({ success: false, error: 'Internal Server Error' });
+        }
+        res.status(200).json({ success: true, memberships: rows });
     });
 });
 
@@ -714,65 +819,6 @@ router.get('/status', requireAuth, (req, res) => {
     });
 });
 
-/**
- * POST /api/organizer/request
- * Body: { organization_id } OR { new_organization_name, category }
- * Sets organizer_auth_status='pending', organization_role='Member', request_date=NOW(), approval_date=NULL
- */
-router.post('/request', requireAuth, (req, res) => {
-    const userId = req.session.userId;
-    const { organization_id, new_organization_name, category } = req.body || {};
-
-    // Validate input
-    if (!organization_id && !new_organization_name) {
-        return res.status(400).json({ success: false, error: 'Provide organization_id or new_organization_name' });
-    }
-
-    function finalizeWithOrgId(orgId, orgName) {
-        const sql = `UPDATE users
-                                 SET organization_id = ?, organizer_auth_status = 'pending', organization_role = 'Member',
-                                         request_date = CURRENT_TIMESTAMP, approval_date = NULL
-                                 WHERE id = ?`;
-        db.query(sql, [orgId, userId], (err) => {
-            if (err) {
-                console.error('DB error updating user organizer request:', err);
-                return res.status(500).json({ success: false, error: 'Internal Server Error' });
-            }
-            // Notify admins of new/updated request
-            notifyAdminOfRequest(userId, orgId, orgName);
-            res.status(200).json({ success: true, message: 'Request submitted. Status set to pending.' });
-        });
-    }
-
-    if (organization_id) {
-        // Use existing organization
-        db.query('SELECT id, name FROM organizations WHERE id = ?', [organization_id], (err, rows) => {
-            if (err) {
-                console.error('DB error fetching organization:', err);
-                return res.status(500).json({ success: false, error: 'Internal Server Error' });
-            }
-            if (!rows || rows.length === 0) {
-                return res.status(400).json({ success: false, error: 'Invalid organization_id' });
-            }
-            finalizeWithOrgId(rows[0].id, rows[0].name);
-        });
-    } else {
-        // Create new organization then proceed
-        if (!category || !['sports','academic','social','club'].includes(category)) {
-            return res.status(400).json({ success: false, error: 'Valid category required for new organization' });
-        }
-        const insertOrg = `INSERT INTO organizations (name, description, category, is_default)
-                                             VALUES (?, ?, ?, FALSE)`;
-        const desc = `Requested by user ${userId}`;
-        db.query(insertOrg, [new_organization_name, desc, category], (err, result) => {
-            if (err) {
-                console.error('DB error creating organization:', err);
-                return res.status(500).json({ success: false, error: 'Failed to create organization' });
-            }
-            finalizeWithOrgId(result.insertId, new_organization_name);
-        });
-    }
-});
 
 /**
  * ---- User Notifications (Organizer/User side) ----
@@ -836,3 +882,5 @@ router.post('/notifications/read-all', requireAuth, (req, res) => {
         res.status(200).json({ success: true });
     });
 });
+
+// Ensure file ends with a single export
