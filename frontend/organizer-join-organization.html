@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Organization - ConEvents Organizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            padding-top: 80px;
+        }
+
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            color: white;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .navbar-menu a, .navbar-menu button {
+            color: white;
+            text-decoration: none;
+            border: none;
+            background: none;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .navbar-menu a:hover, .navbar-menu button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-left: auto;
+        }
+
+        .user-greeting {
+            font-size: 0.9rem;
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background-color: rgba(255, 255, 255, 0.3);
+            border: 1px solid white;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            padding: 3rem;
+        }
+
+        .container h1 {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        select, textarea, input[type="text"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        select:focus, textarea:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Organization Info Box */
+        .org-info {
+            background-color: #f5f5f5;
+            border-left: 4px solid #667eea;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .org-info h3 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .org-detail {
+            color: #666;
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+        }
+
+        /* Button Group */
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        button {
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-submit {
+            background-color: #667eea;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-submit:hover {
+            background-color: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-submit:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-cancel {
+            background-color: #f0f0f0;
+            color: #333;
+            flex: 1;
+        }
+
+        .btn-cancel:hover {
+            background-color: #e0e0e0;
+        }
+
+        /* Messages */
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        /* Loading State */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem;
+            }
+
+            .navbar-menu {
+                gap: 1rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+
+        .required {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">📋 Join Organization</div>
+        <div class="navbar-menu">
+            <a href="index.html">Home</a>
+            <a href="organizer-dashboard.html">Dashboard</a>
+            <a href="organizer-join-organization.html" style="color: #ffd700;">Join Organization</a>
+            <a href="organizer-requests.html">My Requests</a>
+            <div class="user-info">
+                <span class="user-greeting" id="userGreeting">Welcome!</span>
+                <button class="logout-btn" id="logoutBtn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <h1>Join an Organization</h1>
+        <p class="subtitle">Request to join an existing organization and start collaborating with other organizers</p>
+
+        <!-- Alerts -->
+        <div class="alert alert-success" id="successAlert">
+            <strong>Success!</strong> Your request has been submitted. You'll be notified when it's approved.
+        </div>
+        <div class="alert alert-error" id="errorAlert"></div>
+        <div class="alert alert-info" id="infoAlert"></div>
+
+        <!-- Loading State -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing your request...</p>
+        </div>
+
+        <!-- Form -->
+        <form id="joinForm" style="display: block;">
+            <div class="form-group">
+                <label for="organizationId">
+                    Select Organization <span class="required">*</span>
+                </label>
+                <select id="organizationId" required>
+                    <option value="">-- Choose an organization --</option>
+                </select>
+                <div class="org-info" id="orgInfo">
+                    <h3 id="orgName"></h3>
+                    <div class="org-detail">
+                        <strong>Category:</strong> <span id="orgCategory"></span>
+                    </div>
+                    <div class="org-detail" id="orgDescriptionContainer">
+                        <strong>Description:</strong> <span id="orgDescription"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="requestType">
+                    Request Type <span class="required">*</span>
+                </label>
+                <select id="requestType" required>
+                    <option value="">-- Select request type --</option>
+                    <option value="join">Join as Member</option>
+                    <option value="organizer">Join as Event Organizer</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="message">
+                    Message <span class="required">*</span>
+                </label>
+                <textarea id="message" placeholder="Explain why you want to join this organization..." required></textarea>
+                <small style="color: #666;">Minimum 10 characters</small>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
+                <button type="submit" class="btn-submit" id="submitBtn">Submit Request</button>
+            </div>
+        </form>
+    </div>
+
+    <script type="module">
+        import { getApiBase } from './utils/api.js';
+
+        function apiUrl(path) {
+            return `${getApiBase()}${path}`;
+        }
+
+        // DOM Elements
+        const organizationId = document.getElementById('organizationId');
+        const requestType = document.getElementById('requestType');
+        const message = document.getElementById('message');
+        const joinForm = document.getElementById('joinForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const userGreeting = document.getElementById('userGreeting');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const successAlert = document.getElementById('successAlert');
+        const errorAlert = document.getElementById('errorAlert');
+        const infoAlert = document.getElementById('infoAlert');
+        const loading = document.getElementById('loading');
+        const orgInfo = document.getElementById('orgInfo');
+        const orgName = document.getElementById('orgName');
+        const orgCategory = document.getElementById('orgCategory');
+        const orgDescription = document.getElementById('orgDescription');
+
+        // Check authentication
+        function checkAuth() {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                const user = JSON.parse(userStr);
+                if (user.name) {
+                    userGreeting.textContent = `Welcome, ${user.name}!`;
+                }
+            } catch (e) {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Logout handler
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        });
+
+        // Show alert
+        function showAlert(type, message) {
+            hideAllAlerts();
+            if (type === 'success') {
+                successAlert.textContent = message;
+                successAlert.classList.add('show');
+            } else if (type === 'error') {
+                errorAlert.innerHTML = `<strong>Error!</strong> ${message}`;
+                errorAlert.classList.add('show');
+            } else if (type === 'info') {
+                infoAlert.innerHTML = `<strong>Info:</strong> ${message}`;
+                infoAlert.classList.add('show');
+            }
+        }
+
+        function hideAllAlerts() {
+            successAlert.classList.remove('show');
+            errorAlert.classList.remove('show');
+            infoAlert.classList.remove('show');
+        }
+
+        // Load organizations
+        async function loadOrganizations() {
+            try {
+                const response = await fetch(apiUrl('/api/organizer/organizations'));
+                if (!response.ok) throw new Error('Failed to load organizations');
+
+                const result = await response.json();
+                if (result.success && result.organizations) {
+                    result.organizations.forEach(org => {
+                        const option = document.createElement('option');
+                        option.value = org.id;
+                        option.textContent = org.name;
+                        option.dataset.category = org.category || 'N/A';
+                        option.dataset.description = org.description || '';
+                        organizationId.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading organizations:', error);
+                showAlert('error', 'Failed to load organizations');
+            }
+        }
+
+        // Show organization details when selected
+        organizationId.addEventListener('change', () => {
+            if (organizationId.value) {
+                const selectedOption = organizationId.options[organizationId.selectedIndex];
+                orgName.textContent = selectedOption.textContent;
+                orgCategory.textContent = selectedOption.dataset.category;
+                orgDescription.textContent = selectedOption.dataset.description;
+                orgInfo.style.display = selectedOption.dataset.description ? 'block' : 'block';
+            } else {
+                orgInfo.style.display = 'none';
+            }
+        });
+
+        // Form submission
+        joinForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Validation
+            if (!organizationId.value) {
+                showAlert('error', 'Please select an organization');
+                return;
+            }
+
+            if (!requestType.value) {
+                showAlert('error', 'Please select a request type');
+                return;
+            }
+
+            if (message.value.trim().length < 10) {
+                showAlert('error', 'Message must be at least 10 characters');
+                return;
+            }
+
+            // Show loading
+            loading.style.display = 'block';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch(apiUrl('/api/organizer/request'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        organization_id: organizationId.value,
+                        request_type: requestType.value,
+                        details: message.value
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showAlert('success', 'Your request has been submitted successfully!');
+                    joinForm.reset();
+                    orgInfo.style.display = 'none';
+
+                    // Redirect after success
+                    setTimeout(() => {
+                        window.location.href = 'organizer-requests.html';
+                    }, 2000);
+                } else {
+                    showAlert('error', result.message || 'Failed to submit request');
+                }
+            } catch (error) {
+                console.error('Error submitting request:', error);
+                showAlert('error', 'An error occurred while submitting your request');
+            } finally {
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadOrganizations();
+        });
+    </script>
+</body>
+</html>

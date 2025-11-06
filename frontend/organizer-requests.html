@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Join Requests - ConEvents Organizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            padding-top: 80px;
+        }
+
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            color: white;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .navbar-menu a, .navbar-menu button {
+            color: white;
+            text-decoration: none;
+            border: none;
+            background: none;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .navbar-menu a:hover, .navbar-menu button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-left: auto;
+        }
+
+        .user-greeting {
+            font-size: 0.9rem;
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background-color: rgba(255, 255, 255, 0.3);
+            border: 1px solid white;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+        }
+
+        .header {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2rem;
+        }
+
+        .btn-join {
+            background-color: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-join:hover {
+            background-color: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Requests Grid */
+        .requests-grid {
+            display: grid;
+            gap: 1.5rem;
+            padding: 2rem;
+            background: white;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .request-card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 1.5rem;
+            background: #f9f9f9;
+            transition: all 0.3s ease;
+        }
+
+        .request-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .request-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-badge {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status-approved {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-rejected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .request-details {
+            margin-bottom: 1rem;
+            color: #666;
+        }
+
+        .detail-row {
+            display: flex;
+            margin: 0.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            min-width: 150px;
+            color: #333;
+        }
+
+        .detail-value {
+            color: #666;
+        }
+
+        .request-message {
+            background: white;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            border-left: 4px solid #667eea;
+            font-style: italic;
+            color: #555;
+        }
+
+        .request-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .btn-action {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cancel-request {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-cancel-request:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-view-org {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .btn-view-org:hover {
+            background-color: #5568d3;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+        }
+
+        .empty-state p {
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .request-header {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .detail-row {
+                flex-direction: column;
+            }
+
+            .request-actions {
+                flex-direction: column;
+            }
+
+            .btn-action {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">📋 My Join Requests</div>
+        <div class="navbar-menu">
+            <a href="index.html">Home</a>
+            <a href="organizer-dashboard.html">Dashboard</a>
+            <a href="organizer-join-organization.html">Join Organization</a>
+            <a href="organizer-requests.html" style="color: #ffd700;">My Requests</a>
+            <div class="user-info">
+                <span class="user-greeting" id="userGreeting">Welcome!</span>
+                <button class="logout-btn" id="logoutBtn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="header">
+            <h1>My Join Requests</h1>
+            <a href="organizer-join-organization.html" class="btn-join">+ New Request</a>
+        </div>
+
+        <!-- Alerts -->
+        <div class="alert alert-success" id="successAlert" style="margin: 1.5rem 2rem 0;"></div>
+        <div class="alert alert-error" id="errorAlert" style="margin: 1.5rem 2rem 0;"></div>
+
+        <!-- Requests Grid -->
+        <div class="requests-grid" id="requestsContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading your requests...</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getApiBase } from './utils/api.js';
+
+        function apiUrl(path) {
+            return `${getApiBase()}${path}`;
+        }
+
+        // DOM Elements
+        const requestsContainer = document.getElementById('requestsContainer');
+        const userGreeting = document.getElementById('userGreeting');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const successAlert = document.getElementById('successAlert');
+        const errorAlert = document.getElementById('errorAlert');
+
+        // Check authentication
+        function checkAuth() {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                const user = JSON.parse(userStr);
+                if (user.name) {
+                    userGreeting.textContent = `Welcome, ${user.name}!`;
+                }
+            } catch (e) {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Logout handler
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        });
+
+        // Show alert
+        function showAlert(type, message) {
+            if (type === 'success') {
+                successAlert.innerHTML = `<strong>Success!</strong> ${message}`;
+                successAlert.classList.add('show');
+                setTimeout(() => successAlert.classList.remove('show'), 5000);
+            } else if (type === 'error') {
+                errorAlert.innerHTML = `<strong>Error!</strong> ${message}`;
+                errorAlert.classList.add('show');
+            }
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // Get status badge class
+        function getStatusClass(status) {
+            switch (status.toLowerCase()) {
+                case 'pending':
+                    return 'status-pending';
+                case 'approved':
+                    return 'status-approved';
+                case 'rejected':
+                    return 'status-rejected';
+                default:
+                    return 'status-pending';
+            }
+        }
+
+        // Load requests
+        async function loadRequests() {
+            try {
+                const response = await fetch(apiUrl('/api/organizer/requests'), {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) throw new Error('Failed to load requests');
+
+                const result = await response.json();
+
+                if (result.success && result.requests && result.requests.length > 0) {
+                    renderRequests(result.requests);
+                } else {
+                    renderEmptyState();
+                }
+            } catch (error) {
+                console.error('Error loading requests:', error);
+                showAlert('error', 'Failed to load requests');
+                renderEmptyState();
+            }
+        }
+
+        // Render requests
+        function renderRequests(requests) {
+            requestsContainer.innerHTML = requests.map(req => `
+                <div class="request-card">
+                    <div class="request-header">
+                        <div class="request-title">${escapeHtml(req.organization_name || 'Organization')}</div>
+                        <div class="status-badge ${getStatusClass(req.status)}">
+                            ${req.status}
+                        </div>
+                    </div>
+
+                    <div class="request-details">
+                        <div class="detail-row">
+                            <div class="detail-label">Request Type:</div>
+                            <div class="detail-value">${escapeHtml(req.request_type).replace('_', ' ').toUpperCase()}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Submitted:</div>
+                            <div class="detail-value">${formatDate(req.created_at)}</div>
+                        </div>
+                        ${req.updated_at ? `
+                        <div class="detail-row">
+                            <div class="detail-label">Updated:</div>
+                            <div class="detail-value">${formatDate(req.updated_at)}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="request-message">
+                        "${escapeHtml(req.details)}"
+                    </div>
+
+                    <div class="request-actions">
+                        ${req.status === 'pending' ? `
+                        <button class="btn-action btn-cancel-request" onclick="cancelRequest(${req.id})">
+                            Cancel Request
+                        </button>
+                        ` : ''}
+                        <button class="btn-action btn-view-org" onclick="viewOrganization(${req.organization_id})">
+                            View Organization
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render empty state
+        function renderEmptyState() {
+            requestsContainer.innerHTML = `
+                <div class="empty-state">
+                    <p>You haven't submitted any join requests yet</p>
+                    <a href="organizer-join-organization.html" class="btn-join">Submit Your First Request</a>
+                </div>
+            `;
+        }
+
+        // Cancel request
+        window.cancelRequest = async (requestId) => {
+            if (!confirm('Are you sure you want to cancel this request?')) return;
+
+            try {
+                const response = await fetch(apiUrl(`/api/organizer/request/${requestId}`), {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showAlert('success', 'Request cancelled successfully');
+                    loadRequests();
+                } else {
+                    showAlert('error', result.message || 'Failed to cancel request');
+                }
+            } catch (error) {
+                console.error('Error cancelling request:', error);
+                showAlert('error', 'An error occurred');
+            }
+        };
+
+        // View organization
+        window.viewOrganization = (orgId) => {
+            // Could open a modal or navigate to org details
+            alert(`Organization ID: ${orgId}`);
+        };
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadRequests();
+        });
+    </script>
+</body>
+</html>

@@ -16,13 +16,13 @@ const signalEmailNotification = (userID, decision) => {
 //router GET: /api/admin/organizer/pending (Fetches pending Requests)
 router.get('/organizer/pending', requireAdmin, (req,res) => {
     const sql = `
-    SELECT 
+    SELECT
       u.id, u.name, u.email, u.request_date, u.organization_role,
-      o.id AS organization_id, o.name AS organization_name, o.category AS organization_category
+      COALESCE(o.id, 0) AS organization_id, COALESCE(o.name, 'N/A') AS organization_name, COALESCE(o.category, 'social') AS organization_category
     FROM users u
     LEFT JOIN organizations o ON u.organization_id = o.id
     WHERE u.organizer_auth_status = 'pending'
-    ORDER BY u.request_date ASC`; 
+    ORDER BY u.request_date ASC`;
 
     db.query(sql, (err, results)=> {
         if(err){
@@ -509,13 +509,14 @@ router.get('/organizations', requireAdmin, (req, res) => {
     FROM organizations
     ORDER BY name ASC
     `;
-    
+
     db.query(sql, (err, results) => {
         if (err) {
             console.error("DB Error fetching organizations:", err);
-            return res.status(500).json({ success: false, error: "Internal Server Error" });
+            // Return empty array instead of 500 error to prevent dashboard crash
+            return res.status(200).json({ success: true, organizations: [] });
         }
-        res.status(200).json({ success: true, organizations: results });
+        res.status(200).json({ success: true, organizations: results || [] });
     });
 });
 

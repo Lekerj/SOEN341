@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizer Join Requests - Admin Review</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding-top: 80px;
+            color: #333;
+        }
+
+        /* Navbar */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        nav .brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        nav .nav-center {
+            display: flex;
+            gap: 2rem;
+            flex: 1;
+            justify-content: center;
+        }
+
+        nav a, nav button {
+            color: white;
+            text-decoration: none;
+            border: none;
+            background: none;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        nav a:hover, nav button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        nav .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            color: #333;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .filter-group select {
+            padding: 0.6rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            background-color: white;
+        }
+
+        /* Requests Table */
+        .requests-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .section-title {
+            padding: 1.5rem;
+            background-color: #f9f9f9;
+            border-bottom: 2px solid #667eea;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background-color: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+        }
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status-approved {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-rejected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Actions */
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-action {
+            padding: 0.4rem 0.8rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-approve {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background-color: #229954;
+        }
+
+        .btn-reject {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-reject:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-view {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .btn-view:hover {
+            background-color: #5568d3;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
+        }
+
+        .modal-header h2 {
+            color: #333;
+            font-size: 1.5rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .detail-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-value {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            border-top: 1px solid #eee;
+            padding-top: 1rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            padding: 3rem;
+            text-align: center;
+            color: #999;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Loading */
+        .loading {
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            nav .nav-center {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+
+            th, td {
+                padding: 0.75rem;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn-action {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav>
+        <div class="brand">📋 Organizer Join Requests</div>
+        <div class="nav-center">
+            <a href="index.html">Home</a>
+            <a href="admin-dashboard.html">Dashboard</a>
+            <a href="admin-organization-management.html">Organizations</a>
+            <a href="admin-moderation.html">Event Moderation</a>
+            <a href="admin-organizer-requests.html" style="color: #ffd700;">Organizer Requests</a>
+        </div>
+        <div class="nav-right">
+            <div class="user-info">
+                <span id="userGreeting">Welcome!</span>
+                <button id="logoutBtn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="header">
+            <h1>Organizer Join Requests Review</h1>
+        </div>
+
+        <!-- Alerts -->
+        <div class="alert alert-success" id="successAlert"></div>
+        <div class="alert alert-error" id="errorAlert"></div>
+
+        <!-- Filters -->
+        <div class="filter-group">
+            <select id="statusFilter">
+                <option value="">All Requests</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
+        </div>
+
+        <!-- Requests Table -->
+        <div class="requests-section">
+            <div class="section-title">Pending & Recent Requests</div>
+            <div class="table-responsive">
+                <table id="requestsTable">
+                    <thead>
+                        <tr>
+                            <th>Organizer Name</th>
+                            <th>Organization</th>
+                            <th>Request Type</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requestsBody">
+                        <tr>
+                            <td colspan="6" class="loading">
+                                <div class="spinner"></div>
+                                Loading requests...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Request Details</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Organizer</div>
+                <div class="detail-value" id="modalOrganizerName"></div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Email</div>
+                <div class="detail-value" id="modalOrganizerEmail"></div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Organization</div>
+                <div class="detail-value" id="modalOrganization"></div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Request Type</div>
+                <div class="detail-value" id="modalRequestType"></div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Message</div>
+                <div class="detail-value" id="modalMessage"></div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Submitted</div>
+                <div class="detail-value" id="modalSubmitted"></div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">Status</div>
+                <div class="detail-value" id="modalStatus"></div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-action btn-approve" onclick="approveRequest()" id="approveBtn">Approve Request</button>
+                <button class="btn-action btn-reject" onclick="rejectRequest()" id="rejectBtn">Reject Request</button>
+                <button class="btn-action btn-view" style="background-color: #95a5a6;" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getApiBase } from './utils/api.js';
+
+        function apiUrl(path) {
+            return `${getApiBase()}${path}`;
+        }
+
+        // DOM Elements
+        const statusFilter = document.getElementById('statusFilter');
+        const requestsBody = document.getElementById('requestsBody');
+        const detailModal = document.getElementById('detailModal');
+        const userGreeting = document.getElementById('userGreeting');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const successAlert = document.getElementById('successAlert');
+        const errorAlert = document.getElementById('errorAlert');
+
+        let currentRequestId = null;
+        let allRequests = [];
+
+        // Check auth
+        function checkAdminAuth() {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                const user = JSON.parse(userStr);
+                if (String(user.role || '').toLowerCase() !== 'admin') {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                if (user.name) {
+                    userGreeting.textContent = `Welcome, ${user.name}!`;
+                }
+            } catch (e) {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Logout
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        });
+
+        // Show alert
+        function showAlert(type, message) {
+            if (type === 'success') {
+                successAlert.innerHTML = `<strong>Success!</strong> ${message}`;
+                successAlert.classList.add('show');
+                setTimeout(() => successAlert.classList.remove('show'), 5000);
+            } else {
+                errorAlert.innerHTML = `<strong>Error!</strong> ${message}`;
+                errorAlert.classList.add('show');
+            }
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Get status class
+        function getStatusClass(status) {
+            switch (status.toLowerCase()) {
+                case 'pending':
+                    return 'status-pending';
+                case 'approved':
+                    return 'status-approved';
+                case 'rejected':
+                    return 'status-rejected';
+                default:
+                    return 'status-pending';
+            }
+        }
+
+        // Load requests
+        async function loadRequests() {
+            try {
+                const response = await fetch(apiUrl('/api/admin/organizer/requests'), {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) throw new Error('Failed to load requests');
+
+                const result = await response.json();
+                allRequests = result.requests || [];
+                renderRequests(allRequests);
+            } catch (error) {
+                console.error('Error loading requests:', error);
+                showAlert('error', 'Failed to load requests');
+                requestsBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <p>Failed to load requests</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Render requests
+        function renderRequests(requests) {
+            if (requests.length === 0) {
+                requestsBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <p>No requests found</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            requestsBody.innerHTML = requests.map(req => `
+                <tr>
+                    <td>${escapeHtml(req.user_name || 'N/A')}</td>
+                    <td>${escapeHtml(req.organization_name || 'N/A')}</td>
+                    <td>${escapeHtml(req.request_type).toUpperCase()}</td>
+                    <td>
+                        <span class="status-badge ${getStatusClass(req.status)}">
+                            ${req.status}
+                        </span>
+                    </td>
+                    <td>${formatDate(req.created_at)}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn-action btn-view" onclick="viewDetails(${req.id})">View</button>
+                            ${req.status === 'pending' ? `
+                                <button class="btn-action btn-approve" onclick="approveRequest(${req.id})">Approve</button>
+                                <button class="btn-action btn-reject" onclick="rejectRequest(${req.id})">Reject</button>
+                            ` : ''}
+                        </td>
+                </tr>
+            `).join('');
+        }
+
+        // View details
+        window.viewDetails = (requestId) => {
+            const request = allRequests.find(r => r.id === requestId);
+            if (!request) return;
+
+            currentRequestId = requestId;
+
+            document.getElementById('modalOrganizerName').textContent = request.user_name || 'N/A';
+            document.getElementById('modalOrganizerEmail').textContent = request.user_email || 'N/A';
+            document.getElementById('modalOrganization').textContent = request.organization_name || 'N/A';
+            document.getElementById('modalRequestType').textContent = request.request_type.toUpperCase();
+            document.getElementById('modalMessage').textContent = request.details || 'N/A';
+            document.getElementById('modalSubmitted').textContent = formatDate(request.created_at);
+            document.getElementById('modalStatus').innerHTML = `
+                <span class="status-badge ${getStatusClass(request.status)}">
+                    ${request.status}
+                </span>
+            `;
+
+            if (request.status !== 'pending') {
+                document.getElementById('approveBtn').style.display = 'none';
+                document.getElementById('rejectBtn').style.display = 'none';
+            }
+
+            detailModal.classList.add('show');
+        };
+
+        // Close modal
+        window.closeModal = () => {
+            detailModal.classList.remove('show');
+            currentRequestId = null;
+        };
+
+        // Approve request
+        window.approveRequest = async (requestId = currentRequestId) => {
+            if (!requestId) return;
+            if (!confirm('Approve this request?')) return;
+
+            try {
+                const response = await fetch(apiUrl(`/api/admin/organizers/${requestId}/approve`), {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showAlert('success', 'Request approved successfully');
+                    closeModal();
+                    loadRequests();
+                } else {
+                    showAlert('error', result.message || 'Failed to approve request');
+                }
+            } catch (error) {
+                console.error('Error approving request:', error);
+                showAlert('error', 'An error occurred');
+            }
+        };
+
+        // Reject request
+        window.rejectRequest = async (requestId = currentRequestId) => {
+            if (!requestId) return;
+            if (!confirm('Reject this request?')) return;
+
+            try {
+                const response = await fetch(apiUrl(`/api/admin/organizers/${requestId}/reject`), {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showAlert('success', 'Request rejected');
+                    closeModal();
+                    loadRequests();
+                } else {
+                    showAlert('error', result.message || 'Failed to reject request');
+                }
+            } catch (error) {
+                console.error('Error rejecting request:', error);
+                showAlert('error', 'An error occurred');
+            }
+        };
+
+        // Filter by status
+        statusFilter.addEventListener('change', () => {
+            const filtered = allRequests.filter(req => {
+                if (!statusFilter.value) return true;
+                return req.status === statusFilter.value;
+            });
+            renderRequests(filtered);
+        });
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAdminAuth();
+            loadRequests();
+        });
+    </script>
+</body>
+</html>
