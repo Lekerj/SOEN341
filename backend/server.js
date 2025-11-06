@@ -4,12 +4,13 @@ const session = require("express-session");
 const cors = require("cors");
 const authRoutes = require("./routes/auth");
 const ticketRoutes = require("./routes/tickets");
+const adminRoutes = require("./routes/admin");
 
 // Import the new events route file
 const eventRoutes = require("./routes/events");
 
 // Adding this (PERSON1): Import the organizer route file
-const organizerRoutes = require("./routes/Organizer");
+const organizerRoutes = require("./routes/organizer");
 
 //Import the database connection
 const db = require("./config/db");
@@ -65,12 +66,10 @@ app.use(
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/tickets", ticketRoutes);
-
 app.use("/api/events", eventRoutes);
-
-// Adding this: Mount the organizer routes here
 app.use("/api/organizer", organizerRoutes);
-
+app.use('/api/admin' , adminRoutes); 
+// Adding ^ for the admin.js which handles organizer role testing. 
 app.get("/api/test", (req, res) => {
   res.json({ message: "API is working!" });
 });

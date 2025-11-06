@@ -100,20 +100,36 @@ VALUES (
 
 -- Tickets for 'Campus Music Night' (past, sold out) - two sample tickets
 INSERT INTO tickets (user_id, event_id, ticket_type, qr_code, purchaser_name, purchaser_email, checked_in)
-VALUES
-((SELECT id FROM users WHERE email = 'student1@example.com'), (SELECT id FROM events WHERE title = 'Campus Music Night' LIMIT 1), 'paid', 'QR-CM-0001', 'Student One', 'student1@example.com', TRUE),
-((SELECT id FROM users WHERE email = 'student2@example.com'), (SELECT id FROM events WHERE title = 'Campus Music Night' LIMIT 1), 'paid', 'QR-CM-0002', 'Student Two', 'student2@example.com', FALSE);
+SELECT u.id, e.id, 'paid', 'QR-CM-0001', 'Student One', 'student1@example.com', TRUE
+FROM users u
+JOIN events e ON e.title = 'Campus Music Night'
+WHERE u.email = 'student1@example.com';
+
+INSERT INTO tickets (user_id, event_id, ticket_type, qr_code, purchaser_name, purchaser_email, checked_in)
+SELECT u.id, e.id, 'paid', 'QR-CM-0002', 'Student Two', 'student2@example.com', FALSE
+FROM users u
+JOIN events e ON e.title = 'Campus Music Night'
+WHERE u.email = 'student2@example.com';
 
 -- Tickets for 'Tech Talk: AI' (present, partially sold)
 INSERT INTO tickets (user_id, event_id, ticket_type, qr_code, purchaser_name, purchaser_email, checked_in)
-VALUES
-((SELECT id FROM users WHERE email = 'student1@example.com'), (SELECT id FROM events WHERE title = 'Tech Talk: AI' LIMIT 1), 'free', 'QR-TT-0001', 'Student One', 'student1@example.com', FALSE),
-((SELECT id FROM users WHERE email = 'student2@example.com'), (SELECT id FROM events WHERE title = 'Tech Talk: AI' LIMIT 1), 'free', 'QR-TT-0002', 'Student Two', 'student2@example.com', FALSE);
+SELECT u.id, e.id, 'free', 'QR-TT-0001', 'Student One', 'student1@example.com', FALSE
+FROM users u
+JOIN events e ON e.title = 'Tech Talk: AI'
+WHERE u.email = 'student1@example.com';
+
+INSERT INTO tickets (user_id, event_id, ticket_type, qr_code, purchaser_name, purchaser_email, checked_in)
+SELECT u.id, e.id, 'free', 'QR-TT-0002', 'Student Two', 'student2@example.com', FALSE
+FROM users u
+JOIN events e ON e.title = 'Tech Talk: AI'
+WHERE u.email = 'student2@example.com';
 
 -- Ticket for 'Student Club Meeting' (future, some tickets sold) - checked in sample
 INSERT INTO tickets (user_id, event_id, ticket_type, qr_code, purchaser_name, purchaser_email, checked_in)
-VALUES
-((SELECT id FROM users WHERE email = 'student2@example.com'), (SELECT id FROM events WHERE title = 'Student Club Meeting' LIMIT 1), 'free', 'QR-SC-0001', 'Student Two', 'student2@example.com', TRUE);
+SELECT u.id, e.id, 'free', 'QR-SC-0001', 'Student Two', 'student2@example.com', TRUE
+FROM users u
+JOIN events e ON e.title = 'Student Club Meeting'
+WHERE u.email = 'student2@example.com';
 
 -- =====================================================
 -- End of seed file
