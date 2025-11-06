@@ -16,9 +16,9 @@
                 🎫 ConEvents
             </a>
             <ul class="navbar-menu">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="browse.html">Browse</a></li>
-                <li><a href="about.html">About</a></li>
+                <li id="homeLink"><a href="index.html">Home</a></li>
+                <li id="browseLink"><a href="browse.html">Browse</a></li>
+                <li id="aboutLink"><a href="about.html">About</a></li>
                 <li id="adminMenu" class="dropdown" style="display:none;">
                     <a href="#" class="dropdown-toggle">Admin</a>
                     <ul class="dropdown-menu">
@@ -37,7 +37,7 @@
                         <li><a href="organizer-scanner.html">QR Scanner</a></li>
                     </ul>
                 </li>
-                <li><a href="profile.html">Profile</a></li>
+                <li id="profileLink"><a href="profile.html">Profile</a></li>
                 <li id="authLinks">
                     <a href="login.html" class="btn btn-primary btn-sm">Login</a>
                     <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
@@ -58,9 +58,22 @@
 
           const adminMenu = document.getElementById('adminMenu');
           const organizerMenu = document.getElementById('organizerMenu');
+          const browseLink = document.getElementById('browseLink');
+          const aboutLink = document.getElementById('aboutLink');
+          const profileLink = document.getElementById('profileLink');
 
+          // Show/hide admin menu
           if (adminMenu) adminMenu.style.display = isAdmin ? '' : 'none';
+
+          // Show/hide organizer menu
           if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+
+          // Hide browse/about/profile for admins, show only admin menu
+          if (isAdmin) {
+            if (browseLink) browseLink.style.display = 'none';
+            if (aboutLink) aboutLink.style.display = 'none';
+            if (profileLink) profileLink.style.display = 'none';
+          }
         } catch (e) {}
       });
     </script>
