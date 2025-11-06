@@ -179,9 +179,9 @@ router.get('/organization', requireAdmin, (req,res)=>{
     db.query(sql,(err,results)=>{
         if(err){
             console.error("DB Error Fetching all organizations:", err);
-            return res.status(500).json({succes: false, error: "Internal Server Error", message: "Failed to retrieve organization list."});
+            return res.status(500).json({success: false, error: "Internal Server Error", message: "Failed to retrieve organization list."});
         }
-        res.status(200).json({sucess: true, organization: results});
+        res.status(200).json({success: true, organization: results});
     });
 });
 
