@@ -32,9 +32,9 @@
                     <ul class="dropdown-menu">
                         <li><a href="organizer-dashboard.html">My Dashboard</a></li>
                         <li><a href="organizer-create-event.html">Create Event</a></li>
-                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
-                        <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
-                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
+                        <li><a href="organizer-edit-event.html?eventId">Edit Event</a></li>
+                        <li><a href="organizer-analytics.html?eventId">Event Analytics</a></li>
+                        <li id="qrScannerMenu"><a href="organizer-scanner.html">QR Scanner</a></li>
                     </ul>
                 </li>
                 <li id="profileLink"><a href="profile.html">Profile</a></li>
@@ -61,6 +61,7 @@
           const browseLink = document.getElementById('browseLink');
           const aboutLink = document.getElementById('aboutLink');
           const profileLink = document.getElementById('profileLink');
+          const qrScannerMenu = document.getElementById('qrScannerMenu');
 
           // Show/hide admin menu
           if (adminMenu) adminMenu.style.display = isAdmin ? '' : 'none';
@@ -73,6 +74,7 @@
             if (browseLink) browseLink.style.display = 'none';
             if (aboutLink) aboutLink.style.display = 'none';
             if (profileLink) profileLink.style.display = 'none';
+            if (qrScannerMenu) qrScannerMenu.style.display = 'none';
           }
         } catch (e) {}
       });
@@ -604,6 +606,9 @@
 
             closeClaimModal();
         });
+
+        // Expose logout to window for onclick handlers
+        window.logout = logout;
     </script>
 </body>
 

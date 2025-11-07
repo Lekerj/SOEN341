@@ -245,6 +245,18 @@
                     <div class="form-error" id="roleError"></div>
                 </div>
 
+                <!-- Admin Code Field (Admin Only) -->
+                <div id="adminCodeFields" style="display: none; border: 2px solid #912338; padding: 1.5rem; border-radius: 8px; background: #fff5f5; margin: 1.5rem 0;">
+                    <h3 style="margin-top: 0; color: #912338; font-size: 1.1rem;">🔐 Admin Verification</h3>
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">Administrator accounts require a security code to verify authorization.</p>
+
+                    <div class="form-group">
+                        <label class="form-label" for="adminCode">Admin Code <span style="color: var(--error-red);">*</span></label>
+                        <input type="password" id="adminCode" class="form-control" placeholder="Enter the admin security code">
+                        <div class="form-error" id="adminCodeError"></div>
+                    </div>
+                </div>
+
                 <!-- Organization Fields (Organizer Only) -->
                 <div id="organizerFields" style="display: none; border: 2px solid #667eea; padding: 1.5rem; border-radius: 8px; background: #f9f9ff; margin: 1.5rem 0;">
                     <h3 style="margin-top: 0; color: #667eea; font-size: 1.1rem;">📋 Organization Setup</h3>
@@ -349,6 +361,10 @@
         const newOrgCategory = document.getElementById('newOrgCategory');
         const newOrgDescription = document.getElementById('newOrgDescription');
 
+        // Admin code fields
+        const adminCodeFields = document.getElementById('adminCodeFields');
+        const adminCodeInput = document.getElementById('adminCode');
+
         const errors = {
             name: document.getElementById('nameError'),
             email: document.getElementById('emailError'),
@@ -359,7 +375,8 @@
             orgChoice: document.getElementById('orgChoiceError'),
             org: document.getElementById('orgError'),
             orgName: document.getElementById('orgNameError'),
-            orgCategory: document.getElementById('orgCategoryError')
+            orgCategory: document.getElementById('orgCategoryError'),
+            adminCode: document.getElementById('adminCodeError')
         };
 
         const fieldTouched = {
@@ -500,6 +517,26 @@
             }
 
             setFieldError('terms');
+            return true;
+        }
+
+        function validateAdminCode(showError = false) {
+            const role = roleSelect.value.toLowerCase();
+            // Only validate if role is admin
+            if (role !== 'admin') {
+                setFieldError('adminCode');
+                return true;
+            }
+
+            const value = adminCodeInput.value.trim();
+            if (!value) {
+                if (showError) {
+                    setFieldError('adminCode', 'Admin code is required.');
+                }
+                return false;
+            }
+
+            setFieldError('adminCode');
             return true;
         }
 
@@ -657,8 +694,10 @@
             fieldTouched.role = true;
             validateRole(true);
 
+            const role = roleSelect.value.toLowerCase();
+
             // Show/hide organizer fields
-            if (roleSelect.value.toLowerCase() === 'organizer') {
+            if (role === 'organizer') {
                 organizerFields.style.display = 'block';
                 loadOrganizations();
             } else {
@@ -666,6 +705,15 @@
                 organizationChoice.value = '';
                 joinOrgFields.style.display = 'none';
                 createOrgFields.style.display = 'none';
+            }
+
+            // Show/hide admin code fields
+            if (role === 'admin') {
+                adminCodeFields.style.display = 'block';
+            } else {
+                adminCodeFields.style.display = 'none';
+                adminCodeInput.value = '';
+                setFieldError('adminCode');
             }
 
             updateSubmitState();
@@ -714,6 +762,15 @@
             updateSubmitState();
         });
 
+        adminCodeInput.addEventListener('input', () => {
+            validateAdminCode(true);
+            updateSubmitState();
+        });
+        adminCodeInput.addEventListener('blur', () => {
+            validateAdminCode(true);
+            updateSubmitState();
+        });
+
         resetFormState();
 
         window.addEventListener('pageshow', (event) => {
@@ -733,6 +790,22 @@
 
             fieldTouched.name = fieldTouched.email = fieldTouched.password = true;
             fieldTouched.confirmPassword = fieldTouched.role = fieldTouched.terms = true;
+
+            // Validate admin-specific fields
+            let adminValidationError = '';
+            if (roleSelect.value.toLowerCase() === 'admin') {
+                console.log('[VALIDATION] Validating admin code...');
+                const adminCode = adminCodeInput.value.trim();
+                if (!adminCode) {
+                    adminValidationError = 'Admin code is required.';
+                    setFieldError('adminCode', adminValidationError);
+                    console.error('[VALIDATION]', adminValidationError);
+                } else {
+                    console.log('[VALIDATION] Admin code provided');
+                }
+            } else {
+                console.log('[VALIDATION] Not an admin, skipping admin code validation');
+            }
 
             // Validate organizer-specific fields
             let orgValidationError = '';
@@ -782,10 +855,11 @@
                 validatePassword(true),
                 validateConfirmPassword(true),
                 validateRole(true),
-                validateTerms(true)
+                validateTerms(true),
+                validateAdminCode(true)
             ];
 
-            const valid = validationResults.every(Boolean) && !orgValidationError;
+            const valid = validationResults.every(Boolean) && !orgValidationError && !adminValidationError;
 
             if (!valid) {
                 showMessage('Please fix the highlighted errors before continuing.', 'error');
@@ -813,6 +887,11 @@
                 role: roleSelect.value.toLowerCase()
             };
 
+            // Add admin code if registering as admin
+            if (roleSelect.value.toLowerCase() === 'admin') {
+                payload.admin_code = adminCodeInput.value.trim();
+            }
+
             try {
                 const response = await fetch(`${getApiBase()}/api/auth/register`, {
                     method: 'POST',
@@ -835,6 +914,24 @@
                     serverEmailError = conflictMessage;
                     setFieldError('email', conflictMessage);
                     showMessage(conflictMessage, 'error');
+                    return;
+                }
+
+                if (response.status === 403) {
+                    // Admin code validation failed
+                    const forbiddenMessage = data.error || 'Access forbidden.';
+                    setFieldError('adminCode', forbiddenMessage);
+                    showMessage(forbiddenMessage, 'error');
+                    return;
+                }
+
+                if (response.status === 400) {
+                    // Check if it's an admin code error
+                    const errorMessage = data.error || `Registration failed (status ${response.status}).`;
+                    if (errorMessage.includes('Admin code')) {
+                        setFieldError('adminCode', errorMessage);
+                    }
+                    showMessage(errorMessage, 'error');
                     return;
                 }
 

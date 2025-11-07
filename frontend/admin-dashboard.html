@@ -16,62 +16,126 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        .navbar {
+        /* Consolidated Admin Navbar */
+        nav.admin-navbar {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            padding: 15px 30px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            color: white;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             z-index: 100;
-            color: white;
         }
 
-        .navbar-brand {
-            font-size: 24px;
+        nav.admin-navbar .brand {
+            font-size: 1.5rem;
             font-weight: bold;
+            white-space: nowrap;
         }
 
-        .navbar-menu {
+        nav.admin-navbar .nav-center {
             display: flex;
-            gap: 20px;
-            align-items: center;
+            gap: 2rem;
+            flex: 1;
+            justify-content: center;
+            flex-wrap: wrap;
         }
 
-        .navbar-menu a {
+        nav.admin-navbar a,
+        nav.admin-navbar button {
             color: white;
             text-decoration: none;
-            transition: opacity 0.3s;
-        }
-
-        .navbar-menu a:hover {
-            opacity: 0.8;
-        }
-
-        .logout-btn {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px 16px;
-            border-radius: 4px;
             cursor: pointer;
-            transition: background 0.3s;
+            border: none;
+            background: none;
+            font-size: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
 
-        .logout-btn:hover {
+        nav.admin-navbar a:hover,
+        nav.admin-navbar button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        nav.admin-navbar a.active {
+            font-weight: bold;
+            border-bottom: 3px solid #ffd700;
+        }
+
+        nav.admin-navbar .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            white-space: nowrap;
+        }
+
+        nav.admin-navbar .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        nav.admin-navbar .user-info span {
+            font-size: 0.95rem;
+        }
+
+        nav.admin-navbar #logoutBtn {
             background: rgba(255, 255, 255, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+
+        nav.admin-navbar #logoutBtn:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            nav.admin-navbar {
+                flex-wrap: wrap;
+                padding: 0.75rem 1rem;
+            }
+
+            nav.admin-navbar .brand {
+                font-size: 1.2rem;
+                flex-basis: 100%;
+                margin-bottom: 0.5rem;
+            }
+
+            nav.admin-navbar .nav-center {
+                gap: 0.5rem;
+                flex-basis: 100%;
+            }
+
+            nav.admin-navbar a {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.6rem;
+            }
+
+            nav.admin-navbar .nav-right {
+                flex-basis: 100%;
+                justify-content: space-between;
+            }
         }
 
         .container {
             max-width: 1200px;
-            margin-top: 100px;
-            margin-left: auto;
-            margin-right: auto;
+            margin: 100px auto 2rem auto;
+            width: 100%;
         }
 
         .welcome-card {
@@ -198,19 +262,24 @@
 </head>
 
 <body>
-    <div class="navbar">
-        <div class="navbar-brand">ConEvents Admin</div>
-        <div class="navbar-menu">
+    <!-- Consolidated Admin Navbar -->
+    <nav class="admin-navbar">
+        <div class="brand">ConEvents Admin</div>
+        <div class="nav-center">
             <a href="index.html">Home</a>
-            <a href="admin-dashboard.html" style="font-weight: bold;">Dashboard</a>
+            <a href="admin-dashboard.html" class="active">Dashboard</a>
             <a href="admin-organizer-requests.html">Organizer Requests</a>
             <a href="admin-organization-management.html">Organizations</a>
             <a href="admin-moderation.html">Event Moderation</a>
             <a href="admin-analytics.html">Analytics</a>
-            <span id="welcomeMessage" style="margin-left: 20px;"></span>
-            <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
-    </div>
+        <div class="nav-right">
+            <div class="user-info">
+                <span id="userGreeting">Welcome!</span>
+                <button id="logoutBtn">Logout</button>
+            </div>
+        </div>
+    </nav>
 
     <div class="container">
         <div class="welcome-card">
@@ -303,8 +372,30 @@
             const userStr = localStorage.getItem('user');
             if (userStr) {
                 const user = JSON.parse(userStr);
-                document.getElementById('welcomeMessage').textContent = `Welcome, ${user.name}!`;
+                document.getElementById('userGreeting').textContent = `Welcome, ${user.name}!`;
                 document.getElementById('welcomeText').textContent = `Hi ${user.name}, manage your platform from here`;
+
+                // Setup logout button
+                document.getElementById('logoutBtn').addEventListener('click', logout);
+            }
+        }
+
+        async function logout() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    localStorage.removeItem('user');
+                    window.location.href = '/index.html';
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                localStorage.removeItem('user');
+                window.location.href = '/index.html';
             }
         }
 

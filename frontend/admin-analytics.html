@@ -19,34 +19,38 @@
             color: #333;
         }
 
-        /* Navbar */
-        nav {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* Consolidated Admin Navbar */
+        nav.admin-navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             z-index: 100;
         }
 
-        nav .brand {
+        nav.admin-navbar .brand {
             font-size: 1.5rem;
             font-weight: bold;
+            white-space: nowrap;
         }
 
-        nav .nav-center {
+        nav.admin-navbar .nav-center {
             display: flex;
             gap: 2rem;
             flex: 1;
             justify-content: center;
+            flex-wrap: wrap;
         }
 
-        nav a,
-        nav button {
+        nav.admin-navbar a,
+        nav.admin-navbar button {
             color: white;
             text-decoration: none;
             cursor: pointer;
@@ -55,34 +59,80 @@
             font-size: 1rem;
             padding: 0.5rem 1rem;
             border-radius: 4px;
-            transition: background-color 0.3s ease;
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
 
-        nav a:hover,
-        nav button:hover {
+        nav.admin-navbar a:hover,
+        nav.admin-navbar button:hover {
             background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
         }
 
-        nav .nav-right {
+        nav.admin-navbar a.active {
+            font-weight: bold;
+            border-bottom: 3px solid #ffd700;
+        }
+
+        nav.admin-navbar .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            white-space: nowrap;
+        }
+
+        nav.admin-navbar .user-info {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
 
-        nav .user-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+        nav.admin-navbar .user-info span {
+            font-size: 0.95rem;
         }
 
-        nav .user-info span {
-            font-size: 0.9rem;
+        nav.admin-navbar #logoutBtn {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+
+        nav.admin-navbar #logoutBtn:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            nav.admin-navbar {
+                flex-wrap: wrap;
+                padding: 0.75rem 1rem;
+            }
+
+            nav.admin-navbar .brand {
+                font-size: 1.2rem;
+                flex-basis: 100%;
+                margin-bottom: 0.5rem;
+            }
+
+            nav.admin-navbar .nav-center {
+                gap: 0.5rem;
+                flex-basis: 100%;
+            }
+
+            nav.admin-navbar a {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.6rem;
+            }
+
+            nav.admin-navbar .nav-right {
+                flex-basis: 100%;
+                justify-content: space-between;
+            }
         }
 
         /* Main Content */
         .container {
             max-width: 1400px;
-            margin: 2rem auto;
+            margin: 100px 2rem 2rem 2rem;
             padding: 0 1rem;
         }
 
@@ -422,16 +472,16 @@
 </head>
 
 <body>
-    <!-- Navigation -->
-    <nav>
-        <div class="brand">📊 Analytics Dashboard</div>
+    <!-- Consolidated Admin Navbar -->
+    <nav class="admin-navbar">
+        <div class="brand">ConEvents Admin</div>
         <div class="nav-center">
-            <a href="index.html" id="homeLink">Home</a>
+            <a href="index.html">Home</a>
             <a href="admin-dashboard.html">Dashboard</a>
             <a href="admin-organizer-requests.html">Organizer Requests</a>
             <a href="admin-organization-management.html">Organizations</a>
             <a href="admin-moderation.html">Event Moderation</a>
-            <a href="admin-analytics.html" style="font-weight: bold; color: #ffd700;">Analytics & Reports</a>
+            <a href="admin-analytics.html" class="active">Analytics</a>
         </div>
         <div class="nav-right">
             <div class="user-info">
@@ -580,13 +630,27 @@
         }
 
         // Logout handler
-        logoutBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to logout?')) {
+        async function logout() {
+            try {
+                const response = await fetch(apiUrl('/api/auth/logout'), {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('token');
+                    window.location.href = '/index.html';
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
                 localStorage.removeItem('user');
-                localStorage.removeItem('token');
-                window.location.href = '/login.html';
+                window.location.href = '/index.html';
             }
-        });
+        }
+
+        logoutBtn.addEventListener('click', logout);
 
         // Load organizations for filter dropdown
         async function loadOrganizations() {

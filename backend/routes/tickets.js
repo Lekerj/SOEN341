@@ -125,7 +125,7 @@ router.post("/claim", requireAuth, (req, res) => {
 router.get("/", requireAuth, (req, res) => {
   const userId = req.session.userId;
   const sql = `
-    SELECT t.id, t.event_id, t.ticket_type, t.qr_code, t.created_at,
+    SELECT t.id, t.event_id, t.ticket_type, t.qr_code, t.created_at, t.checked_in,
            e.title, e.event_date, e.event_time, e.location, e.price, e.description
     FROM tickets t
     JOIN events e ON t.event_id = e.id
@@ -149,7 +149,7 @@ router.get("/:id", requireAuth, (req, res) => {
     return res.status(400).json({ error: "Invalid ticket id" });
   }
   const sql = `
-    SELECT t.id, t.event_id, t.ticket_type, t.qr_code, t.created_at,
+    SELECT t.id, t.event_id, t.ticket_type, t.qr_code, t.created_at, t.checked_in,
            e.title, e.event_date, e.event_time, e.location, e.price, e.description
     FROM tickets t
     JOIN events e ON t.event_id = e.id

@@ -216,9 +216,9 @@
           <a href="#" class="dropdown-toggle">Organizer</a>
           <ul class="dropdown-menu">
             <li><a href="organizer-dashboard.html">My Dashboard</a></li>
-                        <li><a href="organizer-create-event.html">Create Event</a></li>
-                        <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
-                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
+            <li><a href="organizer-create-event.html">Create Event</a></li>
+            <li><a href="organizer-analytics.html?eventId">Event Analytics</a></li>
+            <li id="qrScannerMenu"><a href="organizer-scanner.html">QR Scanner</a></li>
           </ul>
         </li>
         <li><a href="profile.html">Profile</a></li>
@@ -237,10 +237,13 @@
     document.addEventListener('DOMContentLoaded', function () {
       try {
         const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
         const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
         const organizerMenu = document.getElementById('organizerMenu');
+        const qrScannerMenu = document.getElementById('qrScannerMenu');
         if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-      } catch (e) {}
+        if (isAdmin && qrScannerMenu) qrScannerMenu.style.display = 'none';
+      } catch (e) { }
     });
   </script>
 
@@ -266,7 +269,8 @@
         <div class="form-group">
           <label class="form-label" for="description">Description *</label>
           <textarea id="description" name="description" class="form-control" rows="4"
-            placeholder="Outline the schedule, speakers, and any other details attendees should know." required></textarea>
+            placeholder="Outline the schedule, speakers, and any other details attendees should know."
+            required></textarea>
           <span class="validation-icon" aria-hidden="true">✔</span>
           <small class="field-error" id="descriptionError" aria-live="polite"></small>
         </div>
@@ -297,8 +301,8 @@
         <div class="form-grid cols-2">
           <div class="form-group">
             <label class="form-label" for="capacity">Capacity *</label>
-            <input type="number" id="capacity" name="capacity" class="form-control" min="1" step="1"
-              placeholder="150" required>
+            <input type="number" id="capacity" name="capacity" class="form-control" min="1" step="1" placeholder="150"
+              required>
             <span class="validation-icon" aria-hidden="true">✔</span>
             <small class="field-error" id="capacityError" aria-live="polite"></small>
           </div>

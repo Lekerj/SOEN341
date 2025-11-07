@@ -38,8 +38,13 @@
         }
 
         @keyframes headerRotate {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .profile-header h1 {
@@ -368,14 +373,14 @@
                 <li id="organizerMenu" class="dropdown" style="display:none;">
                     <a href="#" class="dropdown-toggle">Organizer</a>
                     <ul class="dropdown-menu">
-                     <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+                        <li><a href="organizer-dashboard.html">My Dashboard</a></li>
                         <li><a href="organizer-create-event.html">Create Event</a></li>
-                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
-                        <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
+                        <li><a href="organizer-edit-event.html?eventId">Edit Event</a></li>
+                        <li><a href="organizer-analytics.html?eventId">Event Analytics</a></li>
                         <li><a href="organizer-scanner.html">QR Scanner</a></li>
                     </ul>
                 </li>
-                <li><a href="my-tickets.html">My Tickets</a></li>
+                <li id="myTicketsLink"><a href="my-tickets.html">My Tickets</a></li>
                 <li id="authLinks"><a href="login.html" class="btn btn-secondary btn-sm">Login</a></li>
                 <li id="userLinks" style="display:none;">
                     <span id="welcomeMessage" class="text-muted"></span>
@@ -385,14 +390,17 @@
         </div>
     </nav>
     <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        try {
-          const user = JSON.parse(localStorage.getItem('user') || 'null');
-          const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
-          const organizerMenu = document.getElementById('organizerMenu');
-          if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-        } catch (e) {}
-      });
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || 'null');
+                const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
+                const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+                const organizerMenu = document.getElementById('organizerMenu');
+                const myTicketsLink = document.getElementById('myTicketsLink');
+                if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+                if (myTicketsLink) myTicketsLink.style.display = (isAdmin || isOrganizer) ? 'none' : '';
+            } catch (e) { }
+        });
     </script>
 
     <div class="profile-container">
@@ -417,7 +425,7 @@
                 </div>
 
                 <!-- Stats Card -->
-                <div class="stats-card">
+                <div id="statsCard" class="stats-card">
                     <h4 style="margin: 0 0 1rem; font-size: 1.1rem; color: #343a40;">📊 Your Stats</h4>
                     <div class="stat-item">
                         <span class="stat-label">Total Tickets</span>
@@ -466,11 +474,13 @@
         </div>
 
         <!-- Recent Tickets Section -->
-        <div class="tickets-header">
-            <h2>🎟️ Recent Tickets</h2>
-            <a href="my-tickets.html" class="view-all-link">View All Tickets →</a>
+        <div id="recentTicketsSection">
+            <div class="tickets-header">
+                <h2>🎟️ Recent Tickets</h2>
+                <a href="my-tickets.html" class="view-all-link">View All Tickets →</a>
+            </div>
+            <div id="ticketsList" class="grid grid-3"></div>
         </div>
-        <div id="ticketsList" class="grid grid-3"></div>
     </div>
 
     <footer class="footer">
@@ -595,7 +605,7 @@
             });
         }
 
-        window.resetForm = function() {
+        window.resetForm = function () {
             document.getElementById('name').value = originalFormData.name;
             document.getElementById('profile_pic_url').value = originalFormData.profile_pic_url;
         }
@@ -669,7 +679,25 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             await loadProfile();
-            await loadTickets();
+
+            // Check user role and conditionally show ticket-related content
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || 'null');
+                const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
+                const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+                const isRegularUser = !isAdmin && !isOrganizer;
+
+                // Hide ticket-related sections for non-regular users
+                if (!isRegularUser) {
+                    const statsCard = document.getElementById('statsCard');
+                    const recentTicketsSection = document.getElementById('recentTicketsSection');
+                    if (statsCard) statsCard.style.display = 'none';
+                    if (recentTicketsSection) recentTicketsSection.style.display = 'none';
+                } else {
+                    // Only load tickets for regular users
+                    await loadTickets();
+                }
+            } catch (e) { }
         });
     </script>
 </body>
