@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -46,7 +47,8 @@
             justify-content: center;
         }
 
-        nav a, nav button {
+        nav a,
+        nav button {
             color: white;
             text-decoration: none;
             border: none;
@@ -57,7 +59,8 @@
             transition: background-color 0.3s;
         }
 
-        nav a:hover, nav button:hover {
+        nav a:hover,
+        nav button:hover {
             background-color: rgba(255, 255, 255, 0.2);
         }
 
@@ -329,8 +332,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         /* Alerts */
@@ -372,7 +380,8 @@
                 font-size: 0.9rem;
             }
 
-            th, td {
+            th,
+            td {
                 padding: 0.75rem;
             }
 
@@ -386,6 +395,7 @@
         }
     </style>
 </head>
+
 <body>
     <!-- Navbar -->
     <nav>
@@ -393,9 +403,10 @@
         <div class="nav-center">
             <a href="index.html">Home</a>
             <a href="admin-dashboard.html">Dashboard</a>
+            <a href="admin-organizer-requests.html" style="font-weight: bold; color: #ffd700;">Organizer Requests</a>
             <a href="admin-organization-management.html">Organizations</a>
             <a href="admin-moderation.html">Event Moderation</a>
-            <a href="admin-organizer-requests.html" style="color: #ffd700;">Organizer Requests</a>
+            <a href="admin-analytics.html">Analytics</a>
         </div>
         <div class="nav-right">
             <div class="user-info">
@@ -421,7 +432,7 @@
                 <option value="">All Requests</option>
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
+                <option value="refused">Rejected</option>
             </select>
         </div>
 
@@ -497,9 +508,11 @@
             </div>
 
             <div class="modal-actions">
-                <button class="btn-action btn-approve" onclick="approveRequest()" id="approveBtn">Approve Request</button>
+                <button class="btn-action btn-approve" onclick="approveRequest()" id="approveBtn">Approve
+                    Request</button>
                 <button class="btn-action btn-reject" onclick="rejectRequest()" id="rejectBtn">Reject Request</button>
-                <button class="btn-action btn-view" style="background-color: #95a5a6;" onclick="closeModal()">Close</button>
+                <button class="btn-action btn-view" style="background-color: #95a5a6;"
+                    onclick="closeModal()">Close</button>
             </div>
         </div>
     </div>
@@ -526,14 +539,20 @@
         // Check auth
         function checkAdminAuth() {
             const userStr = localStorage.getItem('user');
+            console.log('Checking admin auth, user data:', userStr);
+
             if (!userStr) {
+                console.warn('No user in localStorage, redirecting to index');
                 window.location.href = 'index.html';
                 return;
             }
 
             try {
                 const user = JSON.parse(userStr);
+                console.log('Parsed user:', user);
+
                 if (String(user.role || '').toLowerCase() !== 'admin') {
+                    console.warn('User is not admin, role:', user.role);
                     window.location.href = 'index.html';
                     return;
                 }
@@ -541,7 +560,9 @@
                 if (user.name) {
                     userGreeting.textContent = `Welcome, ${user.name}!`;
                 }
+                console.log('Admin auth check passed');
             } catch (e) {
+                console.error('Error parsing user data:', e);
                 window.location.href = 'index.html';
             }
         }
@@ -580,12 +601,13 @@
 
         // Get status class
         function getStatusClass(status) {
-            switch (status.toLowerCase()) {
+            switch ((status || '').toLowerCase()) {
                 case 'pending':
                     return 'status-pending';
                 case 'approved':
                     return 'status-approved';
-                case 'rejected':
+                case 'rejected': // tolerate legacy label
+                case 'refused':
                     return 'status-rejected';
                 default:
                     return 'status-pending';
@@ -595,22 +617,31 @@
         // Load requests
         async function loadRequests() {
             try {
+                console.log('Loading requests from:', apiUrl('/api/admin/organizer/requests'));
                 const response = await fetch(apiUrl('/api/admin/organizer/requests'), {
                     credentials: 'include'
                 });
 
-                if (!response.ok) throw new Error('Failed to load requests');
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Response error:', errorText);
+                    throw new Error(`Failed to load requests: ${response.status} ${errorText}`);
+                }
 
                 const result = await response.json();
+                console.log('Loaded requests:', result);
                 allRequests = result.requests || [];
                 renderRequests(allRequests);
             } catch (error) {
                 console.error('Error loading requests:', error);
-                showAlert('error', 'Failed to load requests');
+                showAlert('error', `Failed to load requests: ${error.message}`);
                 requestsBody.innerHTML = `
                     <tr>
                         <td colspan="6" class="empty-state">
-                            <p>Failed to load requests</p>
+                            <p>Failed to load requests. Check console for details.</p>
+                            <p style="color: #999; font-size: 0.9rem; margin-top: 0.5rem;">${error.message}</p>
                         </td>
                     </tr>
                 `;
@@ -692,9 +723,11 @@
             if (!confirm('Approve this request?')) return;
 
             try {
-                const response = await fetch(apiUrl(`/api/admin/organizers/${requestId}/approve`), {
-                    method: 'POST',
-                    credentials: 'include'
+                const response = await fetch(apiUrl(`/api/admin/organizer/requests/${requestId}/decision`), {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ decision: 'approved' })
                 });
 
                 const result = await response.json();
@@ -702,7 +735,11 @@
                 if (response.ok && result.success) {
                     showAlert('success', 'Request approved successfully');
                     closeModal();
-                    loadRequests();
+                    // Optimistically update UI: remove from pending list
+                    allRequests = allRequests.filter(r => String(r.id) !== String(requestId));
+                    renderRequests(allRequests);
+                    // Background refresh after a brief delay to sync state
+                    setTimeout(() => { loadRequests(); }, 600);
                 } else {
                     showAlert('error', result.message || 'Failed to approve request');
                 }
@@ -718,9 +755,11 @@
             if (!confirm('Reject this request?')) return;
 
             try {
-                const response = await fetch(apiUrl(`/api/admin/organizers/${requestId}/reject`), {
-                    method: 'POST',
-                    credentials: 'include'
+                const response = await fetch(apiUrl(`/api/admin/organizer/requests/${requestId}/decision`), {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ decision: 'refused' })
                 });
 
                 const result = await response.json();
@@ -728,7 +767,11 @@
                 if (response.ok && result.success) {
                     showAlert('success', 'Request rejected');
                     closeModal();
-                    loadRequests();
+                    // Optimistically update UI: remove from pending list
+                    allRequests = allRequests.filter(r => String(r.id) !== String(requestId));
+                    renderRequests(allRequests);
+                    // Background refresh after a brief delay to sync state
+                    setTimeout(() => { loadRequests(); }, 600);
                 } else {
                     showAlert('error', result.message || 'Failed to reject request');
                 }
@@ -754,93 +797,18 @@
             return div.innerHTML;
         }
 
-        // View request details
-        function viewDetails(requestId) {
-            const request = allRequests.find(r => r.id === requestId);
-            if (!request) return;
-
-            // Store user_id for approve/reject, not request id
-            currentRequestId = request.user_id;
-            document.getElementById('requestOrgName').textContent = request.organization_name || 'N/A';
-            document.getElementById('requestUserName').textContent = request.user_name || 'Unknown';
-            document.getElementById('requestEmail').textContent = request.user_email || 'N/A';
-            document.getElementById('requestType').textContent = request.request_type || 'N/A';
-            document.getElementById('requestDetails').textContent = request.details || 'No details provided';
-            document.getElementById('requestDate').textContent = formatDate(request.created_at);
-            document.getElementById('requestStatus').textContent = request.status;
-
-            const modal = document.getElementById('requestModal');
-            if (request.status === 'pending') {
-                document.getElementById('approveBtn').style.display = 'inline-block';
-                document.getElementById('rejectBtn').style.display = 'inline-block';
-            } else {
-                document.getElementById('approveBtn').style.display = 'none';
-                document.getElementById('rejectBtn').style.display = 'none';
-            }
-
-            modal.classList.add('active');
-        }
-
-        // Close modal
-        function closeModal() {
-            const modal = document.getElementById('requestModal');
-            modal.classList.remove('active');
-        }
-
-        // Approve request
-        async function approveRequest() {
-            if (!currentRequestId) return;
-
-            try {
-                const response = await fetch(apiUrl(`/api/admin/organizers/${currentRequestId}/approve`), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                if (!response.ok) throw new Error('Failed to approve request');
-
-                showAlert('success', 'Request approved successfully');
-                closeModal();
-                loadRequests();
-            } catch (error) {
-                console.error('Error:', error);
-                showAlert('error', error.message || 'Failed to approve request');
-            }
-        }
-
-        // Reject request
-        async function rejectRequest() {
-            if (!currentRequestId) return;
-
-            const reason = prompt('Please provide a reason for rejection:');
-            if (!reason) return;
-
-            try {
-                const response = await fetch(apiUrl(`/api/admin/organizers/${currentRequestId}/reject`), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reason: reason })
-                });
-
-                if (!response.ok) throw new Error('Failed to reject request');
-
-                showAlert('success', 'Request rejected successfully');
-                closeModal();
-                loadRequests();
-            } catch (error) {
-                console.error('Error:', error);
-                showAlert('error', error.message || 'Failed to reject request');
-            }
-        }
-
-        // Track current request ID
-        let currentRequestId = null;
-
+        // Remove legacy duplicate functions and ensure single initialization
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             checkAdminAuth();
             loadRequests();
+
+            // Auto-refresh requests every 5 seconds
+            setInterval(() => {
+                loadRequests();
+            }, 5000);
         });
     </script>
 </body>
+
 </html>

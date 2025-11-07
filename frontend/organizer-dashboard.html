@@ -213,8 +213,8 @@
                     <a href="#" class="dropdown-toggle">Organizer</a>
                     <ul class="dropdown-menu">
                         <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+                        <li><a href="create-organization.html">Create Organization</a></li>
                         <li><a href="organizer-create-event.html">Create Event</a></li>
-                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
                         <li><a href="organizer-analytics.html">Event Analytics</a></li>
                         <li><a href="organizer-scanner.html">QR Scanner</a></li>
                     </ul>
@@ -489,12 +489,7 @@
         analyticsBtn.textContent = "View Analytics";
         analyticsBtn.onclick = () => window.location.href = `organizer-analytics.html?eventId=${ev.id}`;
 
-        const editBtn = document.createElement("button");
-        editBtn.className = "btn-small";
-        editBtn.textContent = "Edit Event";
-        editBtn.onclick = () => window.location.href = `organizer-edit-event.html?eventId=${ev.id}`;
-
-        actions.append(analyticsBtn, editBtn);
+        actions.append(analyticsBtn);
         content.append(title, meta, progressBar, actions);
         card.append(img, content);
         grid.appendChild(card);

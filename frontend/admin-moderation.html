@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -378,6 +379,7 @@
                 transform: translateX(400px);
                 opacity: 0;
             }
+
             to {
                 transform: translateX(0);
                 opacity: 1;
@@ -389,6 +391,7 @@
                 transform: translateX(0);
                 opacity: 1;
             }
+
             to {
                 transform: translateX(400px);
                 opacity: 0;
@@ -512,6 +515,7 @@
             from {
                 opacity: 0;
             }
+
             to {
                 opacity: 1;
             }
@@ -522,6 +526,7 @@
                 transform: translateY(50px);
                 opacity: 0;
             }
+
             to {
                 transform: translateY(0);
                 opacity: 1;
@@ -559,7 +564,8 @@
                 font-size: 12px;
             }
 
-            th, td {
+            th,
+            td {
                 padding: 10px;
             }
 
@@ -574,12 +580,18 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header>
             <h1>📋 Event Moderation Dashboard</h1>
             <div class="header-actions">
-                <button class="btn btn-secondary" onclick="goBack()">← Back to Dashboard</button>
+                <a href="admin-dashboard.html" class="btn btn-secondary" style="text-decoration: none;">Dashboard</a>
+                <a href="admin-organizer-requests.html" class="btn btn-secondary"
+                    style="text-decoration: none;">Organizer Requests</a>
+                <a href="admin-organization-management.html" class="btn btn-secondary"
+                    style="text-decoration: none;">Organizations</a>
+                <a href="admin-analytics.html" class="btn btn-secondary" style="text-decoration: none;">Analytics</a>
                 <button class="btn btn-primary" onclick="logout()">Logout</button>
             </div>
         </header>
@@ -627,16 +639,19 @@
                 <div class="section-header">
                     <h2>Events</h2>
                 </div>
-                
+
                 <div class="selection-info">
                     <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
                     <span class="selection-count">
                         <span id="selectedCount">0</span> selected
                     </span>
                     <div class="bulk-actions">
-                        <button class="btn btn-warning" id="bulkFlagBtn" onclick="bulkFlag()" disabled>🚩 Flag Selected</button>
-                        <button class="btn btn-success" id="bulkUnflagBtn" onclick="bulkUnflag()" disabled>✓ Unflag Selected</button>
-                        <button class="btn btn-danger" id="bulkDeleteBtn" onclick="bulkDelete()" disabled>🗑️ Delete Selected</button>
+                        <button class="btn btn-warning" id="bulkFlagBtn" onclick="bulkFlag()" disabled>🚩 Flag
+                            Selected</button>
+                        <button class="btn btn-success" id="bulkUnflagBtn" onclick="bulkUnflag()" disabled>✓ Unflag
+                            Selected</button>
+                        <button class="btn btn-danger" id="bulkDeleteBtn" onclick="bulkDelete()" disabled>🗑️ Delete
+                            Selected</button>
                     </div>
                 </div>
 
@@ -699,7 +714,8 @@
                 </div>
                 <div class="form-group">
                     <label for="editModerationNotes">Moderation Notes</label>
-                    <textarea id="editModerationNotes" placeholder="Add notes about moderation actions taken..."></textarea>
+                    <textarea id="editModerationNotes"
+                        placeholder="Add notes about moderation actions taken..."></textarea>
                 </div>
                 <div class="form-group">
                     <label for="editFlagged">
@@ -726,7 +742,8 @@
                 <p id="confirmMessage"></p>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('confirmModal')">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmBtn" onclick="executeConfirmed()">Confirm</button>
+                    <button type="button" class="btn btn-danger" id="confirmBtn"
+                        onclick="executeConfirmed()">Confirm</button>
                 </div>
             </div>
         </div>
@@ -772,7 +789,9 @@
         }
 
         function loadEvents() {
-            fetch(apiUrl('/api/admin/events'))
+            fetch(apiUrl('/api/admin/events'), {
+                credentials: 'include'
+            })
                 .then(res => {
                     if (!res.ok) {
                         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -828,7 +847,7 @@
 
         function sortTable(column) {
             const header = event.target;
-            
+
             if (currentSort.column === column) {
                 currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
             } else {
@@ -859,7 +878,7 @@
 
         function toggleSelectAll() {
             const isChecked = document.getElementById('selectAll').checked;
-            
+
             if (isChecked) {
                 filteredEvents.forEach(event => selectedEvents.add(event.id));
             } else {
@@ -926,16 +945,21 @@
                     promise = fetch(apiUrl(`/api/admin/events/${id}`), {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
                         body: JSON.stringify({ is_flagged: true })
                     });
                 } else if (type === 'unflag') {
                     promise = fetch(apiUrl(`/api/admin/events/${id}`), {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
                         body: JSON.stringify({ is_flagged: false })
                     });
                 } else if (type === 'delete') {
-                    promise = fetch(apiUrl(`/api/admin/events/${id}`), { method: 'DELETE' });
+                    promise = fetch(apiUrl(`/api/admin/events/${id}`), {
+                        method: 'DELETE',
+                        credentials: 'include'
+                    });
                 }
                 promises.push(promise);
             });
@@ -1032,6 +1056,7 @@
             fetch(apiUrl(`/api/admin/events/${eventId}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(updatedEvent)
             })
                 .then(res => res.json())
@@ -1050,6 +1075,7 @@
             fetch(apiUrl(`/api/admin/events/${eventId}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ is_flagged: flagged })
             })
                 .then(() => {
@@ -1100,4 +1126,5 @@
         }
     </script>
 </body>
+
 </html>

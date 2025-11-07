@@ -49,6 +49,11 @@ router.post("/register", async (req, res) => {
             .status(500)
             .json({ error: "Database error during registration" });
         }
+
+        // Establish session after successful registration
+        console.log(`[AUTH] Registration successful for user ${result.insertId}, establishing session`);
+        req.session.userId = result.insertId;
+
         res.status(201).json({
           message: "User registered successfully",
           userId: result.insertId,

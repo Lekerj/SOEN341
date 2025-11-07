@@ -245,6 +245,61 @@
                     <div class="form-error" id="roleError"></div>
                 </div>
 
+                <!-- Organization Fields (Organizer Only) -->
+                <div id="organizerFields" style="display: none; border: 2px solid #667eea; padding: 1.5rem; border-radius: 8px; background: #f9f9ff; margin: 1.5rem 0;">
+                    <h3 style="margin-top: 0; color: #667eea; font-size: 1.1rem;">📋 Organization Setup</h3>
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">As an Event Organizer, you need to either join an existing organization or create a new one.</p>
+
+                    <div class="form-group">
+                        <label class="form-label" for="organizationChoice">Organization <span style="color: var(--error-red);">*</span></label>
+                        <select id="organizationChoice" class="form-control">
+                            <option value="">-- Choose an option --</option>
+                            <option value="join">Join Existing Organization</option>
+                            <option value="create">Create New Organization</option>
+                        </select>
+                        <div class="form-error" id="orgChoiceError"></div>
+                    </div>
+
+                    <!-- Join Existing Organization -->
+                    <div id="joinOrgFields" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label" for="existingOrganization">Select Organization <span style="color: var(--error-red);">*</span></label>
+                            <select id="existingOrganization" class="form-control">
+                                <option value="">-- Loading organizations... --</option>
+                            </select>
+                            <div class="form-error" id="orgError"></div>
+                        </div>
+                    </div>
+
+                    <!-- Create New Organization -->
+                    <div id="createOrgFields" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label" for="newOrgName">Organization Name <span style="color: var(--error-red);">*</span></label>
+                            <input type="text" id="newOrgName" class="form-control" placeholder="Enter organization name" maxlength="100">
+                            <small class="form-text">3-100 characters</small>
+                            <div class="form-error" id="orgNameError"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="newOrgCategory">Category <span style="color: var(--error-red);">*</span></label>
+                            <select id="newOrgCategory" class="form-control">
+                                <option value="">-- Select category --</option>
+                                <option value="sports">Sports</option>
+                                <option value="academic">Academic</option>
+                                <option value="social">Social</option>
+                                <option value="club">Club</option>
+                            </select>
+                            <div class="form-error" id="orgCategoryError"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="newOrgDescription">Description (Optional)</label>
+                            <textarea id="newOrgDescription" class="form-control" placeholder="Describe your organization..." maxlength="500" style="resize: vertical; min-height: 80px;"></textarea>
+                            <small class="form-text">Max 500 characters</small>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label class="terms-text">
                         <input type="checkbox" id="terms" name="terms" style="margin-top: 3px;" required>
@@ -284,13 +339,27 @@
         const authContainer = document.querySelector('.auth-container');
         const pageWrapper = document.querySelector('.page-wrapper');
 
+        // Organization fields
+        const organizerFields = document.getElementById('organizerFields');
+        const organizationChoice = document.getElementById('organizationChoice');
+        const joinOrgFields = document.getElementById('joinOrgFields');
+        const createOrgFields = document.getElementById('createOrgFields');
+        const existingOrganization = document.getElementById('existingOrganization');
+        const newOrgName = document.getElementById('newOrgName');
+        const newOrgCategory = document.getElementById('newOrgCategory');
+        const newOrgDescription = document.getElementById('newOrgDescription');
+
         const errors = {
             name: document.getElementById('nameError'),
             email: document.getElementById('emailError'),
             password: document.getElementById('passwordError'),
             confirmPassword: document.getElementById('confirmPasswordError'),
             role: document.getElementById('roleError'),
-            terms: document.getElementById('termsError')
+            terms: document.getElementById('termsError'),
+            orgChoice: document.getElementById('orgChoiceError'),
+            org: document.getElementById('orgError'),
+            orgName: document.getElementById('orgNameError'),
+            orgCategory: document.getElementById('orgCategoryError')
         };
 
         const fieldTouched = {
@@ -587,8 +656,57 @@
         roleSelect.addEventListener('change', () => {
             fieldTouched.role = true;
             validateRole(true);
+
+            // Show/hide organizer fields
+            if (roleSelect.value.toLowerCase() === 'organizer') {
+                organizerFields.style.display = 'block';
+                loadOrganizations();
+            } else {
+                organizerFields.style.display = 'none';
+                organizationChoice.value = '';
+                joinOrgFields.style.display = 'none';
+                createOrgFields.style.display = 'none';
+            }
+
             updateSubmitState();
         });
+
+        // Organization choice handler
+        organizationChoice.addEventListener('change', () => {
+            if (organizationChoice.value === 'join') {
+                joinOrgFields.style.display = 'block';
+                createOrgFields.style.display = 'none';
+            } else if (organizationChoice.value === 'create') {
+                joinOrgFields.style.display = 'none';
+                createOrgFields.style.display = 'block';
+            } else {
+                joinOrgFields.style.display = 'none';
+                createOrgFields.style.display = 'none';
+            }
+            updateSubmitState();
+        });
+
+        // Load organizations
+        async function loadOrganizations() {
+            try {
+                const response = await fetch(`${getApiBase()}/api/organizer/organizations`);
+                if (!response.ok) throw new Error('Failed to load organizations');
+
+                const result = await response.json();
+                if (result.success && result.organizations) {
+                    existingOrganization.innerHTML = '<option value="">-- Select an organization --</option>';
+                    result.organizations.forEach(org => {
+                        const option = document.createElement('option');
+                        option.value = org.id;
+                        option.textContent = org.name;
+                        existingOrganization.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading organizations:', error);
+                existingOrganization.innerHTML = '<option value="">-- Failed to load organizations --</option>';
+            }
+        }
 
         termsCheckbox.addEventListener('change', () => {
             fieldTouched.terms = true;
@@ -616,6 +734,48 @@
             fieldTouched.name = fieldTouched.email = fieldTouched.password = true;
             fieldTouched.confirmPassword = fieldTouched.role = fieldTouched.terms = true;
 
+            // Validate organizer-specific fields
+            let orgValidationError = '';
+            if (roleSelect.value.toLowerCase() === 'organizer') {
+                console.log('[VALIDATION] Validating organizer fields...');
+                console.log('[VALIDATION] organizationChoice.value:', organizationChoice.value);
+
+                if (!organizationChoice.value) {
+                    orgValidationError = 'Please choose to join or create an organization.';
+                    setFieldError('orgChoice', orgValidationError);
+                    console.error('[VALIDATION]', orgValidationError);
+                } else if (organizationChoice.value === 'join') {
+                    console.log('[VALIDATION] Validating join organization...');
+                    if (!existingOrganization.value) {
+                        orgValidationError = 'Please select an organization.';
+                        setFieldError('org', orgValidationError);
+                        console.error('[VALIDATION]', orgValidationError);
+                    } else {
+                        console.log('[VALIDATION] Join organization OK');
+                    }
+                } else if (organizationChoice.value === 'create') {
+                    console.log('[VALIDATION] Validating create organization...');
+                    const orgName = newOrgName.value.trim();
+                    console.log('[VALIDATION] newOrgName.value:', newOrgName.value);
+                    console.log('[VALIDATION] trimmed orgName:', orgName);
+                    console.log('[VALIDATION] newOrgCategory.value:', newOrgCategory.value);
+
+                    if (!orgName || orgName.length < 3) {
+                        orgValidationError = 'Organization name must be at least 3 characters.';
+                        setFieldError('orgName', orgValidationError);
+                        console.error('[VALIDATION]', orgValidationError);
+                    } else if (!newOrgCategory.value) {
+                        orgValidationError = 'Please select an organization category.';
+                        setFieldError('orgCategory', orgValidationError);
+                        console.error('[VALIDATION]', orgValidationError);
+                    } else {
+                        console.log('[VALIDATION] Create organization OK');
+                    }
+                }
+            } else {
+                console.log('[VALIDATION] Not an organizer, skipping org validation');
+            }
+
             const validationResults = [
                 validateName(true),
                 validateEmail(true),
@@ -625,7 +785,7 @@
                 validateTerms(true)
             ];
 
-            const valid = validationResults.every(Boolean);
+            const valid = validationResults.every(Boolean) && !orgValidationError;
 
             if (!valid) {
                 showMessage('Please fix the highlighted errors before continuing.', 'error');
@@ -682,6 +842,69 @@
                     const errorMessage = data.error || `Registration failed (status ${response.status}).`;
                     showMessage(errorMessage, 'error');
                     return;
+                }
+
+                // If organizer, submit organization request after successful registration
+                if (roleSelect.value.toLowerCase() === 'organizer') {
+                    console.log('[REGISTER] Organizer role detected, processing organization request');
+                    console.log('[REGISTER] organizationChoice.value:', organizationChoice.value);
+
+                    try {
+                        // Small delay to ensure session is established
+                        await new Promise(resolve => setTimeout(resolve, 500));
+
+                        const orgPayload = {};
+                        let shouldSubmit = false;
+
+                        if (!organizationChoice.value) {
+                            console.error('[REGISTER] ERROR: No organization choice selected!');
+                            console.error('[REGISTER] This should have been caught by validation');
+                            console.error('[REGISTER] organizerFields display:', organizerFields.style.display);
+                        } else if (organizationChoice.value === 'join') {
+                            console.log('[REGISTER] Join organization mode');
+                            orgPayload.organization_id = existingOrganization.value;
+                            orgPayload.details = 'Requesting to join organization during registration.';
+                            shouldSubmit = true;
+                        } else if (organizationChoice.value === 'create') {
+                            console.log('[REGISTER] Create organization mode');
+                            console.log('[REGISTER] Organization name:', newOrgName.value.trim());
+                            console.log('[REGISTER] Category:', newOrgCategory.value);
+                            orgPayload.new_organization_name = newOrgName.value.trim();
+                            orgPayload.category = newOrgCategory.value;
+                            orgPayload.details = newOrgDescription.value.trim() || 'Created during registration.';
+                            shouldSubmit = true;
+                        }
+
+                        if (!shouldSubmit) {
+                            console.warn('[REGISTER] No organization data to submit');
+                        } else {
+                            console.log('[REGISTER] Submitting organization request:', orgPayload);
+
+                            const orgResponse = await fetch(`${getApiBase()}/api/organizer/request`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                credentials: 'include',
+                                body: JSON.stringify(orgPayload)
+                            });
+
+                            console.log('[REGISTER] Organization request response status:', orgResponse.status);
+                            const orgResult = await orgResponse.json();
+                            console.log('[REGISTER] Organization request result:', orgResult);
+
+                            if (!orgResponse.ok) {
+                                console.warn('Organization request failed (but account was created):', orgResponse.status, orgResult);
+                            } else {
+                                console.log('[REGISTER] Organization request submitted successfully');
+                            }
+                        }
+                    } catch (orgError) {
+                        console.error('[REGISTER] Error submitting organization request:', orgError);
+                        // Don't fail registration if org request fails
+                    }
+                } else {
+                    console.log('[REGISTER] Not an organizer, skipping organization request');
                 }
 
                 showMessage('Registration successful! Redirecting to login...', 'success');

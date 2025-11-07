@@ -538,10 +538,10 @@
           <a href="#" class="dropdown-toggle">Organizer</a>
           <ul class="dropdown-menu">
             <li><a href="organizer-dashboard.html">My Dashboard</a></li>
-                        <li><a href="organizer-create-event.html">Create Event</a></li>
-                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
-                        <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
-                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
+            <li><a href="organizer-create-event.html">Create Event</a></li>
+            <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
+            <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
+            <li><a href="organizer-scanner.html">QR Scanner</a></li>
           </ul>
         </li>
         <li><a href="profile.html">Profile</a></li>
@@ -563,7 +563,7 @@
         const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
         const organizerMenu = document.getElementById('organizerMenu');
         if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-      } catch (e) {}
+      } catch (e) { }
     });
   </script>
 
@@ -1221,12 +1221,15 @@
         detailsPanel.style.display = detailsPanel.style.display === 'none' ? 'block' : 'none';
       });
 
-      // If the current user is the organizer of this event, show Edit and Analytics buttons
+      // If the current user is the organizer of this event OR is an admin, show Edit and Analytics buttons
       try {
         const userRaw = localStorage.getItem('user');
         if (userRaw) {
           const currentUser = JSON.parse(userRaw);
-          if (currentUser && currentUser.id && Number(currentUser.id) === Number(event.organizer_id)) {
+          const isOrganizer = currentUser && currentUser.id && Number(currentUser.id) === Number(event.organizer_id);
+          const isAdmin = currentUser && currentUser.role && String(currentUser.role).toLowerCase() === 'admin';
+
+          if (isOrganizer || isAdmin) {
             const editLink = document.createElement('a');
             editLink.href = `organizer-edit-event.html?id=${event.id}`;
             editLink.className = 'btn btn-secondary';

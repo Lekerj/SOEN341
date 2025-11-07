@@ -3,20 +3,26 @@
 
 const mysql = require("mysql2");
 
-const db = mysql.createConnection({
+// Use connection pool instead of single connection to prevent "connection closed" errors
+const pool = mysql.createPool({
   host: process.env.DB_HOST || "localhost",
   user: process.env.DB_USER || "341",
   password: process.env.DB_PASSWORD || "Pass341!",
   database: process.env.DB_NAME || "convenevents",
-  dateStrings: true // Ensures DATE and TIME columns are returned as strings
+  dateStrings: true, // Ensures DATE and TIME columns are returned as strings
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
 });
 
-db.connect((err) => {
+// Test the pool connection
+pool.getConnection((err, connection) => {
   if (err) {
     console.error("Database connection failed:", err);
     process.exit(1);
   }
   console.log("Connected to MySQL database");
+  connection.release(); // Release connection back to pool
 });
 
-module.exports = db;
+module.exports = pool;

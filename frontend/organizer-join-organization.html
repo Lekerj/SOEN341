@@ -288,8 +288,8 @@
 
     <!-- Main Container -->
     <div class="container">
-        <h1>Join an Organization</h1>
-        <p class="subtitle">Request to join an existing organization and start collaborating with other organizers</p>
+        <h1>Join or Create an Organization</h1>
+        <p class="subtitle">Request to join an existing organization or create a new one</p>
 
         <!-- Alerts -->
         <div class="alert alert-success" id="successAlert">
@@ -304,7 +304,13 @@
             <p>Processing your request...</p>
         </div>
 
-        <!-- Form -->
+        <!-- Tabs for Join/Create -->
+        <div class="tabs" style="margin-bottom: 2rem; border-bottom: 2px solid #eee; display: flex; gap: 1rem;">
+            <button type="button" id="tabJoin" class="tab-btn tab-active" style="padding: 0.75rem 1.5rem; background: none; border: none; cursor: pointer; font-size: 1rem; font-weight: 600; color: #667eea; border-bottom: 3px solid #667eea; margin-bottom: -2px;">Join Existing Organization</button>
+            <button type="button" id="tabCreate" class="tab-btn" style="padding: 0.75rem 1.5rem; background: none; border: none; cursor: pointer; font-size: 1rem; font-weight: 600; color: #999;">Create New Organization</button>
+        </div>
+
+        <!-- Join Organization Form -->
         <form id="joinForm" style="display: block;">
             <div class="form-group">
                 <label for="organizationId">
@@ -348,6 +354,51 @@
                 <button type="submit" class="btn-submit" id="submitBtn">Submit Request</button>
             </div>
         </form>
+
+        <!-- Create Organization Form -->
+        <form id="createForm" style="display: none;">
+            <div class="form-group">
+                <label for="newOrgName">
+                    Organization Name <span class="required">*</span>
+                </label>
+                <input type="text" id="newOrgName" placeholder="Enter organization name" required maxlength="100" />
+                <small style="color: #666;">3-100 characters</small>
+            </div>
+
+            <div class="form-group">
+                <label for="newOrgCategory">
+                    Category <span class="required">*</span>
+                </label>
+                <select id="newOrgCategory" required>
+                    <option value="">-- Select category --</option>
+                    <option value="sports">Sports</option>
+                    <option value="academic">Academic</option>
+                    <option value="social">Social</option>
+                    <option value="club">Club</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="newOrgDescription">
+                    Description (Optional)
+                </label>
+                <textarea id="newOrgDescription" placeholder="Describe your organization..." maxlength="500"></textarea>
+                <small style="color: #666;">Max 500 characters</small>
+            </div>
+
+            <div class="form-group">
+                <label for="createMessage">
+                    Message <span class="required">*</span>
+                </label>
+                <textarea id="createMessage" placeholder="Explain the purpose and goals of this organization..." required></textarea>
+                <small style="color: #666;">Minimum 10 characters</small>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
+                <button type="submit" class="btn-submit" id="submitCreateBtn">Create Organization</button>
+            </div>
+        </form>
     </div>
 
     <script type="module">
@@ -357,12 +408,22 @@
             return `${getApiBase()}${path}`;
         }
 
-        // DOM Elements
+        // DOM Elements - Join Form
         const organizationId = document.getElementById('organizationId');
         const requestType = document.getElementById('requestType');
         const message = document.getElementById('message');
         const joinForm = document.getElementById('joinForm');
         const submitBtn = document.getElementById('submitBtn');
+
+        // DOM Elements - Create Form
+        const createForm = document.getElementById('createForm');
+        const newOrgName = document.getElementById('newOrgName');
+        const newOrgCategory = document.getElementById('newOrgCategory');
+        const newOrgDescription = document.getElementById('newOrgDescription');
+        const createMessage = document.getElementById('createMessage');
+        const submitCreateBtn = document.getElementById('submitCreateBtn');
+
+        // DOM Elements - Shared
         const userGreeting = document.getElementById('userGreeting');
         const logoutBtn = document.getElementById('logoutBtn');
         const successAlert = document.getElementById('successAlert');
@@ -373,6 +434,10 @@
         const orgName = document.getElementById('orgName');
         const orgCategory = document.getElementById('orgCategory');
         const orgDescription = document.getElementById('orgDescription');
+
+        // Tab Elements
+        const tabJoin = document.getElementById('tabJoin');
+        const tabCreate = document.getElementById('tabCreate');
 
         // Check authentication
         function checkAuth() {
@@ -514,6 +579,85 @@
             } finally {
                 loading.style.display = 'none';
                 submitBtn.disabled = false;
+            }
+        });
+
+        // Tab switching
+        tabJoin.addEventListener('click', () => {
+            joinForm.style.display = 'block';
+            createForm.style.display = 'none';
+            tabJoin.style.color = '#667eea';
+            tabJoin.style.borderBottomColor = '#667eea';
+            tabCreate.style.color = '#999';
+            tabCreate.style.borderBottomColor = 'transparent';
+            hideAllAlerts();
+        });
+
+        tabCreate.addEventListener('click', () => {
+            joinForm.style.display = 'none';
+            createForm.style.display = 'block';
+            tabCreate.style.color = '#667eea';
+            tabCreate.style.borderBottomColor = '#667eea';
+            tabJoin.style.color = '#999';
+            tabJoin.style.borderBottomColor = 'transparent';
+            hideAllAlerts();
+        });
+
+        // Create Organization Form submission
+        createForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Validation
+            if (!newOrgName.value.trim() || newOrgName.value.trim().length < 3) {
+                showAlert('error', 'Organization name must be at least 3 characters');
+                return;
+            }
+
+            if (!newOrgCategory.value) {
+                showAlert('error', 'Please select a category');
+                return;
+            }
+
+            if (createMessage.value.trim().length < 10) {
+                showAlert('error', 'Message must be at least 10 characters');
+                return;
+            }
+
+            // Show loading
+            loading.style.display = 'block';
+            submitCreateBtn.disabled = true;
+
+            try {
+                const response = await fetch(apiUrl('/api/organizer/request'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        new_organization_name: newOrgName.value.trim(),
+                        category: newOrgCategory.value,
+                        details: createMessage.value
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showAlert('success', 'Your organization creation request has been submitted successfully! You\'ll be notified when it\'s approved.');
+                    createForm.reset();
+
+                    // Redirect after success
+                    setTimeout(() => {
+                        window.location.href = 'organizer-requests.html';
+                    }, 2000);
+                } else {
+                    showAlert('error', result.error || result.message || 'Failed to submit request');
+                }
+            } catch (error) {
+                console.error('Error submitting request:', error);
+                showAlert('error', 'An error occurred while submitting your request');
+            } finally {
+                loading.style.display = 'none';
+                submitCreateBtn.disabled = false;
             }
         });
 

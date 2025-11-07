@@ -57,7 +57,7 @@
   </script>
   <style>
     /* Reuse same styles as create page for layout and validation visuals */
-    .page-wrapper { min-height: 100vh; display:flex; justify-content:center; align-items:center; padding:48px 16px }
+    .page-wrapper { min-height: 100vh; display:flex; flex-direction:column; justify-content:flex-start; align-items:center; padding:48px 16px }
     .event-form-card { background: rgba(255,255,255,0.96); border-radius:var(--radius-xl); box-shadow:var(--shadow-lg); width:100%; max-width:720px; padding:var(--spacing-2xl); display:grid; gap:var(--spacing-xl)}
     .form-grid { display:grid; gap:var(--spacing-lg) }
     .form-grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(220px,1fr)) }
@@ -92,7 +92,6 @@
           <ul class="dropdown-menu">
             <li><a href="organizer-dashboard.html">My Dashboard</a></li>
             <li><a href="organizer-create-event.html">Create Event</a></li>
-            <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
             <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
             <li><a href="organizer-scanner.html">QR Scanner</a></li>
           </ul>
@@ -128,6 +127,15 @@
         <h1 id="editEventHeading" class="auth-title" style="margin:0;">Edit Event</h1>
         <p>Edit details and save changes for your event.</p>
       </header>
+
+      <!-- Event Selector -->
+      <div class="form-group" id="eventSelectorGroup">
+        <label class="form-label" for="eventSelector">Select Event to Edit *</label>
+        <select id="eventSelector" class="form-control" style="margin-bottom: 1rem;">
+          <option value="">-- Loading your events... --</option>
+        </select>
+        <small class="field-error" id="eventSelectorError" aria-live="polite"></small>
+      </div>
 
       <div id="formAlert" class="alert alert-error" role="alert" style="display:none;"></div>
 
@@ -231,16 +239,10 @@
     <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
   </footer>
 
-  <script>
-    (function () {
-      function getApiBase() {
-        try {
-          return getApiBase ? getApiBase() : `http://${window.location.hostname}:3000`;
-        } catch (e) {
-          return `http://${window.location.hostname}:3000`;
-        }
-      }
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
 
+    (function () {
       function getAuthToken() {
         const stored = localStorage.getItem('authToken');
         if (stored) return stored;
@@ -251,6 +253,15 @@
           console.warn('Unable to parse stored user token.');
         }
         return '';
+      }
+
+      function getUserRole() {
+        try {
+          const user = JSON.parse(localStorage.getItem('user'));
+          return user?.role || null;
+        } catch (error) {
+          return null;
+        }
       }
 
       const $ = (selector) => document.querySelector(selector);
@@ -265,11 +276,8 @@
 
   const params = new URLSearchParams(window.location.search);
   // Accept both `eventId` (preferred) and legacy `id` query param for compatibility
-  const eventId = params.get('eventId') || params.get('id');
-
-      if (!eventId) {
-        showAlert(['Missing eventId in URL.'], true);
-      }
+  let eventId = params.get('eventId') || params.get('id');
+  const eventSelector = document.getElementById('eventSelector');
 
       const fieldConfigs = [
         { id: 'title', label: 'Event Title', validators: [ required('Event Title is required.'), maxLength(255, 'Event Title cannot exceed 255 characters.') ] },
@@ -304,7 +312,7 @@
 
       function validateAll(force = false) { return fieldConfigs.every((config) => validateField(config, { force })); }
 
-      function updateSubmitState() { const isValid = fieldConfigs.every((config) => config.valid); submitButton.disabled = !isValid; if (!isValid) submitButton.classList.remove('loading'); }
+      function updateSubmitState() { const isValid = fieldConfigs.every((config) => config.valid); submitButton.disabled = !isValid || !eventId; if (!isValid) submitButton.classList.remove('loading'); }
 
       function showAlert(messages, isError = true) {
         if (!messages || messages.length === 0) { alertBox.style.display = 'none'; alertBox.textContent = ''; return; }
@@ -356,8 +364,13 @@
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
         try {
-          // Fetch event details from public endpoint
-          const resp = await fetch(`${getApiBase()}/api/events/${encodeURIComponent(eventId)}`, { credentials: 'include', headers });
+          // Fetch event details using appropriate endpoint based on user role
+          const userRole = getUserRole();
+          const endpoint = userRole === 'admin'
+            ? `${getApiBase()}/api/admin/events/${encodeURIComponent(eventId)}`
+            : `${getApiBase()}/api/organizer/events/${encodeURIComponent(eventId)}`;
+
+          const resp = await fetch(endpoint, { credentials: 'include', headers });
 
           if (resp.status === 401 || resp.status === 403) {
             showAlert(['You are not authorized to edit this event. Redirecting...'], true);
@@ -436,7 +449,13 @@
           const token = getAuthToken();
           if (token) headers['Authorization'] = `Bearer ${token}`;
 
-          const resp = await fetch(`${getApiBase()}/api/organizer/events/${encodeURIComponent(eventId)}`, {
+          // Use appropriate endpoint based on user role
+          const userRole = getUserRole();
+          const endpoint = userRole === 'admin'
+            ? `${getApiBase()}/api/admin/events/${encodeURIComponent(eventId)}`
+            : `${getApiBase()}/api/organizer/events/${encodeURIComponent(eventId)}`;
+
+          const resp = await fetch(endpoint, {
             method: 'PUT',
             headers,
             credentials: 'include',
@@ -470,8 +489,80 @@
         }
       });
 
-      // Kick off fetch
-      fetchEventAndPopulate();
+      // Load events and populate dropdown
+      async function loadEventsList() {
+        try {
+          const response = await fetch(`${getApiBase()}/api/organizer/events`, {
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const events = data.events || [];
+
+            if (events.length === 0) {
+              eventSelector.innerHTML = '<option value="">-- You have no events yet --</option>';
+              if (!eventId) {
+                showAlert(['You have no events to edit. Create an event first.'], true);
+              }
+              return;
+            }
+
+            eventSelector.innerHTML = '<option value="">-- Select an event --</option>';
+            events.forEach(event => {
+              const option = document.createElement('option');
+              option.value = event.id;
+              option.textContent = event.title || `Event ${event.id}`;
+              eventSelector.appendChild(option);
+            });
+
+            // If eventId from URL, select it and load
+            if (eventId) {
+              eventSelector.value = eventId;
+              fetchEventAndPopulate();
+            }
+          } else if (response.status === 403) {
+            // User doesn't have organizer access, but might have direct event ID
+            if (eventId) {
+              console.log('Loading specific event:', eventId);
+              eventSelector.parentElement.style.display = 'none'; // Hide selector
+            } else {
+              eventSelector.innerHTML = '<option value="">-- Access denied --</option>';
+              showAlert(['You do not have permission to edit events.'], true);
+            }
+          } else {
+            eventSelector.innerHTML = '<option value="">-- Failed to load events --</option>';
+            showAlert(['Could not load your events.'], true);
+          }
+        } catch (error) {
+          console.error('Error loading events:', error);
+          eventSelector.innerHTML = '<option value="">-- Error loading events --</option>';
+          if (!eventId) {
+            showAlert(['Error loading events: ' + error.message], true);
+          }
+        }
+      }
+
+      // Handle event selection change
+      eventSelector.addEventListener('change', (e) => {
+        if (e.target.value) {
+          eventId = e.target.value;
+          window.history.replaceState({}, '', `?eventId=${eventId}`);
+          fetchEventAndPopulate();
+        }
+      });
+
+      // Load events on page load (unless eventId already provided)
+      if (!eventId) {
+        loadEventsList();
+      } else {
+        // If eventId provided in URL, try to load it directly
+        eventSelector.parentElement.style.display = 'none'; // Hide selector
+        console.log('Event ID provided in URL:', eventId);
+        // Only fetch if we have an eventId from URL
+        fetchEventAndPopulate();
+      }
 
     })();
   </script>

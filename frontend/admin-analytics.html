@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -44,7 +45,8 @@
             justify-content: center;
         }
 
-        nav a, nav button {
+        nav a,
+        nav button {
             color: white;
             text-decoration: none;
             cursor: pointer;
@@ -56,7 +58,8 @@
             transition: background-color 0.3s ease;
         }
 
-        nav a:hover, nav button:hover {
+        nav a:hover,
+        nav button:hover {
             background-color: rgba(255, 255, 255, 0.2);
         }
 
@@ -271,8 +274,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         /* Error State */
@@ -346,7 +354,8 @@
                 flex-direction: column;
             }
 
-            nav a, nav button {
+            nav a,
+            nav button {
                 padding: 0.5rem 0;
             }
 
@@ -382,7 +391,8 @@
                 font-size: 0.9rem;
             }
 
-            table th, table td {
+            table th,
+            table td {
                 padding: 0.5rem;
             }
         }
@@ -410,6 +420,7 @@
         }
     </style>
 </head>
+
 <body>
     <!-- Navigation -->
     <nav>
@@ -417,9 +428,10 @@
         <div class="nav-center">
             <a href="index.html" id="homeLink">Home</a>
             <a href="admin-dashboard.html">Dashboard</a>
+            <a href="admin-organizer-requests.html">Organizer Requests</a>
             <a href="admin-organization-management.html">Organizations</a>
             <a href="admin-moderation.html">Event Moderation</a>
-            <a href="admin-analytics.html" style="color: #ffd700;">Analytics & Reports</a>
+            <a href="admin-analytics.html" style="font-weight: bold; color: #ffd700;">Analytics & Reports</a>
         </div>
         <div class="nav-right">
             <div class="user-info">
@@ -579,12 +591,14 @@
         // Load organizations for filter dropdown
         async function loadOrganizations() {
             try {
-                const response = await fetch(apiUrl('/api/admin/organizations'));
+                const response = await fetch(apiUrl('/api/admin/organizations'), {
+                    credentials: 'include'
+                });
                 if (!response.ok) throw new Error('Failed to fetch organizations');
 
                 const result = await response.json();
-                if (result.success && result.data) {
-                    allOrganizations = result.data;
+                if (result.success && result.organizations) {
+                    allOrganizations = result.organizations;
                     updateOrganizationOptions();
                 }
             } catch (error) {
@@ -607,7 +621,9 @@
                 const url = apiUrl('/api/admin/analytics') +
                     (organization ? `?organization=${encodeURIComponent(organization)}` : '');
 
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    credentials: 'include'
+                });
                 if (!response.ok) throw new Error('Failed to fetch analytics');
 
                 const result = await response.json();
@@ -803,8 +819,8 @@
                 ['Not Checked In', total_tickets_issued - total_checked_in],
                 ['Attendance Rate (%)', (attendance_rate * 100).toFixed(1)],
             ]
-            .map(row => row.map(cell => `"${cell}"`).join(','))
-            .join('\n');
+                .map(row => row.map(cell => `"${cell}"`).join(','))
+                .join('\n');
 
             const blob = new Blob([csvContent], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
@@ -846,4 +862,5 @@
         });
     </script>
 </body>
+
 </html>
