@@ -6,39 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>About - ConEvents</title>
   <link rel="stylesheet" href="styles.css" />
+  <script type="module">
+    import { setupNavbar } from './utils/navbar.js';
+    window.addEventListener('DOMContentLoaded', setupNavbar);
+  </script>
 </head>
-<script type="module">
-  import { getApiBase } from './utils/api.js';
-  window.addEventListener('DOMContentLoaded', async () => {
-    const user = localStorage.getItem('user');
-    if (user) {
-      try {
-        const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
-        if (resp.ok) {
-          const u = JSON.parse(user);
-          document.getElementById('authLinks').style.display = 'none';
-          const ul = document.getElementById('userLinks');
-          ul.style.display = 'flex'; ul.style.gap = '1rem'; ul.style.alignItems = 'center';
-          document.getElementById('welcomeMessage').textContent = `Welcome, ${u.name}!`;
-        } else {
-          localStorage.removeItem('user');
-        }
-      } catch {
-        localStorage.removeItem('user');
-      }
-    }
-  });
-
-  async function logout() {
-    try {
-      const r = await fetch(`${getApiBase()}/api/auth/logout`, { method: 'POST', credentials: 'include' });
-      if (r.ok) { localStorage.removeItem('user'); location.href = 'index.html'; }
-      else { alert('Logout failed. Please try again.'); }
-    } catch {
-      localStorage.removeItem('user'); location.href = 'index.html';
-    }
-  }
-</script>
 
 <body>
   <!-- Header / Navbar (matches homepage) -->
@@ -46,9 +18,15 @@
     <div class="navbar-container">
       <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
       <ul class="navbar-menu">
-        <!-- These take you back to the homepage and its sections -->
         <li><a href="index.html">Home</a></li>
         <li><a href="browse.html">Browse</a></li>
+  <li><a href="about.html" aria-current="page">About</a></li>
+        <li id="adminMenu" class="dropdown" style="display:none;">
+          <a href="#" class="dropdown-toggle">Admin</a>
+          <ul class="dropdown-menu">
+            <li><a href="admin-moderation.html">Event Moderation</a></li>
+          </ul>
+        </li>
         <li id="organizerMenu" class="dropdown" style="display:none;">
           <a href="#" class="dropdown-toggle">Organizer</a>
           <ul class="dropdown-menu">
@@ -59,10 +37,10 @@
                         <li><a href="organizer-scanner.html">QR Scanner</a></li>
           </ul>
         </li>
+  <li id="organizerRequestLink" style="display:none;"><a href="organizer-request.html">🎯 Become Organizer</a></li>
         <li><a href="profile.html">Profile</a></li>
 
-        <!-- Current page -->
-        <li><a href="about.html" aria-current="page">About</a></li>
+        
 
         <!-- Auth buttons (same look as home) -->
         <li id="authLinks">
@@ -73,21 +51,12 @@
         <!-- Logged-in state -->
         <li id="userLinks" style="display:none;">
           <span id="welcomeMessage" class="text-muted"></span>
-          <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+          <button class="btn btn-secondary btn-sm">Logout</button>
         </li>
       </ul>
     </div>
   </nav>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      try {
-        const user = JSON.parse(localStorage.getItem('user') || 'null');
-        const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
-        const organizerMenu = document.getElementById('organizerMenu');
-        if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-      } catch (e) {}
-    });
-  </script>
+  
 
 
   <!-- Main Content -->
@@ -170,12 +139,6 @@
     function goBack() {
       if (history.length > 1) history.back();
       else window.location.href = "index.html";
-    }
-    async function logout() {
-      // If you have a backend endpoint, uncomment fetch line below:
-      // try { await fetch("http://localhost:3000/api/auth/logout", { method: "POST", credentials: "include" }); } catch(e) {}
-      localStorage.removeItem("user");
-      window.location.href = "index.html";
     }
   </script>
 </body>
