@@ -53,56 +53,11 @@
             /* Improves scrolling performance on iOS devices */
         }
     </style>
+  <script type="module">
+    import { setupNavbar } from './utils/navbar.js';
+    window.addEventListener('DOMContentLoaded', setupNavbar);
+  </script>
 </head>
-
-<script type="module">
-    import { getApiBase } from './utils/api.js';
-    // Event listener to run code after the page loads
-    window.addEventListener('DOMContentLoaded', async () => {
-        const user = localStorage.getItem('user');
-
-        // Check if a user token exists in localStorage
-        if (user) {
-            try {
-                // Attempt to fetch user profile to validate the session/token
-                const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
-
-                if (resp.ok) {
-                    const u = JSON.parse(user);
-
-                    // Hide Login/Sign Up links (authLinks)
-                    document.getElementById('authLinks').style.display = 'none';
-
-                    // Show User-specific links (userLinks) and set Welcome message
-                    const ul = document.getElementById('userLinks');
-                    ul.style.display = 'flex'; ul.style.gap = '1rem'; ul.style.alignItems = 'center';
-                    document.getElementById('welcomeMessage').textContent = `Welcome, ${u.name}!`;
-                } else {
-                    // If validation fails, remove the invalid token
-                    localStorage.removeItem('user');
-                }
-            } catch {
-                // Handle fetch errors by clearing the token
-                localStorage.removeItem('user');
-            }
-        }
-    });
-
-    // Logout function
-    async function logout() {
-        try {
-            // Send request to backend to destroy the server session
-            const r = await fetch(`${getApiBase()}/api/auth/logout`, { method: 'POST', credentials: 'include' });
-
-            // On success, clear local storage and redirect to homepage
-            if (r.ok) { localStorage.removeItem('user'); location.href = 'index.html'; }
-            else { alert('Logout failed. Please try again.'); }
-        } catch {
-            // If fetch fails (e.g., server down), still clear local storage and redirect
-            localStorage.removeItem('user'); location.href = 'index.html';
-        }
-    }
-</script>
 
 <body>
 
@@ -113,6 +68,13 @@
             <ul class="navbar-menu">
                 <li><a href="index.html">Home</a></li>
                 <li><a href="browse.html">Browse</a></li>
+                <li><a href="about.html">About</a></li>
+                <li id="adminMenu" class="dropdown" style="display:none;">
+                    <a href="#" class="dropdown-toggle">Admin</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="admin-moderation.html">Event Moderation</a></li>
+                    </ul>
+                </li>
                 <li id="organizerMenu" class="dropdown" style="display:none;">
                     <a href="#" class="dropdown-toggle">Organizer</a>
                     <ul class="dropdown-menu">
@@ -123,7 +85,7 @@
                         <li><a href="organizer-scanner.html">QR Scanner</a></li>
                     </ul>
                 </li>
-                <li><a href="about.html">About</a></li>
+                <li id="organizerRequestLink" style="display:none;"><a href="organizer-request.html">🎯 Become Organizer</a></li>
                 <li><a href="profile.html">Profile</a></li>
 
                 <li id="authLinks">
@@ -133,21 +95,12 @@
 
                 <li id="userLinks" style="display:none;">
                     <span id="welcomeMessage" class="text-muted"></span>
-                    <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+                    <button class="btn btn-secondary btn-sm">Logout</button>
                 </li>
             </ul>
         </div>
     </nav>
-    <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        try {
-          const user = JSON.parse(localStorage.getItem('user') || 'null');
-          const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
-          const organizerMenu = document.getElementById('organizerMenu');
-          if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-        } catch (e) {}
-      });
-    </script>
+    
     <div class="main-content">
         <div class="container container-md">
             <div class="card">
@@ -256,12 +209,7 @@
             else window.location.href = "index.html";
         }
 
-        // Simplified logout for non-backend pages
-        async function logout() {
-            // Note: The original, more robust logout is in the head script block.
-            localStorage.removeItem("user");
-            window.location.href = "index.html";
-        }
+        // logout handled by shared navbar helper
     </script>
 </body>
 
