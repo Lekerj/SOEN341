@@ -24,12 +24,12 @@ router.get('/organizer/pending', requireAdmin, (req,res) => {
     WHERE u.organizer_auth_status = 'pending'
     ORDER BY u.request_date ASC`;
 
-    db.query(sql, (err, results)=> {
+    db.query(sql, (err, results) => {
         if(err){
-            console.error("DB Error Fetching Pending organizers:" , err);
+            console.error("DB Error Fetching Pending organizers:", err);
             return res.status(500).json({success: false, error: "Internal Server Error", message: "Failed to retrieve the pending requests."});
         }
-        //Returns the list of pending organizers (name, email, organizations, etc...
+        //Returns the list of pending organizers (name, email, organizations, etc...)
         res.status(200).json({success: true, pendingOrganizer: results});
     });
 });

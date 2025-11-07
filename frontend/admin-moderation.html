@@ -773,16 +773,25 @@
 
         function loadEvents() {
             fetch(apiUrl('/api/admin/events'))
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                    }
+                    return res.json();
+                })
                 .then(data => {
-                    allEvents = data;
-                    filteredEvents = [...data];
+                    if (data.error) {
+                        showToast(data.error, 'error');
+                        return;
+                    }
+                    allEvents = Array.isArray(data) ? data : (data.events || []);
+                    filteredEvents = [...allEvents];
                     renderTable();
                     showToast('Events loaded successfully', 'success');
                 })
                 .catch(err => {
                     console.error(err);
-                    showToast('Failed to load events', 'error');
+                    showToast('Failed to load events: ' + err.message, 'error');
                 });
         }
 
