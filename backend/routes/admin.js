@@ -710,9 +710,26 @@ router.put("/events/:id", requireAdmin, (req, res) => {
       `AUDIT: Moderator (User ID: ${req.session.userId}) edited Event ID: ${eventId}`
     );
 
-    res.status(200).json({
-      success: true,
-      message: `Event ${eventId} updated successfully.`,
+    // Fetch and return the updated event
+    db.query("SELECT * FROM events WHERE id = ?", [eventId], (fetchErr, updatedEvent) => {
+      if (fetchErr) {
+        console.error(`DB Error fetching updated event ${eventId}:`, fetchErr);
+        return res
+          .status(500)
+          .json({ success: false, error: "Failed to fetch updated event" });
+      }
+
+      if (!updatedEvent.length) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Event not found after update." });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: `Event ${eventId} updated successfully.`,
+        event: updatedEvent[0],
+      });
     });
   });
 });

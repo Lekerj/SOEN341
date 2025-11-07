@@ -11,7 +11,7 @@ router.get('/preview', (req, res) => {
          FROM events e
          LEFT JOIN tickets t ON e.id = t.event_id
          GROUP BY e.id
-         HAVING (e.capacity - COUNT(t.id)) > 0
+         HAVING (e.capacity - COUNT(t.id)) >= 0
          ORDER BY RAND()
          LIMIT 3`,
         [],
@@ -143,8 +143,8 @@ router.get('/', (req, res) => {
         sql += `\n HAVING (e.capacity - COUNT(t.id)) >= ?`;
         params.push(ticketsNeeded);
     } else {
-        // Only show events with available tickets
-        sql += `\n HAVING (e.capacity - COUNT(t.id)) > 0`;
+        // Show all events including sold-out events (capacity can be 0)
+        sql += `\n HAVING (e.capacity - COUNT(t.id)) >= 0`;
     }
 
     // 12. Final ordering - prioritize upcoming events

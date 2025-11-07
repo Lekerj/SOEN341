@@ -36,6 +36,7 @@
             align-items: center;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             z-index: 100;
+            flex-wrap: nowrap;
         }
 
         nav.admin-navbar .brand {
@@ -49,7 +50,17 @@
             gap: 2rem;
             flex: 1;
             justify-content: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            /* prevent multi-line height growth */
+            overflow-x: auto;
+            /* allow horizontal scroll instead of wrapping */
+            -webkit-overflow-scrolling: touch;
+            white-space: nowrap;
+        }
+
+        /* hide scrollbar for WebKit while keeping scroll functionality */
+        nav.admin-navbar .nav-center::-webkit-scrollbar {
+            display: none;
         }
 
         nav.admin-navbar a,
@@ -64,6 +75,8 @@
             border-radius: 4px;
             transition: all 0.3s ease;
             font-weight: 500;
+            white-space: nowrap;
+            /* keep items on one line */
         }
 
         nav.admin-navbar a:hover,
@@ -134,7 +147,8 @@
 
         .container {
             max-width: 1200px;
-            margin: 100px auto 2rem auto;
+            margin: 0 auto 2rem auto;
+            /* top spacing handled dynamically via JS */
             padding: 30px;
             background: white;
             border-radius: 10px;
@@ -599,9 +613,26 @@
         document.addEventListener('DOMContentLoaded', () => {
             checkAdmin();
             setupNavbar();
+            adjustNavOffset();
+            window.addEventListener('resize', debounce(adjustNavOffset, 100));
             loadOrganizations();
             document.getElementById('searchBox').addEventListener('input', filterOrganizations);
         });
+
+        function adjustNavOffset() {
+            const nav = document.querySelector('nav.admin-navbar');
+            if (!nav) return;
+            const h = nav.offsetHeight;
+            document.body.style.paddingTop = `${h}px`;
+        }
+
+        function debounce(fn, wait) {
+            let t;
+            return function (...args) {
+                clearTimeout(t);
+                t = setTimeout(() => fn.apply(this, args), wait);
+            };
+        }
 
         function checkAdmin() {
             const userStr = localStorage.getItem('user');

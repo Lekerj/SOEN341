@@ -632,16 +632,17 @@
               eventSelector.appendChild(option);
             });
 
-            // If eventId from URL, select it and load
+            // If eventId from URL, select it, load it, and hide the dropdown
             if (eventId) {
               eventSelector.value = eventId;
+              document.getElementById('eventSelectorGroup').style.display = 'none'; // Hide selector group
               fetchEventAndPopulate();
             }
           } else if (response.status === 403) {
             // User doesn't have organizer access, but might have direct event ID
             if (eventId) {
               console.log('Loading specific event:', eventId);
-              eventSelector.parentElement.style.display = 'none'; // Hide selector
+              document.getElementById('eventSelectorGroup').style.display = 'none'; // Hide selector group
             } else {
               eventSelector.innerHTML = '<option value="">-- Access denied --</option>';
               showAlert(['You do not have permission to edit events.'], true);
