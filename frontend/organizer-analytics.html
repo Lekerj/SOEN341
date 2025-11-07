@@ -52,6 +52,7 @@
                         <li><a href="organizer-scanner.html">QR Scanner</a></li>
                     </ul>
                 </li>
+        <li id="organizerRequestLink" style="display:none;"><a href="organizer-request.html">🎯 Become Organizer</a></li>
         <li><a href="profile.html">Profile</a></li>
         <li id="authLinks">
           <a href="login.html" class="btn btn-primary btn-sm">Login</a>
@@ -65,33 +66,10 @@
     </div>
   </nav>
   <script type="module">
-    import { getApiBase } from './utils/api.js';
-
-    document.addEventListener('DOMContentLoaded', async function () {
-      try {
-        const user = JSON.parse(localStorage.getItem('user') || 'null');
-        const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
-        const organizerMenu = document.getElementById('organizerMenu');
-        if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-
-        // Check authentication and update navbar
-        if (user) {
-          try {
-            const resp = await fetch(`${getApiBase()}/api/auth/profile`, { credentials: 'include' });
-            if (resp.ok) {
-              document.getElementById('authLinks').style.display = 'none';
-              document.getElementById('userLinks').style.display = 'flex';
-              document.getElementById('userLinks').style.gap = '1rem';
-              document.getElementById('userLinks').style.alignItems = 'center';
-              document.getElementById('welcomeMessage').textContent = `Welcome, ${user.name}!`;
-            } else {
-              localStorage.removeItem('user');
-            }
-          } catch (error) {
-            console.error('Auth check failed:', error);
-          }
-        }
-      } catch (e) {}
+    import { setupNavbar, guardApprovedOrganizer } from './utils/navbar.js';
+    window.addEventListener('DOMContentLoaded', async () => {
+      await setupNavbar();
+      await guardApprovedOrganizer();
     });
   </script>
 

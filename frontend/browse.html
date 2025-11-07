@@ -544,6 +544,7 @@
                         <li><a href="organizer-scanner.html">QR Scanner</a></li>
           </ul>
         </li>
+        <li id="organizerRequestLink" style="display:none;"><a href="organizer-request.html">🎯 Become Organizer</a></li>
         <li><a href="profile.html">Profile</a></li>
         <li id="authLinks">
           <a href="login.html" class="btn btn-primary btn-sm">Login</a>
@@ -556,6 +557,10 @@
       </ul>
     </div>
   </nav>
+  <script type="module">
+    import { setupNavbar } from './utils/navbar.js';
+    window.addEventListener('DOMContentLoaded', setupNavbar);
+  </script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       try {

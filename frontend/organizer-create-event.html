@@ -222,6 +222,7 @@
                         <li><a href="organizer-scanner.html">QR Scanner</a></li>
           </ul>
         </li>
+        <li id="organizerRequestLink" style="display:none;"><a href="organizer-request.html">🎯 Become Organizer</a></li>
         <li><a href="profile.html">Profile</a></li>
         <li id="authLinks">
           <a href="login.html" class="btn btn-primary btn-sm">Login</a>
@@ -234,14 +235,11 @@
       </ul>
     </div>
   </nav>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      try {
-        const user = JSON.parse(localStorage.getItem('user') || 'null');
-        const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
-        const organizerMenu = document.getElementById('organizerMenu');
-        if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-      } catch (e) {}
+  <script type="module">
+    import { setupNavbar, guardApprovedOrganizer } from './utils/navbar.js';
+    window.addEventListener('DOMContentLoaded', async () => {
+      await setupNavbar();
+      await guardApprovedOrganizer();
     });
   </script>
 
