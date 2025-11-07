@@ -6,9 +6,12 @@ const { validateSearchFilters, sanitizeSearchFilters } = require('../utils/valid
 // Homepage preview: return 3 random events
 router.get('/preview', (req, res) => {
     db.query(
-        `SELECT id, title, description, event_date, event_time, location, price, category, organization, tickets_available, capacity, image_url
-         FROM events
-         WHERE tickets_available > 0
+        `SELECT e.id, e.title, e.description, e.event_date, e.event_time, e.location, e.price, e.category, e.organization, e.capacity,
+                (e.capacity - COUNT(t.id)) as tickets_available
+         FROM events e
+         LEFT JOIN tickets t ON e.id = t.event_id
+         GROUP BY e.id
+         HAVING (e.capacity - COUNT(t.id)) > 0
          ORDER BY RAND()
          LIMIT 3`,
         [],
@@ -52,15 +55,17 @@ router.get('/', (req, res) => {
     } = sanitizedQuery;
 
     let sql = `
-    SELECT 
-        e.id, e.organizer_id, e.title, e.description, e.event_date, e.event_time, 
-        e.location, e.price, e.category, e.organization, 
-        e.capacity, e.tickets_available, e.image_url,
+    SELECT
+        e.id, e.organizer_id, e.title, e.description, e.event_date, e.event_time,
+        e.location, e.price, e.category, e.organization,
+        e.capacity, (e.capacity - COUNT(t.id)) as tickets_available,
         u.name as organizer_name
-    FROM 
+    FROM
         events e
-    LEFT JOIN 
+    LEFT JOIN
         users u ON e.organizer_id = u.id
+    LEFT JOIN
+        tickets t ON e.id = t.event_id
     WHERE 1=1
 `;
     const params = [];
@@ -123,21 +128,24 @@ router.get('/', (req, res) => {
         params.push(time_end);
     }
 
-    // 9. Ticket availability filter (for claiming multiple tickets)
-    if (min_tickets_needed && min_tickets_needed !== '') {
-        const ticketsNeeded = parseInt(min_tickets_needed);
-        sql += `\n AND e.tickets_available >= ?`;
-        params.push(ticketsNeeded);
-    }
-
-    // 10. Minimum capacity filter
+    // 9. Minimum capacity filter
     if (min_capacity && min_capacity !== '') {
         sql += `\n AND e.capacity >= ?`;
         params.push(parseInt(min_capacity));
     }
 
-    // 11. Only show events with available tickets
-    sql += `\n AND e.tickets_available > 0`;
+    // 10. Add GROUP BY clause before HAVING
+    sql += `\n GROUP BY e.id, e.organizer_id, e.title, e.description, e.event_date, e.event_time, e.location, e.price, e.category, e.organization, e.capacity, u.name`;
+
+    // 11. Ticket availability filter (for claiming multiple tickets)
+    if (min_tickets_needed && min_tickets_needed !== '') {
+        const ticketsNeeded = parseInt(min_tickets_needed);
+        sql += `\n HAVING (e.capacity - COUNT(t.id)) >= ?`;
+        params.push(ticketsNeeded);
+    } else {
+        // Only show events with available tickets
+        sql += `\n HAVING (e.capacity - COUNT(t.id)) > 0`;
+    }
 
     // 12. Final ordering - prioritize upcoming events
     sql += `\n ORDER BY e.event_date ASC, e.event_time ASC`;
@@ -281,15 +289,20 @@ router.post('/check-availability', (req, res) => {
     }
 
     const sql = `
-        SELECT 
-            id, title, tickets_available, capacity, price,
-            (tickets_available >= ?) as can_fulfill_request,
-            (tickets_available * price) as total_cost_if_all_available,
-            (? * price) as requested_total_cost
-        FROM 
-            events 
-        WHERE 
-            id = ?
+        SELECT
+            e.id, e.title, e.capacity, e.price,
+            (e.capacity - COUNT(t.id)) as tickets_available,
+            ((e.capacity - COUNT(t.id)) >= ?) as can_fulfill_request,
+            ((e.capacity - COUNT(t.id)) * e.price) as total_cost_if_all_available,
+            (? * e.price) as requested_total_cost
+        FROM
+            events e
+        LEFT JOIN
+            tickets t ON e.id = t.event_id
+        WHERE
+            e.id = ?
+        GROUP BY
+            e.id, e.title, e.capacity, e.price
     `;
 
     db.query(sql, [tickets_requested, tickets_requested, event_id], (err, results) => {

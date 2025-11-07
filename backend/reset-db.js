@@ -143,7 +143,7 @@ VALUES (1, 'ConEvents', 'Default system organization', 'social', TRUE);
 
 -- 10. Insert sample admin user (password: admin123)
 INSERT IGNORE INTO users (id, name, email, password_hash, role, organizer_auth_status)
-VALUES (1, 'Admin User', 'admin@conevents.com', '$2b$10$0.5S1/KTF3ZqVN4X8L3eaOVhLH9yqsXH3zMj5WKs1fXJ5V0VHh5uW', 'admin', NULL);
+VALUES (1, 'Admin User', 'admin@conevents.com', '$2b$10$rSh7pAt3qGrVRZXoLP3Wfel9QaXQA6JoEZoRpp8pAQpWnx3Ur.xmS', 'admin', NULL);
 
 -- 11. Add admin to default organization
 INSERT IGNORE INTO organization_members (user_id, organization_id, role, status)
