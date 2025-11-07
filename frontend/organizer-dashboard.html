@@ -112,6 +112,91 @@
     footer {
       margin-top: auto;
     }
+
+    /* Status Alert Styles */
+    .status-alert {
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-weight: 500;
+    }
+    .status-alert.pending {
+      background-color: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      color: #92400e;
+    }
+    .status-alert.refused {
+      background-color: #fee2e2;
+      border-left: 4px solid #ef4444;
+      color: #7f1d1d;
+    }
+    .status-alert.approved {
+      background-color: #dcfce7;
+      border-left: 4px solid #22c55e;
+      color: #166534;
+    }
+    .status-alert-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+    .status-alert-content {
+      flex: 1;
+    }
+    .status-alert-title {
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .status-alert-description {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+    .status-alert-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .btn-action {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border: none;
+      background: rgba(0,0,0,0.1);
+      color: inherit;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .btn-action:hover {
+      background: rgba(0,0,0,0.2);
+    }
+    .blocked-overlay {
+      position: relative;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .blocked-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 10;
+      min-width: 300px;
+    }
+    .blocked-message h3 {
+      color: #ef4444;
+      margin-bottom: 0.5rem;
+    }
+    .blocked-message p {
+      color: #666;
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 
@@ -179,10 +264,15 @@
   <main>
     <div class="breadcrumbs"><span>Organizer</span> <span>›</span> <span>Dashboard</span></div>
     <div class="analytics-wrapper">
+      <!-- Status Alert Section -->
+      <div id="statusAlert" style="display:none;">
+        <!-- Will be populated by JavaScript -->
+      </div>
+
       <div class="card" style="margin-bottom:16px;">
         <div class="header-row">
           <h1>My Dashboard</h1>
-          <button class="btn btn-accent btn-lg" onclick="window.location.href='organizer-create-event.html'">+ Create New Event</button>
+          <button class="btn btn-accent btn-lg" id="createEventBtn" onclick="window.location.href='organizer-create-event.html'">+ Create New Event</button>
         </div>
         <p class="small-muted">Manage and track all your events in one place</p>
       </div>
@@ -238,16 +328,105 @@
     const sortBy = document.getElementById("sortBy");
     const searchInput = document.getElementById("searchInput");
     const filterButtons = document.getElementById("filterButtons");
+    const statusAlert = document.getElementById("statusAlert");
+    const createEventBtn = document.getElementById("createEventBtn");
     let allEvents = [];
     let currentFilter = 'all';
     let query = '';
+    let organizerStatus = null;
+
+    // Check organizer approval status
+    async function checkOrganizerStatus() {
+      try {
+        const resp = await fetch(`${getApiBase()}/api/organizer/status`, { credentials: 'include' });
+        if (resp.ok) {
+          const data = await resp.json();
+          const statusObj = data.status || {};
+          organizerStatus = statusObj.organizer_auth_status || null;
+          displayStatusAlert();
+        }
+      } catch (error) {
+        console.error("Failed to check organizer status:", error);
+      }
+    }
+
+    // Display appropriate status alert
+    function displayStatusAlert() {
+      if (!organizerStatus) {
+        statusAlert.style.display = 'none';
+        return;
+      }
+
+      statusAlert.style.display = 'block';
+      statusAlert.innerHTML = '';
+
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `status-alert ${organizerStatus}`;
+
+      if (organizerStatus === 'pending') {
+        alertDiv.innerHTML = `
+          <div class="status-alert-icon">⏳</div>
+          <div class="status-alert-content">
+            <div class="status-alert-title">Approval Pending</div>
+            <div class="status-alert-description">Your organizer request is awaiting admin approval. You cannot create or edit events yet.</div>
+          </div>
+          <div class="status-alert-actions">
+            <button class="btn-action" onclick="window.location.href='organizer-requests.html'">View Requests</button>
+          </div>
+        `;
+        createEventBtn.disabled = true;
+        createEventBtn.style.opacity = '0.5';
+        createEventBtn.style.cursor = 'not-allowed';
+      } else if (organizerStatus === 'refused') {
+        alertDiv.innerHTML = `
+          <div class="status-alert-icon">❌</div>
+          <div class="status-alert-content">
+            <div class="status-alert-title">Request Refused</div>
+            <div class="status-alert-description">Your previous request was refused. You can submit a new request.</div>
+          </div>
+          <div class="status-alert-actions">
+            <button class="btn-action" onclick="window.location.href='organizer-requests.html'">Submit New Request</button>
+          </div>
+        `;
+        createEventBtn.disabled = true;
+        createEventBtn.style.opacity = '0.5';
+        createEventBtn.style.cursor = 'not-allowed';
+      } else if (organizerStatus === 'approved') {
+        alertDiv.innerHTML = `
+          <div class="status-alert-icon">✅</div>
+          <div class="status-alert-content">
+            <div class="status-alert-title">Approved Organizer</div>
+            <div class="status-alert-description">You are approved to create and manage events.</div>
+          </div>
+        `;
+        createEventBtn.disabled = false;
+        createEventBtn.style.opacity = '1';
+        createEventBtn.style.cursor = 'pointer';
+      }
+
+      statusAlert.appendChild(alertDiv);
+    }
 
     // Fetch organizer's events from backend
     async function loadEvents() {
       try {
         const resp = await fetch(`${getApiBase()}/api/organizer/events`, { credentials: 'include' });
-        const data = await resp.json();
 
+        if (resp.status === 403) {
+          const data = await resp.json();
+          if (data.organizer_auth_status === 'pending') {
+            organizerStatus = 'pending';
+            displayStatusAlert();
+          } else if (data.organizer_auth_status === 'refused') {
+            organizerStatus = 'refused';
+            displayStatusAlert();
+          }
+          emptyState.style.display = "block";
+          emptyState.innerHTML = '<p>Please wait for admin approval before creating events.</p>';
+          return;
+        }
+
+        const data = await resp.json();
         if (data.success && Array.isArray(data.events)) {
           allEvents = data.events.map(ev => ({
             id: ev.id,
@@ -364,11 +543,21 @@
       applyView();
     });
 
-    window.addEventListener("DOMContentLoaded", loadEvents);
+    window.addEventListener("DOMContentLoaded", () => {
+      checkOrganizerStatus();
+      loadEvents();
+    });
 
     // Logout helper re-used from other pages
     window.logout = async function logout() {
-      try { await fetch(`${getApiBase()}/api/auth/logout`, { method:'POST', credentials:'include' }); localStorage.removeItem('user'); window.location.href='index.html'; } catch(e){}
+      if (confirm('Are you sure you want to logout?')) {
+        try {
+          await fetch(`${getApiBase()}/api/auth/logout`, { method:'POST', credentials:'include' });
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          window.location.href='/index.html';
+        } catch(e){}
+      }
     }
   </script>
 </body>
