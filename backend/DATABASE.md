@@ -40,6 +40,7 @@ PUBLIC_WEB_BASE=http://localhost:8080
 The app expects the following structure (source: `backend/sql/*.sql`):
 
 ### organizations
+
 - id INT PK AUTO_INCREMENT
 - name VARCHAR(100) UNIQUE NOT NULL
 - description TEXT
@@ -50,6 +51,7 @@ The app expects the following structure (source: `backend/sql/*.sql`):
 - Indexes: `idx_category`, `idx_is_default`
 
 ### users
+
 - id INT PK AUTO_INCREMENT
 - name VARCHAR(100) NOT NULL
 - email VARCHAR(255) UNIQUE NOT NULL
@@ -65,6 +67,7 @@ The app expects the following structure (source: `backend/sql/*.sql`):
 - Index: `idx_organizer_auth_status`
 
 ### events
+
 - id INT PK AUTO_INCREMENT
 - title VARCHAR(255) NOT NULL
 - description TEXT (may be LONGTEXT in some scripts)
@@ -82,6 +85,7 @@ The app expects the following structure (source: `backend/sql/*.sql`):
 - Indexes: `idx_event_date`, `idx_category`, `idx_organizer_id`, `idx_organization`
 
 ### tickets
+
 - id INT PK AUTO_INCREMENT
 - user_id INT NOT NULL (FK → users.id, ON DELETE CASCADE)
 - event_id INT NOT NULL (FK → events.id, ON DELETE CASCADE)
@@ -94,6 +98,7 @@ The app expects the following structure (source: `backend/sql/*.sql`):
 - Unique: `(user_id, event_id)` (prevent duplicate claims for the same event)
 
 ### organizer_requests
+
 - id INT PK AUTO_INCREMENT
 - user_id INT NOT NULL (FK → users.id, ON DELETE CASCADE)
 - organization_id INT NULL (FK → organizations.id, ON DELETE SET NULL)
@@ -104,6 +109,7 @@ The app expects the following structure (source: `backend/sql/*.sql`):
 - Indexes: `idx_user_id`, `idx_organization_id`, `idx_status`
 
 ### organization_members
+
 - id INT PK AUTO_INCREMENT
 - user_id INT NOT NULL (FK → users.id, ON DELETE CASCADE)
 - organization_id INT NOT NULL (FK → organizations.id, ON DELETE CASCADE)
@@ -113,6 +119,7 @@ The app expects the following structure (source: `backend/sql/*.sql`):
 - Unique: `(user_id, organization_id)`
 
 ### notifications
+
 - id INT PK AUTO_INCREMENT
 - user_id INT NULL (FK → users.id, ON DELETE SET NULL)
 - audience ENUM('admin','user') DEFAULT 'user'
@@ -131,13 +138,13 @@ The app expects the following structure (source: `backend/sql/*.sql`):
 
 ## Reset and seed (everyone gets the same DB)
 
-1) Ensure MySQL is running (macOS):
+1. Ensure MySQL is running (macOS):
 
 ```zsh
 brew services start mysql
 ```
 
-2) Create DB and user (first-time only, in MySQL shell):
+2. Create DB and user (first-time only, in MySQL shell):
 
 ```sql
 CREATE DATABASE convenevents;
@@ -146,25 +153,26 @@ GRANT ALL PRIVILEGES ON convenevents.* TO '341'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-3) Configure `backend/.env` (see above), then install deps:
+3. Configure `backend/.env` (see above), then install deps:
 
 ```zsh
 npm --prefix backend install
 ```
 
-4) Reset the database (DROPS ALL DATA, RECREATES TABLES, SEEDS):
+4. Reset the database (DROPS ALL DATA, RECREATES TABLES, SEEDS):
 
 ```zsh
 node backend/scripts/reset-database.js
 ```
 
 What this script does:
+
 - Drops all tables (FK-safe order)
 - Recreates tables from `backend/sql/*.sql`
 - Seeds organizations and test users
 - Optionally seeds sample events if `backend/sql/seed_events.sql` exists
 
-5) Verify quickly:
+5. Verify quickly:
 
 ```sql
 USE convenevents;
