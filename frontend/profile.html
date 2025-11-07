@@ -365,6 +365,13 @@
             <ul class="navbar-menu">
                 <li><a href="index.html">Home</a></li>
                 <li><a href="browse.html">Browse</a></li>
+                <li><a href="about.html">About</a></li>
+                <li id="adminMenu" class="dropdown" style="display:none;">
+                    <a href="#" class="dropdown-toggle">Admin</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="admin-moderation.html">Event Moderation</a></li>
+                    </ul>
+                </li>
                 <li id="organizerMenu" class="dropdown" style="display:none;">
                     <a href="#" class="dropdown-toggle">Organizer</a>
                     <ul class="dropdown-menu">
@@ -375,25 +382,19 @@
                         <li><a href="organizer-scanner.html">QR Scanner</a></li>
                     </ul>
                 </li>
-                <li><a href="my-tickets.html">My Tickets</a></li>
+                                <li id="organizerRequestLink" style="display:none;"><a href="organizer-request.html">🎯 Become Organizer</a></li>
                 <li id="authLinks"><a href="login.html" class="btn btn-secondary btn-sm">Login</a></li>
                 <li id="userLinks" style="display:none;">
                     <span id="welcomeMessage" class="text-muted"></span>
-                    <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+                    <button class="btn btn-secondary btn-sm">Logout</button>
                 </li>
             </ul>
         </div>
     </nav>
-    <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        try {
-          const user = JSON.parse(localStorage.getItem('user') || 'null');
-          const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
-          const organizerMenu = document.getElementById('organizerMenu');
-          if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-        } catch (e) {}
-      });
-    </script>
+        <script type="module">
+            import { setupNavbar } from './utils/navbar.js';
+            window.addEventListener('DOMContentLoaded', setupNavbar);
+        </script>
 
     <div class="profile-container">
         <!-- Profile Header -->
