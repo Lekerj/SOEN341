@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,69 +15,129 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f5f5f5;
-            padding-top: 80px;
+            padding-top: 64px;
+            /* Initial, adjusted dynamically via JS */
             color: #333;
         }
 
-        /* Navbar */
-        nav {
+        /* Consolidated Admin Navbar */
+        nav.admin-navbar {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             z-index: 100;
+            flex-wrap: wrap;
         }
 
-        nav .brand {
+        nav.admin-navbar .brand {
             font-size: 1.5rem;
             font-weight: bold;
+            white-space: nowrap;
         }
 
-        nav .nav-center {
+        nav.admin-navbar .nav-center {
             display: flex;
-            gap: 2rem;
+            gap: 0.75rem;
             flex: 1;
             justify-content: center;
+            flex-wrap: nowrap;
+            align-items: center;
         }
 
-        nav a, nav button {
+        nav.admin-navbar a,
+        nav.admin-navbar button {
             color: white;
             text-decoration: none;
+            cursor: pointer;
             border: none;
             background: none;
-            cursor: pointer;
+            font-size: 0.95rem;
+            padding: 0.35rem 0.6rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        nav.admin-navbar a:hover,
+        nav.admin-navbar button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        nav.admin-navbar a.active {
+            font-weight: bold;
+            border-bottom: 3px solid #ffd700;
+        }
+
+        nav.admin-navbar .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        nav.admin-navbar .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        nav.admin-navbar .user-info span {
+            font-size: 0.95rem;
+        }
+
+        nav.admin-navbar #logoutBtn {
+            background: rgba(255, 255, 255, 0.3);
             padding: 0.5rem 1rem;
             border-radius: 4px;
-            transition: background-color 0.3s;
         }
 
-        nav a:hover, nav button:hover {
-            background-color: rgba(255, 255, 255, 0.2);
+        nav.admin-navbar #logoutBtn:hover {
+            background: rgba(255, 255, 255, 0.5);
         }
 
-        nav .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
+        @media (max-width: 768px) {
+            nav.admin-navbar {
+                flex-wrap: wrap;
+                padding: 0.75rem 1rem;
+            }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+            nav.admin-navbar .brand {
+                font-size: 1.2rem;
+                flex-basis: 100%;
+                margin-bottom: 0.5rem;
+            }
+
+            nav.admin-navbar .nav-center {
+                gap: 0.5rem;
+                flex-basis: 100%;
+                flex-wrap: wrap;
+            }
+
+            nav.admin-navbar a {
+                font-size: 0.85rem;
+                padding: 0.3rem 0.5rem;
+            }
+
+            nav.admin-navbar .nav-right {
+                flex-basis: 100%;
+                justify-content: space-between;
+            }
         }
 
         /* Container */
         .container {
             max-width: 1200px;
-            margin: 2rem auto;
+            margin: 1rem auto 2rem auto;
             padding: 0 1rem;
         }
 
@@ -329,8 +390,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         /* Alerts */
@@ -358,21 +424,14 @@
         }
 
         @media (max-width: 768px) {
-            nav {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            nav .nav-center {
-                width: 100%;
-                flex-direction: column;
-            }
+            /* Navbar responsive styles are handled in the consolidated block above */
 
             table {
                 font-size: 0.9rem;
             }
 
-            th, td {
+            th,
+            td {
                 padding: 0.75rem;
             }
 
@@ -386,16 +445,18 @@
         }
     </style>
 </head>
+
 <body>
-    <!-- Navbar -->
-    <nav>
-        <div class="brand">📋 Organizer Join Requests</div>
+    <!-- Consolidated Admin Navbar -->
+    <nav class="admin-navbar">
+        <div class="brand">ConEvents Admin</div>
         <div class="nav-center">
             <a href="index.html">Home</a>
             <a href="admin-dashboard.html">Dashboard</a>
+            <a href="admin-organizer-requests.html" class="active">Organizer Requests</a>
             <a href="admin-organization-management.html">Organizations</a>
             <a href="admin-moderation.html">Event Moderation</a>
-            <a href="admin-organizer-requests.html" style="color: #ffd700;">Organizer Requests</a>
+            <a href="admin-analytics.html">Analytics</a>
         </div>
         <div class="nav-right">
             <div class="user-info">
@@ -421,7 +482,7 @@
                 <option value="">All Requests</option>
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
+                <option value="refused">Rejected</option>
             </select>
         </div>
 
@@ -497,9 +558,11 @@
             </div>
 
             <div class="modal-actions">
-                <button class="btn-action btn-approve" onclick="approveRequest()" id="approveBtn">Approve Request</button>
+                <button class="btn-action btn-approve" onclick="approveRequest()" id="approveBtn">Approve
+                    Request</button>
                 <button class="btn-action btn-reject" onclick="rejectRequest()" id="rejectBtn">Reject Request</button>
-                <button class="btn-action btn-view" style="background-color: #95a5a6;" onclick="closeModal()">Close</button>
+                <button class="btn-action btn-view" style="background-color: #95a5a6;"
+                    onclick="closeModal()">Close</button>
             </div>
         </div>
     </div>
@@ -526,14 +589,20 @@
         // Check auth
         function checkAdminAuth() {
             const userStr = localStorage.getItem('user');
+            console.log('Checking admin auth, user data:', userStr);
+
             if (!userStr) {
+                console.warn('No user in localStorage, redirecting to index');
                 window.location.href = 'index.html';
                 return;
             }
 
             try {
                 const user = JSON.parse(userStr);
+                console.log('Parsed user:', user);
+
                 if (String(user.role || '').toLowerCase() !== 'admin') {
+                    console.warn('User is not admin, role:', user.role);
                     window.location.href = 'index.html';
                     return;
                 }
@@ -541,17 +610,35 @@
                 if (user.name) {
                     userGreeting.textContent = `Welcome, ${user.name}!`;
                 }
+                console.log('Admin auth check passed');
             } catch (e) {
+                console.error('Error parsing user data:', e);
                 window.location.href = 'index.html';
             }
         }
 
         // Logout
-        logoutBtn.addEventListener('click', () => {
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            window.location.href = 'index.html';
-        });
+        async function logout() {
+            try {
+                const response = await fetch(apiUrl('/api/auth/logout'), {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('token');
+                    window.location.href = '/index.html';
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                localStorage.removeItem('user');
+                window.location.href = '/index.html';
+            }
+        }
+
+        logoutBtn.addEventListener('click', logout);
 
         // Show alert
         function showAlert(type, message) {
@@ -578,12 +665,13 @@
 
         // Get status class
         function getStatusClass(status) {
-            switch (status.toLowerCase()) {
+            switch ((status || '').toLowerCase()) {
                 case 'pending':
                     return 'status-pending';
                 case 'approved':
                     return 'status-approved';
-                case 'rejected':
+                case 'rejected': // tolerate legacy label
+                case 'refused':
                     return 'status-rejected';
                 default:
                     return 'status-pending';
@@ -593,22 +681,31 @@
         // Load requests
         async function loadRequests() {
             try {
+                console.log('Loading requests from:', apiUrl('/api/admin/organizer/requests'));
                 const response = await fetch(apiUrl('/api/admin/organizer/requests'), {
                     credentials: 'include'
                 });
 
-                if (!response.ok) throw new Error('Failed to load requests');
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Response error:', errorText);
+                    throw new Error(`Failed to load requests: ${response.status} ${errorText}`);
+                }
 
                 const result = await response.json();
+                console.log('Loaded requests:', result);
                 allRequests = result.requests || [];
                 renderRequests(allRequests);
             } catch (error) {
                 console.error('Error loading requests:', error);
-                showAlert('error', 'Failed to load requests');
+                showAlert('error', `Failed to load requests: ${error.message}`);
                 requestsBody.innerHTML = `
                     <tr>
                         <td colspan="6" class="empty-state">
-                            <p>Failed to load requests</p>
+                            <p>Failed to load requests. Check console for details.</p>
+                            <p style="color: #999; font-size: 0.9rem; margin-top: 0.5rem;">${error.message}</p>
                         </td>
                     </tr>
                 `;
@@ -690,9 +787,11 @@
             if (!confirm('Approve this request?')) return;
 
             try {
-                const response = await fetch(apiUrl(`/api/admin/organizers/${requestId}/approve`), {
-                    method: 'POST',
-                    credentials: 'include'
+                const response = await fetch(apiUrl(`/api/admin/organizer/requests/${requestId}/decision`), {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ decision: 'approved' })
                 });
 
                 const result = await response.json();
@@ -700,7 +799,11 @@
                 if (response.ok && result.success) {
                     showAlert('success', 'Request approved successfully');
                     closeModal();
-                    loadRequests();
+                    // Optimistically update UI: remove from pending list
+                    allRequests = allRequests.filter(r => String(r.id) !== String(requestId));
+                    renderRequests(allRequests);
+                    // Background refresh after a brief delay to sync state
+                    setTimeout(() => { loadRequests(); }, 600);
                 } else {
                     showAlert('error', result.message || 'Failed to approve request');
                 }
@@ -716,9 +819,11 @@
             if (!confirm('Reject this request?')) return;
 
             try {
-                const response = await fetch(apiUrl(`/api/admin/organizers/${requestId}/reject`), {
-                    method: 'POST',
-                    credentials: 'include'
+                const response = await fetch(apiUrl(`/api/admin/organizer/requests/${requestId}/decision`), {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ decision: 'refused' })
                 });
 
                 const result = await response.json();
@@ -726,7 +831,11 @@
                 if (response.ok && result.success) {
                     showAlert('success', 'Request rejected');
                     closeModal();
-                    loadRequests();
+                    // Optimistically update UI: remove from pending list
+                    allRequests = allRequests.filter(r => String(r.id) !== String(requestId));
+                    renderRequests(allRequests);
+                    // Background refresh after a brief delay to sync state
+                    setTimeout(() => { loadRequests(); }, 600);
                 } else {
                     showAlert('error', result.message || 'Failed to reject request');
                 }
@@ -752,11 +861,55 @@
             return div.innerHTML;
         }
 
+        // Adjust body padding based on navbar height
+        function adjustNavOffset() {
+            const nav = document.querySelector('nav.admin-navbar');
+            if (nav) {
+                const navHeight = nav.offsetHeight;
+                document.body.style.paddingTop = (navHeight + 20) + 'px'; // Add 20px spacing
+            }
+        }
+
+        // Multi-pass adjustment for late layout shifts
+        function scheduleNavAdjustments() {
+            adjustNavOffset();
+            requestAnimationFrame(() => adjustNavOffset());
+            setTimeout(adjustNavOffset, 150);
+            setTimeout(adjustNavOffset, 500);
+        }
+
+        // Observe navbar size changes (e.g., wrapping on smaller screens)
+        function observeNavResize() {
+            const nav = document.querySelector('nav.admin-navbar');
+            if (!nav || typeof ResizeObserver === 'undefined') return;
+            const ro = new ResizeObserver(() => adjustNavOffset());
+            ro.observe(nav);
+        }
+
+        // Remove legacy duplicate functions and ensure single initialization
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            scheduleNavAdjustments();
+            observeNavResize();
             checkAdminAuth();
             loadRequests();
+
+            // Auto-refresh requests every 5 seconds
+            setInterval(() => {
+                loadRequests();
+            }, 5000);
+        });
+
+        window.addEventListener('load', scheduleNavAdjustments);
+        window.addEventListener('orientationchange', scheduleNavAdjustments);
+
+        // Re-adjust on window resize (with debounce)
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(adjustNavOffset, 100);
         });
     </script>
 </body>
+
 </html>

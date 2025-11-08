@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,87 +11,159 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding-top: 64px;
+            /* Initial, adjusted dynamically via JS */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        
-        .navbar {
+
+        /* Consolidated Admin Navbar */
+        nav.admin-navbar {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            padding: 15px 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            color: white;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             z-index: 100;
-            color: white;
+            flex-wrap: wrap;
         }
-        
-        .navbar-brand {
-            font-size: 24px;
+
+        nav.admin-navbar .brand {
+            font-size: 1.5rem;
             font-weight: bold;
+            white-space: nowrap;
         }
-        
-        .navbar-menu {
+
+        nav.admin-navbar .nav-center {
             display: flex;
-            gap: 20px;
+            gap: 0.75rem;
+            flex: 1;
+            justify-content: center;
+            flex-wrap: nowrap;
             align-items: center;
         }
-        
-        .navbar-menu a {
+
+        nav.admin-navbar a,
+        nav.admin-navbar button {
             color: white;
             text-decoration: none;
-            transition: opacity 0.3s;
-        }
-        
-        .navbar-menu a:hover {
-            opacity: 0.8;
-        }
-        
-        .logout-btn {
-            background: rgba(255,255,255,0.2);
-            padding: 8px 16px;
-            border-radius: 4px;
             cursor: pointer;
-            transition: background 0.3s;
+            border: none;
+            background: none;
+            font-size: 0.95rem;
+            padding: 0.35rem 0.6rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            white-space: nowrap;
         }
-        
-        .logout-btn:hover {
-            background: rgba(255,255,255,0.3);
+
+        nav.admin-navbar a:hover,
+        nav.admin-navbar button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
         }
-        
+
+        nav.admin-navbar a.active {
+            font-weight: bold;
+            border-bottom: 3px solid #ffd700;
+        }
+
+        nav.admin-navbar .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        nav.admin-navbar .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        nav.admin-navbar .user-info span {
+            font-size: 0.95rem;
+        }
+
+        nav.admin-navbar #logoutBtn {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+
+        nav.admin-navbar #logoutBtn:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            nav.admin-navbar {
+                flex-wrap: wrap;
+                padding: 0.75rem 1rem;
+            }
+
+            nav.admin-navbar .brand {
+                font-size: 1.2rem;
+                flex-basis: 100%;
+                margin-bottom: 0.5rem;
+            }
+
+            nav.admin-navbar .nav-center {
+                gap: 0.5rem;
+                flex-basis: 100%;
+                flex-wrap: wrap;
+            }
+
+            nav.admin-navbar a {
+                font-size: 0.85rem;
+                padding: 0.3rem 0.5rem;
+            }
+
+            nav.admin-navbar .nav-right {
+                flex-basis: 100%;
+                justify-content: space-between;
+            }
+        }
+
         .container {
             max-width: 1200px;
-            margin-top: 100px;
+            margin: 0 auto 2rem auto;
+            /* top spacing handled dynamically via JS */
+            padding: 30px;
             background: white;
             border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 90%;
         }
-        
+
         h1 {
             color: #333;
             margin-bottom: 10px;
         }
-        
+
         .breadcrumb {
             color: #999;
             margin-bottom: 20px;
             font-size: 14px;
         }
-        
+
         .breadcrumb a {
             color: #667eea;
             text-decoration: none;
         }
-        
+
         .header-actions {
             display: flex;
             justify-content: space-between;
@@ -99,7 +172,7 @@
             flex-wrap: wrap;
             gap: 10px;
         }
-        
+
         .btn {
             padding: 10px 20px;
             border: none;
@@ -108,43 +181,43 @@
             font-size: 14px;
             transition: all 0.3s;
         }
-        
+
         .btn-primary {
             background: #667eea;
             color: white;
         }
-        
+
         .btn-primary:hover {
             background: #5568d3;
         }
-        
+
         .btn-secondary {
             background: #f0f0f0;
             color: #333;
         }
-        
+
         .btn-secondary:hover {
             background: #e0e0e0;
         }
-        
+
         .btn-danger {
             background: #ff6b6b;
             color: white;
         }
-        
+
         .btn-danger:hover {
             background: #ee5a5a;
         }
-        
+
         .btn-success {
             background: #51cf66;
             color: white;
         }
-        
+
         .btn-success:hover {
             background: #40c057;
         }
-        
+
         .search-box {
             padding: 10px 15px;
             border: 1px solid #ddd;
@@ -152,39 +225,42 @@
             font-size: 14px;
             width: 250px;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
         }
-        
-        th, td {
+
+        th,
+        td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
-        
+
         th {
             background: #f8f9fa;
             color: #333;
             font-weight: 600;
         }
-        
+
         tr:hover {
             background: #f8f9fa;
         }
-        
+
         .action-buttons {
             display: flex;
             gap: 8px;
         }
-        
-        .btn-edit, .btn-delete, .btn-members {
+
+        .btn-edit,
+        .btn-delete,
+        .btn-members {
             padding: 6px 12px;
             font-size: 12px;
         }
-        
+
         .modal {
             display: none;
             position: fixed;
@@ -192,16 +268,16 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             z-index: 1000;
             align-items: center;
             justify-content: center;
         }
-        
+
         .modal.active {
             display: flex;
         }
-        
+
         .modal-content {
             background: white;
             padding: 30px;
@@ -211,41 +287,43 @@
             max-height: 90vh;
             overflow-y: auto;
         }
-        
+
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
         }
-        
+
         .modal-header h2 {
             color: #333;
         }
-        
+
         .close-btn {
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
             color: #999;
         }
-        
+
         .close-btn:hover {
             color: #333;
         }
-        
+
         .form-group {
             margin-bottom: 15px;
         }
-        
+
         label {
             display: block;
             margin-bottom: 5px;
             color: #333;
             font-weight: 500;
         }
-        
-        input, textarea, select {
+
+        input,
+        textarea,
+        select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
@@ -253,65 +331,67 @@
             font-size: 14px;
             font-family: inherit;
         }
-        
-        input:focus, textarea:focus, select:focus {
+
+        input:focus,
+        textarea:focus,
+        select:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        
+
         textarea {
             resize: vertical;
             min-height: 100px;
         }
-        
+
         .modal-footer {
             display: flex;
             gap: 10px;
             justify-content: flex-end;
             margin-top: 20px;
         }
-        
+
         .alert {
             padding: 12px 16px;
             border-radius: 5px;
             margin-bottom: 15px;
             display: none;
         }
-        
+
         .alert.show {
             display: block;
         }
-        
+
         .alert-success {
             background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
-        
+
         .alert-error {
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
-        
+
         .member-section {
             margin-top: 20px;
             padding: 20px;
             background: #f8f9fa;
             border-radius: 5px;
         }
-        
+
         .member-section h3 {
             color: #333;
             margin-bottom: 15px;
         }
-        
+
         .member-list {
             max-height: 300px;
             overflow-y: auto;
         }
-        
+
         .member-item {
             background: white;
             padding: 12px;
@@ -322,22 +402,22 @@
             align-items: center;
             border: 1px solid #eee;
         }
-        
+
         .member-info {
             flex: 1;
         }
-        
+
         .member-name {
             font-weight: 500;
             color: #333;
         }
-        
+
         .member-email {
             font-size: 12px;
             color: #999;
             margin-top: 3px;
         }
-        
+
         .member-role {
             padding: 5px 10px;
             background: #667eea;
@@ -346,78 +426,87 @@
             font-size: 12px;
             margin-left: 10px;
         }
-        
+
         .empty-state {
             text-align: center;
             padding: 40px 20px;
             color: #999;
         }
-        
+
         .empty-state-icon {
             font-size: 48px;
             margin-bottom: 15px;
         }
-        
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
             }
-            
+
             .header-actions {
                 flex-direction: column;
                 align-items: stretch;
             }
-            
+
             .search-box {
                 width: 100%;
             }
-            
+
             table {
                 font-size: 12px;
             }
-            
-            th, td {
+
+            th,
+            td {
                 padding: 8px;
             }
-            
+
             .action-buttons {
                 flex-direction: column;
             }
-            
+
             .modal-content {
                 width: 95%;
             }
         }
     </style>
 </head>
+
 <body>
-    <div class="navbar">
-        <div class="navbar-brand">ConEvents Admin</div>
-        <div class="navbar-menu">
+    <!-- Consolidated Admin Navbar -->
+    <nav class="admin-navbar">
+        <div class="brand">ConEvents Admin</div>
+        <div class="nav-center">
             <a href="index.html">Home</a>
             <a href="admin-dashboard.html">Dashboard</a>
-            <a href="admin-organization-management.html" style="color: rgba(255,255,255,0.7);">Organizations</a>
+            <a href="admin-organizer-requests.html">Organizer Requests</a>
+            <a href="admin-organization-management.html" class="active">Organizations</a>
             <a href="admin-moderation.html">Event Moderation</a>
-            <span id="welcomeMessage" style="margin-left: 20px;"></span>
-            <button class="logout-btn" onclick="logout()">Logout</button>
+            <a href="admin-analytics.html">Analytics</a>
         </div>
-    </div>
-    
+        <div class="nav-right">
+            <div class="user-info">
+                <span id="userGreeting">Welcome!</span>
+                <button id="logoutBtn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
     <div class="container">
         <div class="breadcrumb">
             <a href="admin-dashboard.html">Admin Dashboard</a> > Organizations
         </div>
-        
+
         <h1>Organization Management</h1>
         <p style="color: #666; margin-bottom: 20px;">Manage platform organizations and member roles</p>
-        
+
         <div id="alert" class="alert"></div>
-        
+
         <div class="header-actions">
             <input type="text" class="search-box" id="searchBox" placeholder="Search organizations...">
             <button class="btn btn-primary" onclick="openCreateModal()">+ New Organization</button>
         </div>
-        
+
         <div id="tableContainer">
             <table id="organizationsTable">
                 <thead>
@@ -434,7 +523,7 @@
             </table>
         </div>
     </div>
-    
+
     <!-- Edit/Create Modal -->
     <div class="modal" id="orgModal">
         <div class="modal-content">
@@ -445,7 +534,8 @@
             <form id="orgForm" onsubmit="saveOrganization(event)">
                 <div class="form-group">
                     <label>Organization Name</label>
-                    <input type="text" id="orgName" required minlength="3" maxlength="100" placeholder="Enter organization name">
+                    <input type="text" id="orgName" required minlength="3" maxlength="100"
+                        placeholder="Enter organization name">
                 </div>
                 <div class="form-group">
                     <label>Category</label>
@@ -472,7 +562,7 @@
             </form>
         </div>
     </div>
-    
+
     <!-- Members Modal -->
     <div class="modal" id="membersModal">
         <div class="modal-content">
@@ -487,7 +577,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Delete Confirmation Modal -->
     <div class="modal" id="deleteModal">
         <div class="modal-content">
@@ -505,20 +595,55 @@
 
     <script type="module">
         import { getApiBase } from './utils/api.js';
-        
+
         const API_BASE = getApiBase();
         let currentEditId = null;
         let currentDeleteId = null;
         let allOrganizations = [];
-        
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             checkAdmin();
             setupNavbar();
+            scheduleNavAdjustments();
+            observeNavResize();
+            window.addEventListener('resize', debounce(adjustNavOffset, 100));
             loadOrganizations();
             document.getElementById('searchBox').addEventListener('input', filterOrganizations);
         });
-        
+
+        function adjustNavOffset() {
+            const nav = document.querySelector('nav.admin-navbar');
+            if (!nav) return;
+            const navHeight = nav.offsetHeight;
+            document.body.style.paddingTop = (navHeight + 20) + 'px'; // Add 20px spacing
+        }
+
+        function observeNavResize() {
+            const nav = document.querySelector('nav.admin-navbar');
+            if (!nav || typeof ResizeObserver === 'undefined') return;
+            const ro = new ResizeObserver(() => adjustNavOffset());
+            ro.observe(nav);
+        }
+
+        function scheduleNavAdjustments() {
+            adjustNavOffset();
+            requestAnimationFrame(() => adjustNavOffset());
+            setTimeout(adjustNavOffset, 150);
+            setTimeout(adjustNavOffset, 500);
+        }
+
+        window.addEventListener('load', scheduleNavAdjustments);
+        window.addEventListener('orientationchange', scheduleNavAdjustments);
+
+        function debounce(fn, wait) {
+            let t;
+            return function (...args) {
+                clearTimeout(t);
+                t = setTimeout(() => fn.apply(this, args), wait);
+            };
+        }
+
         function checkAdmin() {
             const userStr = localStorage.getItem('user');
             if (!userStr) {
@@ -531,26 +656,29 @@
                 setTimeout(() => window.location.href = '/index.html', 2000);
             }
         }
-        
+
         function setupNavbar() {
             const userStr = localStorage.getItem('user');
             if (userStr) {
                 const user = JSON.parse(userStr);
-                document.getElementById('welcomeMessage').textContent = `Welcome, ${user.name}!`;
+                document.getElementById('userGreeting').textContent = `Welcome, ${user.name}!`;
+
+                // Setup logout button
+                document.getElementById('logoutBtn').addEventListener('click', logout);
             }
         }
-        
+
         function apiUrl(path) {
             return `${API_BASE}${path}`;
         }
-        
+
         async function loadOrganizations() {
             try {
-                const res = await fetch(apiUrl('/api/admin/organizations'), { 
-                    credentials: 'include' 
+                const res = await fetch(apiUrl('/api/admin/organizations'), {
+                    credentials: 'include'
                 });
                 const data = await res.json();
-                
+
                 if (data.success) {
                     allOrganizations = data.organizations || [];
                     displayOrganizations(allOrganizations);
@@ -562,10 +690,10 @@
                 showAlert('Error loading organizations', 'error');
             }
         }
-        
+
         function displayOrganizations(orgs) {
             const tbody = document.getElementById('tableBody');
-            
+
             if (!orgs || orgs.length === 0) {
                 tbody.innerHTML = `
                     <tr>
@@ -579,7 +707,7 @@
                 `;
                 return;
             }
-            
+
             tbody.innerHTML = orgs.map(org => `
                 <tr>
                     <td><strong>${escapeHtml(org.name)}</strong></td>
@@ -599,18 +727,18 @@
                     </td>
                 </tr>
             `).join('');
-            
+
             // Load member counts
             orgs.forEach(org => loadMemberCount(org.id));
         }
-        
+
         async function loadMemberCount(orgId) {
             try {
                 const res = await fetch(apiUrl(`/api/admin/organizations/${orgId}/members`), {
                     credentials: 'include'
                 });
                 const data = await res.json();
-                
+
                 if (data.success) {
                     const count = (data.members || []).length;
                     const cell = document.querySelector(`[data-org-id="${orgId}"] .member-count`);
@@ -622,28 +750,28 @@
                 console.error('Error loading member count:', err);
             }
         }
-        
+
         function filterOrganizations() {
             const query = document.getElementById('searchBox').value.toLowerCase();
-            const filtered = allOrganizations.filter(org => 
+            const filtered = allOrganizations.filter(org =>
                 org.name.toLowerCase().includes(query) ||
                 org.category.toLowerCase().includes(query)
             );
             displayOrganizations(filtered);
         }
-        
+
         function openCreateModal() {
             currentEditId = null;
             document.getElementById('modalTitle').textContent = 'Create Organization';
             document.getElementById('orgForm').reset();
             document.getElementById('orgModal').classList.add('active');
         }
-        
+
         function openEditModal(orgId) {
             currentEditId = orgId;
             const org = allOrganizations.find(o => o.id === orgId);
             if (!org) return;
-            
+
             document.getElementById('modalTitle').textContent = 'Edit Organization';
             document.getElementById('orgName').value = org.name;
             document.getElementById('orgCategory').value = org.category;
@@ -651,31 +779,31 @@
             document.getElementById('orgLogoUrl').value = org.logo_url || '';
             document.getElementById('orgModal').classList.add('active');
         }
-        
+
         async function saveOrganization(event) {
             event.preventDefault();
-            
+
             const name = document.getElementById('orgName').value;
             const category = document.getElementById('orgCategory').value;
             const description = document.getElementById('orgDescription').value;
             const logo_url = document.getElementById('orgLogoUrl').value;
-            
+
             const payload = { name, category, description, logo_url };
-            
+
             try {
-                const url = currentEditId 
+                const url = currentEditId
                     ? apiUrl(`/api/admin/organizations/${currentEditId}`)
                     : apiUrl('/api/admin/organizations');
-                
+
                 const res = await fetch(url, {
                     method: currentEditId ? 'PUT' : 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
                     body: JSON.stringify(payload)
                 });
-                
+
                 const data = await res.json();
-                
+
                 if (data.success) {
                     showAlert(currentEditId ? 'Organization updated!' : 'Organization created!', 'success');
                     closeModal();
@@ -688,23 +816,23 @@
                 showAlert('Error saving organization', 'error');
             }
         }
-        
+
         function closeModal() {
             document.getElementById('orgModal').classList.remove('active');
             currentEditId = null;
         }
-        
+
         async function openMembersModal(orgId, orgName) {
             document.getElementById('memberOrgName').textContent = orgName;
             document.getElementById('membersList').innerHTML = '<p style="text-align: center;">Loading members...</p>';
             document.getElementById('membersModal').classList.add('active');
-            
+
             try {
                 const res = await fetch(apiUrl(`/api/admin/organizations/${orgId}/members`), {
                     credentials: 'include'
                 });
                 const data = await res.json();
-                
+
                 if (data.success && data.members && data.members.length > 0) {
                     const membersList = document.getElementById('membersList');
                     membersList.innerHTML = data.members.map(member => `
@@ -729,7 +857,7 @@
                 showAlert('Error loading members', 'error');
             }
         }
-        
+
         async function updateMemberRole(orgId, memberId, newRole) {
             try {
                 const res = await fetch(apiUrl(`/api/admin/organizations/${orgId}/members/${memberId}/role`), {
@@ -738,7 +866,7 @@
                     credentials: 'include',
                     body: JSON.stringify({ role: newRole })
                 });
-                
+
                 const data = await res.json();
                 if (data.success) {
                     showAlert('Member role updated!', 'success');
@@ -750,33 +878,33 @@
                 showAlert('Error updating role', 'error');
             }
         }
-        
+
         function closeMembersModal() {
             document.getElementById('membersModal').classList.remove('active');
         }
-        
+
         function openDeleteModal(orgId, orgName) {
             currentDeleteId = orgId;
             document.getElementById('deleteOrgName').textContent = orgName;
             document.getElementById('deleteModal').classList.add('active');
         }
-        
+
         function closeDeleteModal() {
             document.getElementById('deleteModal').classList.remove('active');
             currentDeleteId = null;
         }
-        
+
         async function confirmDelete() {
             if (!currentDeleteId) return;
-            
+
             try {
                 const res = await fetch(apiUrl(`/api/admin/organizations/${currentDeleteId}`), {
                     method: 'DELETE',
                     credentials: 'include'
                 });
-                
+
                 const data = await res.json();
-                
+
                 if (data.success) {
                     showAlert('Organization deleted!', 'success');
                     closeDeleteModal();
@@ -789,23 +917,23 @@
                 showAlert('Error deleting organization', 'error');
             }
         }
-        
+
         function showAlert(message, type) {
             const alertEl = document.getElementById('alert');
             alertEl.textContent = message;
             alertEl.className = `alert show alert-${type}`;
-            
+
             setTimeout(() => {
                 alertEl.classList.remove('show');
             }, 4000);
         }
-        
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-        
+
         window.openCreateModal = openCreateModal;
         window.openEditModal = openEditModal;
         window.saveOrganization = saveOrganization;
@@ -816,14 +944,28 @@
         window.openDeleteModal = openDeleteModal;
         window.closeDeleteModal = closeDeleteModal;
         window.confirmDelete = confirmDelete;
-        window.logout = logout;
-        
-        function logout() {
-            if (confirm('Are you sure you want to logout?')) {
+
+        async function logout() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    localStorage.removeItem('user');
+                    window.location.href = '/index.html';
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
                 localStorage.removeItem('user');
-                window.location.href = '/login.html';
+                window.location.href = '/index.html';
             }
         }
+
+        window.logout = logout;
     </script>
 </body>
+
 </html>

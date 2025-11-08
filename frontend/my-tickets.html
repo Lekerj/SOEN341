@@ -40,7 +40,7 @@
             margin-bottom: 0;
         }
 
-        .card-body > div:first-child {
+        .card-body>div:first-child {
             margin-bottom: 0.75rem;
         }
 
@@ -121,8 +121,8 @@
                     <ul class="dropdown-menu">
                         <li><a href="organizer-dashboard.html">My Dashboard</a></li>
                         <li><a href="organizer-create-event.html">Create Event</a></li>
-                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
-                        <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
+                        <li><a href="organizer-edit-event.html?eventId">Edit Event</a></li>
+                        <li><a href="organizer-analytics.html?eventId">Event Analytics</a></li>
                         <li><a href="organizer-scanner.html">QR Scanner</a></li>
                     </ul>
                 </li>
@@ -136,14 +136,14 @@
         </div>
     </nav>
     <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        try {
-          const user = JSON.parse(localStorage.getItem('user') || 'null');
-          const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
-          const organizerMenu = document.getElementById('organizerMenu');
-          if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-        } catch (e) {}
-      });
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || 'null');
+                const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+                const organizerMenu = document.getElementById('organizerMenu');
+                if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+            } catch (e) { }
+        });
     </script>
 
     <div class="container" style="margin-top:2rem;">
@@ -204,20 +204,7 @@
         // Expose tab switcher to inline handlers
         window.showTicketTab = showTicketTab;
 
-        window.addEventListener('DOMContentLoaded', async () => {
-            const user = localStorage.getItem('user');
-            if (!user) {
-                window.location.href = 'login.html';
-                return;
-            }
-            const userData = JSON.parse(user);
-            document.getElementById('authLinks').style.display = 'none';
-            const userLinks = document.getElementById('userLinks');
-            userLinks.style.display = 'flex';
-            userLinks.style.gap = '1rem';
-            userLinks.style.alignItems = 'center';
-            document.getElementById('welcomeMessage').textContent = `Welcome, ${userData.name}!`;
-
+        async function loadTickets() {
             try {
                 const res = await fetch(`${getApiBase()}/api/tickets`, { credentials: 'include' });
                 const data = await res.json();
@@ -264,7 +251,43 @@
                 console.error(e);
                 document.getElementById('currentTicketsList').innerHTML = '<p style="color:#b00020;">Failed to load tickets.</p>';
             }
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            const userData = JSON.parse(user);
+            document.getElementById('authLinks').style.display = 'none';
+            const userLinks = document.getElementById('userLinks');
+            userLinks.style.display = 'flex';
+            userLinks.style.gap = '1rem';
+            userLinks.style.alignItems = 'center';
+            document.getElementById('welcomeMessage').textContent = `Welcome, ${userData.name}!`;
+
+            await loadTickets();
         });
+
+        // Reload tickets whenever user returns to this page (from verify-ticket.html check-in)
+        window.addEventListener('pageshow', async (event) => {
+            // Reload tickets when returning to this page
+            await loadTickets();
+        });
+
+        // Also reload on visibility change (when tab becomes active)
+        document.addEventListener('visibilitychange', async () => {
+            if (!document.hidden) {
+                // Page became visible - reload tickets
+                await loadTickets();
+            }
+        });
+
+        // Reload tickets every 3 seconds for real-time updates
+        setInterval(async () => {
+            await loadTickets();
+        }, 3000);
 
         function createTicketCard(t, isPast = false) {
             const card = document.createElement('div');
@@ -279,6 +302,7 @@
                         <p><strong>📅</strong> ${new Date(t.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} <strong>⏰</strong> ${String(t.event_time).slice(0, 5)}</p>
                         <p><strong>📍</strong> ${t.location}</p>
                         <p><strong>Type:</strong> ${t.ticket_type === 'free' ? '🎟️ FREE' : '💳 ' + t.ticket_type.toUpperCase()}</p>
+                        <p style="${t.checked_in ? 'color: #28a745;' : 'color: #ffc107;'} font-weight: 600; margin-top: 0.5rem;">${t.checked_in ? '✓ Checked In' : '⏳ Not Checked In'}</p>
                         ${isPast ? '<p style="color: #dc3545; font-weight: 600; margin-top: 0.5rem;">⏱️ Event Ended</p>' : ''}
                     </div>
                     <div style="margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.4rem;">
@@ -328,6 +352,7 @@
         // Expose helpers used by inline buttons
         window.toggleDetails = toggleDetails;
         window.showQRCode = showQRCode;
+        window.logout = logout;
 
         async function showQRCode(ticketCode) {
             const container = document.getElementById(`qr-${ticketCode}`);

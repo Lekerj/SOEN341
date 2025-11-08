@@ -57,26 +57,130 @@
   </script>
   <style>
     /* Reuse same styles as create page for layout and validation visuals */
-    .page-wrapper { min-height: 100vh; display:flex; justify-content:center; align-items:center; padding:48px 16px }
-    .event-form-card { background: rgba(255,255,255,0.96); border-radius:var(--radius-xl); box-shadow:var(--shadow-lg); width:100%; max-width:720px; padding:var(--spacing-2xl); display:grid; gap:var(--spacing-xl)}
-    .form-grid { display:grid; gap:var(--spacing-lg) }
-    .form-grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(220px,1fr)) }
-  .form-actions { display:flex; gap:var(--spacing-md); justify-content:flex-end; flex-wrap:wrap }
-  /* Button styles (match create event page) */
-  .form-actions .btn { display: inline-flex; align-items: center; justify-content: center; text-align: center; transition: background 0.3s ease, color 0.3s ease, opacity 0.3s ease; gap: 10px; }
-  .form-actions .btn[disabled] { cursor: not-allowed; opacity: 0.65; background: linear-gradient(135deg, #b0b0b0 0%, #d4d4d4 100%); color: rgba(255,255,255,0.85) !important; border: none; box-shadow: none; }
-    .button-spinner { width:18px; height:18px; border:2px solid rgba(255,255,255,0.4); border-top-color:var(--white); border-radius:50%; animation:spin 0.6s linear infinite; display:none }
-    .btn.loading .button-spinner { display:inline-block }
-    .form-group { position:relative }
-    .field-error { color:var(--danger); font-size:var(--font-size-sm); margin-top:6px; display:none }
-    .form-group.error .field-error { display:block }
-    .form-group.error .form-control { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(220,38,38,0.15) }
-    .form-group.valid .form-control { border-color: #15803d; box-shadow: 0 0 0 3px rgba(21,128,61,0.16) }
-    .validation-icon { position:absolute; top:50%; right:16px; transform:translateY(-50%); color:#15803d; font-size:1rem; display:none }
-    .form-group.valid .validation-icon { display:inline-flex }
-    .form-group.error .validation-icon { display:none }
-  /* Match create event ticket indicator styles */
-  .ticket-indicator { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; background: rgba(107,44,145,0.12); color: var(--accent-purple); font-weight: 600; font-size: var(--font-size-sm); }
+    .page-wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      padding: 48px 16px
+    }
+
+    .event-form-card {
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 720px;
+      padding: var(--spacing-2xl);
+      display: grid;
+      gap: var(--spacing-xl)
+    }
+
+    .form-grid {
+      display: grid;
+      gap: var(--spacing-lg)
+    }
+
+    .form-grid.cols-2 {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))
+    }
+
+    .form-actions {
+      display: flex;
+      gap: var(--spacing-md);
+      justify-content: flex-end;
+      flex-wrap: wrap
+    }
+
+    /* Button styles (match create event page) */
+    .form-actions .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      transition: background 0.3s ease, color 0.3s ease, opacity 0.3s ease;
+      gap: 10px;
+    }
+
+    .form-actions .btn[disabled] {
+      cursor: not-allowed;
+      opacity: 0.65;
+      background: linear-gradient(135deg, #b0b0b0 0%, #d4d4d4 100%);
+      color: rgba(255, 255, 255, 0.85) !important;
+      border: none;
+      box-shadow: none;
+    }
+
+    .button-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-top-color: var(--white);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: none
+    }
+
+    .btn.loading .button-spinner {
+      display: inline-block
+    }
+
+    .form-group {
+      position: relative
+    }
+
+    .field-error {
+      color: var(--danger);
+      font-size: var(--font-size-sm);
+      margin-top: 6px;
+      display: none
+    }
+
+    .form-group.error .field-error {
+      display: block
+    }
+
+    .form-group.error .form-control {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15)
+    }
+
+    .form-group.valid .form-control {
+      border-color: #15803d;
+      box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.16)
+    }
+
+    .validation-icon {
+      position: absolute;
+      top: 50%;
+      right: 16px;
+      transform: translateY(-50%);
+      color: #15803d;
+      font-size: 1rem;
+      display: none
+    }
+
+    .form-group.valid .validation-icon {
+      display: inline-flex
+    }
+
+    .form-group.error .validation-icon {
+      display: none
+    }
+
+    /* Match create event ticket indicator styles */
+    .ticket-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(107, 44, 145, 0.12);
+      color: var(--accent-purple);
+      font-weight: 600;
+      font-size: var(--font-size-sm);
+    }
   </style>
 </head>
 
@@ -92,9 +196,8 @@
           <ul class="dropdown-menu">
             <li><a href="organizer-dashboard.html">My Dashboard</a></li>
             <li><a href="organizer-create-event.html">Create Event</a></li>
-            <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
-            <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
-            <li><a href="organizer-scanner.html">QR Scanner</a></li>
+            <li><a href="organizer-analytics.html?eventId">Event Analytics</a></li>
+            <li id="qrScannerMenu"><a href="organizer-scanner.html">QR Scanner</a></li>
           </ul>
         </li>
         <li><a href="about.html">About</a></li>
@@ -114,10 +217,13 @@
     document.addEventListener('DOMContentLoaded', function () {
       try {
         const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
         const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
         const organizerMenu = document.getElementById('organizerMenu');
+        const qrScannerMenu = document.getElementById('qrScannerMenu');
         if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-      } catch (e) {}
+        if (isAdmin && qrScannerMenu) qrScannerMenu.style.display = 'none';
+      } catch (e) { }
     });
   </script>
 
@@ -129,19 +235,31 @@
         <p>Edit details and save changes for your event.</p>
       </header>
 
+      <!-- Event Selector -->
+      <div class="form-group" id="eventSelectorGroup">
+        <label class="form-label" for="eventSelector">Select Event to Edit *</label>
+        <select id="eventSelector" class="form-control" style="margin-bottom: 1rem;">
+          <option value="">-- Loading your events... --</option>
+        </select>
+        <small class="field-error" id="eventSelectorError" aria-live="polite"></small>
+      </div>
+
       <div id="formAlert" class="alert alert-error" role="alert" style="display:none;"></div>
 
       <form id="editEventForm" novalidate aria-describedby="formAlert">
         <div class="form-group">
           <label class="form-label" for="title">Event Title *</label>
-          <input type="text" id="title" name="title" class="form-control" placeholder="Campus Hackathon Kickoff" minlength="3" maxlength="255" required>
+          <input type="text" id="title" name="title" class="form-control" placeholder="Campus Hackathon Kickoff"
+            minlength="3" maxlength="255" required>
           <span class="validation-icon" aria-hidden="true">✔</span>
           <small class="field-error" id="titleError" aria-live="polite"></small>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="description">Description *</label>
-          <textarea id="description" name="description" class="form-control" rows="4" placeholder="Outline the schedule, speakers, and any other details attendees should know." required></textarea>
+          <textarea id="description" name="description" class="form-control" rows="4"
+            placeholder="Outline the schedule, speakers, and any other details attendees should know."
+            required></textarea>
           <span class="validation-icon" aria-hidden="true">✔</span>
           <small class="field-error" id="descriptionError" aria-live="polite"></small>
         </div>
@@ -163,7 +281,8 @@
 
         <div class="form-group">
           <label class="form-label" for="location">Location *</label>
-          <input type="text" id="location" name="location" class="form-control" maxlength="255" placeholder="Henry F. Hall Building, H-110" required>
+          <input type="text" id="location" name="location" class="form-control" maxlength="255"
+            placeholder="Henry F. Hall Building, H-110" required>
           <span class="validation-icon" aria-hidden="true">✔</span>
           <small class="field-error" id="locationError" aria-live="polite"></small>
         </div>
@@ -171,13 +290,15 @@
         <div class="form-grid cols-2">
           <div class="form-group">
             <label class="form-label" for="capacity">Capacity *</label>
-            <input type="number" id="capacity" name="capacity" class="form-control" min="1" step="1" placeholder="150" required>
+            <input type="number" id="capacity" name="capacity" class="form-control" min="1" step="1" placeholder="150"
+              required>
             <span class="validation-icon" aria-hidden="true">✔</span>
             <small class="field-error" id="capacityError" aria-live="polite"></small>
           </div>
           <div class="form-group">
             <label class="form-label" for="organization">Organization *</label>
-            <input type="text" id="organization" name="organization" class="form-control" maxlength="255" placeholder="Concordia Tech Society" required>
+            <input type="text" id="organization" name="organization" class="form-control" maxlength="255"
+              placeholder="Concordia Tech Society" required>
             <span class="validation-icon" aria-hidden="true">✔</span>
             <small class="field-error" id="organizationError" aria-live="polite"></small>
           </div>
@@ -198,7 +319,8 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="price">Ticket Price *</label>
-            <input type="number" id="price" name="price" class="form-control" min="0" step="0.01" placeholder="0" required>
+            <input type="number" id="price" name="price" class="form-control" min="0" step="0.01" placeholder="0"
+              required>
             <small class="form-text">Set to 0 if the event is free.</small>
             <span class="validation-icon" aria-hidden="true">✔</span>
             <small class="field-error" id="priceError" aria-live="polite"></small>
@@ -231,16 +353,10 @@
     <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
   </footer>
 
-  <script>
-    (function () {
-      function getApiBase() {
-        try {
-          return getApiBase ? getApiBase() : `http://${window.location.hostname}:3000`;
-        } catch (e) {
-          return `http://${window.location.hostname}:3000`;
-        }
-      }
+  <script type="module">
+    import { getApiBase } from './utils/api.js';
 
+    (function () {
       function getAuthToken() {
         const stored = localStorage.getItem('authToken');
         if (stored) return stored;
@@ -253,6 +369,15 @@
         return '';
       }
 
+      function getUserRole() {
+        try {
+          const user = JSON.parse(localStorage.getItem('user'));
+          return user?.role || null;
+        } catch (error) {
+          return null;
+        }
+      }
+
       const $ = (selector) => document.querySelector(selector);
       const form = $('#editEventForm');
       const alertBox = $('#formAlert');
@@ -263,29 +388,27 @@
       const buttonText = submitButton.querySelector('.button-text');
       const formControls = form.querySelectorAll('input, select, textarea, button');
 
-  const params = new URLSearchParams(window.location.search);
-  // Accept both `eventId` (preferred) and legacy `id` query param for compatibility
-  const eventId = params.get('eventId') || params.get('id');
-
-      if (!eventId) {
-        showAlert(['Missing eventId in URL.'], true);
-      }
+      const params = new URLSearchParams(window.location.search);
+      // Accept both `eventId` (preferred) and legacy `id` query param for compatibility
+      let eventId = params.has('eventId') ? (params.get('eventId') ?? '') : (params.get('id') || '');
+      const eventSelector = document.getElementById('eventSelector');
+      // Allow empty eventId (when URL is ...?eventId) so user can select an event from dropdown without redirect loop.
 
       const fieldConfigs = [
-        { id: 'title', label: 'Event Title', validators: [ required('Event Title is required.'), maxLength(255, 'Event Title cannot exceed 255 characters.') ] },
-        { id: 'description', label: 'Description', validators: [ required('Description is required.') ] },
-        { id: 'eventDate', label: 'Event Date', validators: [ required('Event Date is required.'), dateNotPast('Event date cannot be in the past.') ] },
-        { id: 'eventTime', label: 'Event Time', validators: [ required('Event Time is required.') ] },
-        { id: 'location', label: 'Location', validators: [ required('Location is required.'), maxLength(255, 'Location cannot exceed 255 characters.') ] },
-        { id: 'capacity', label: 'Capacity', validators: [ required('Capacity is required.'), positiveInteger('Capacity must be a positive whole number.') ] },
-        { id: 'organization', label: 'Organization', validators: [ required('Organization is required.'), maxLength(255, 'Organization cannot exceed 255 characters.') ] },
-        { id: 'category', label: 'Category', validators: [ required('Category is required.') ] },
-        { id: 'price', label: 'Ticket Price', validators: [ required('Ticket price is required.'), nonNegativeNumber('Ticket price must be zero or higher.') ] }
-      ].map(config => ({ ...config, input: document.getElementById(config.id), errorEl: document.getElementById(`${config.id}Error`), group: document.getElementById(config.id)?.closest('.form-group'), touched:false, valid:false, lastError:null }));
+        { id: 'title', label: 'Event Title', validators: [required('Event Title is required.'), maxLength(255, 'Event Title cannot exceed 255 characters.')] },
+        { id: 'description', label: 'Description', validators: [required('Description is required.')] },
+        { id: 'eventDate', label: 'Event Date', validators: [required('Event Date is required.'), dateNotPast('Event date cannot be in the past.')] },
+        { id: 'eventTime', label: 'Event Time', validators: [required('Event Time is required.')] },
+        { id: 'location', label: 'Location', validators: [required('Location is required.'), maxLength(255, 'Location cannot exceed 255 characters.')] },
+        { id: 'capacity', label: 'Capacity', validators: [required('Capacity is required.'), positiveInteger('Capacity must be a positive whole number.')] },
+        { id: 'organization', label: 'Organization', validators: [required('Organization is required.'), maxLength(255, 'Organization cannot exceed 255 characters.')] },
+        { id: 'category', label: 'Category', validators: [required('Category is required.')] },
+        { id: 'price', label: 'Ticket Price', validators: [required('Ticket price is required.'), nonNegativeNumber('Ticket price must be zero or higher.')] }
+      ].map(config => ({ ...config, input: document.getElementById(config.id), errorEl: document.getElementById(`${config.id}Error`), group: document.getElementById(config.id)?.closest('.form-group'), touched: false, valid: false, lastError: null }));
 
       function required(message) { return (value) => { if (value === null || value === undefined) return message; if (typeof value === 'string' && !value.trim()) return message; return null; }; }
       function maxLength(limit, message) { return (value = '') => (value && value.length > limit ? message : null); }
-      function dateNotPast(message) { return (value) => { if (!value) return null; const selected = new Date(`${value}T00:00:00`); const today = new Date(); today.setHours(0,0,0,0); return selected < today ? message : null; }; }
+      function dateNotPast(message) { return (value) => { if (!value) return null; const selected = new Date(`${value}T00:00:00`); const today = new Date(); today.setHours(0, 0, 0, 0); return selected < today ? message : null; }; }
       function positiveInteger(message) { return (value) => { if (!value && value !== 0) return null; const num = Number(value); if (!Number.isFinite(num) || !Number.isInteger(num) || num < 1) { return message; } return null; }; }
       function nonNegativeNumber(message) { return (value) => { if (!value && value !== 0) return null; const num = Number(value); if (!Number.isFinite(num) || num < 0) { return message; } return null; }; }
 
@@ -304,7 +427,7 @@
 
       function validateAll(force = false) { return fieldConfigs.every((config) => validateField(config, { force })); }
 
-      function updateSubmitState() { const isValid = fieldConfigs.every((config) => config.valid); submitButton.disabled = !isValid; if (!isValid) submitButton.classList.remove('loading'); }
+      function updateSubmitState() { const isValid = fieldConfigs.every((config) => config.valid); submitButton.disabled = !isValid || !eventId; if (!isValid) submitButton.classList.remove('loading'); }
 
       function showAlert(messages, isError = true) {
         if (!messages || messages.length === 0) { alertBox.style.display = 'none'; alertBox.textContent = ''; return; }
@@ -317,7 +440,7 @@
       function handleFieldEvent(config, force = false) { validateField(config, { force }); updateSubmitState(); if (alertBox.style.display === 'block' && config.lastError === null) { const remainingErrors = fieldConfigs.filter((f) => !f.valid).map((f) => f.lastError).filter(Boolean); if (remainingErrors.length) { showAlert(remainingErrors, true); } else { showAlert([], true); } } }
 
       fieldConfigs.forEach((config) => {
-        const eventNames = new Set(['input','change']);
+        const eventNames = new Set(['input', 'change']);
         eventNames.forEach((eventName) => {
           config.input.addEventListener(eventName, () => {
             if (eventName === 'change') config.touched = true;
@@ -344,7 +467,7 @@
       function normalizeTime(value) {
         if (!value) return '';
         if (/^\d{2}:\d{2}:\d{2}$/.test(value)) return value;
-        if (/^\d{1,2}:\d{2}$/.test(value)) { const parts = value.split(':'); return `${parts[0].padStart(2,'0')}:${parts[1]}:00`; }
+        if (/^\d{1,2}:\d{2}$/.test(value)) { const parts = value.split(':'); return `${parts[0].padStart(2, '0')}:${parts[1]}:00`; }
         return value;
       }
 
@@ -356,8 +479,13 @@
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
         try {
-          // Fetch event details from public endpoint
-          const resp = await fetch(`${getApiBase()}/api/events/${encodeURIComponent(eventId)}`, { credentials: 'include', headers });
+          // Fetch event details using appropriate endpoint based on user role
+          const userRole = getUserRole();
+          const endpoint = userRole === 'admin'
+            ? `${getApiBase()}/api/admin/events/${encodeURIComponent(eventId)}`
+            : `${getApiBase()}/api/organizer/events/${encodeURIComponent(eventId)}`;
+
+          const resp = await fetch(endpoint, { credentials: 'include', headers });
 
           if (resp.status === 401 || resp.status === 403) {
             showAlert(['You are not authorized to edit this event. Redirecting...'], true);
@@ -380,7 +508,7 @@
           if (event.event_date) $('#eventDate').value = event.event_date;
           if (event.event_time) {
             // convert HH:MM:SS to HH:MM for input[type=time]
-            $('#eventTime').value = event.event_time.substring(0,5);
+            $('#eventTime').value = event.event_time.substring(0, 5);
           }
           $('#location').value = event.location || '';
           $('#capacity').value = event.capacity || '';
@@ -436,7 +564,13 @@
           const token = getAuthToken();
           if (token) headers['Authorization'] = `Bearer ${token}`;
 
-          const resp = await fetch(`${getApiBase()}/api/organizer/events/${encodeURIComponent(eventId)}`, {
+          // Use appropriate endpoint based on user role
+          const userRole = getUserRole();
+          const endpoint = userRole === 'admin'
+            ? `${getApiBase()}/api/admin/events/${encodeURIComponent(eventId)}`
+            : `${getApiBase()}/api/organizer/events/${encodeURIComponent(eventId)}`;
+
+          const resp = await fetch(endpoint, {
             method: 'PUT',
             headers,
             credentials: 'include',
@@ -470,8 +604,85 @@
         }
       });
 
-      // Kick off fetch
-      fetchEventAndPopulate();
+      // Load events and populate dropdown
+      async function loadEventsList() {
+        const userRole = getUserRole();
+        if (userRole === 'admin') {
+          // Admins: hide selector, require eventId in URL
+          document.getElementById('eventSelectorGroup').style.display = 'none';
+          if (!eventId) {
+            showAlert(['Admins must use a direct event link (e.g. ?eventId=9) to edit events.'], true);
+          } else {
+            fetchEventAndPopulate();
+          }
+          return;
+        }
+        // Organizers: show selector and load their events
+        try {
+          const response = await fetch(`${getApiBase()}/api/organizer/events`, {
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const events = data.events || [];
+
+            if (events.length === 0) {
+              eventSelector.innerHTML = '<option value="">-- You have no events yet --</option>';
+              if (!eventId) {
+                showAlert(['You have no events to edit. Create an event first.'], true);
+              }
+              return;
+            }
+
+            eventSelector.innerHTML = '<option value="">-- Select an event --</option>';
+            events.forEach(event => {
+              const option = document.createElement('option');
+              option.value = event.id;
+              option.textContent = event.title || `Event ${event.id}`;
+              eventSelector.appendChild(option);
+            });
+
+            // If eventId from URL, select it, load it, and hide the dropdown
+            if (eventId) {
+              eventSelector.value = eventId;
+              document.getElementById('eventSelectorGroup').style.display = 'none'; // Hide selector group
+              fetchEventAndPopulate();
+            }
+          } else if (response.status === 403) {
+            // User doesn't have organizer access, but might have direct event ID
+            if (eventId) {
+              console.log('Loading specific event:', eventId);
+              document.getElementById('eventSelectorGroup').style.display = 'none'; // Hide selector group
+            } else {
+              eventSelector.innerHTML = '<option value="">-- Access denied --</option>';
+              showAlert(['You do not have permission to edit events.'], true);
+            }
+          } else {
+            eventSelector.innerHTML = '<option value="">-- Failed to load events --</option>';
+            showAlert(['Could not load your events.'], true);
+          }
+        } catch (error) {
+          console.error('Error loading events:', error);
+          eventSelector.innerHTML = '<option value="">-- Error loading events --</option>';
+          if (!eventId) {
+            showAlert(['Error loading events: ' + error.message], true);
+          }
+        }
+      }
+
+      // Handle event selection change
+      eventSelector.addEventListener('change', (e) => {
+        if (e.target.value) {
+          eventId = e.target.value;
+          window.history.replaceState({}, '', `?eventId=${eventId}`);
+          fetchEventAndPopulate();
+        }
+      });
+
+      // Load events on page load
+      loadEventsList();
 
     })();
   </script>

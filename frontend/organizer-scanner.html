@@ -575,11 +575,10 @@
         <li id="organizerMenu" class="dropdown" style="display:none;">
           <a href="#" class="dropdown-toggle">Organizer</a>
           <ul class="dropdown-menu">
-          <li><a href="organizer-dashboard.html">My Dashboard</a></li>
-                        <li><a href="organizer-create-event.html">Create Event</a></li>
-                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
-                        <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
-                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
+            <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+            <li><a href="organizer-create-event.html">Create Event</a></li>
+            <li><a href="organizer-analytics.html?eventId">Event Analytics</a></li>
+            <li><a href="organizer-scanner.html">QR Scanner</a></li>
           </ul>
         </li>
         <li><a href="about.html">About</a></li>
@@ -601,7 +600,7 @@
         const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
         const organizerMenu = document.getElementById('organizerMenu');
         if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-      } catch (e) {}
+      } catch (e) { }
     });
   </script>
 
@@ -636,7 +635,8 @@
         <div class="staff-key-section" style="border-top: 1px solid #e5e7eb;">
           <div class="form-group-wrapper">
             <label for="staffKey" class="form-group-label">Staff Key (Optional)</label>
-            <input id="staffKey" type="password" class="form-control" placeholder="Enter staff key for check-in" autocomplete="current-password" />
+            <input id="staffKey" type="password" class="form-control" placeholder="Enter staff key for check-in"
+              autocomplete="current-password" />
           </div>
           <button class="btn btn-secondary" id="saveStaffKey" style="white-space: nowrap;">Save Key</button>
           <span id="staffKeySaved" class="staff-key-feedback">✓ Saved</span>
@@ -646,7 +646,8 @@
       <section class="attendee-table-card" aria-labelledby="attendeeTableTitle">
         <div class="attendee-table-header">
           <h2 id="attendeeTableTitle"><span>📊</span> Attendee Overview</h2>
-          <button type="button" class="btn btn-secondary" id="exportCsvBtn" title="Download attendee list as CSV" data-loading="false" aria-label="Export attendee list">
+          <button type="button" class="btn btn-secondary" id="exportCsvBtn" title="Download attendee list as CSV"
+            data-loading="false" aria-label="Export attendee list">
             <span>📥</span>
             <span class="default-text">Export CSV</span>
             <span class="loading-text"><span class="loading-spinner" aria-hidden="true"></span> Exporting...</span>
@@ -690,7 +691,8 @@
           <section class="scanner-card">
             <h2>⌨️ Manual Ticket Entry</h2>
             <p>Paste the full ticket URL or ticket code directly.</p>
-            <input type="text" id="manualCode" class="form-control" placeholder="ABC123 or https://.../api/tickets/qr/ABC123" autocomplete="off" />
+            <input type="text" id="manualCode" class="form-control"
+              placeholder="ABC123 or https://.../api/tickets/qr/ABC123" autocomplete="off" />
             <div class="scanner-actions">
               <button class="btn btn-primary" id="btnValidate">Verify Ticket</button>
               <button class="btn btn-secondary" id="btnPaste">Paste</button>
@@ -726,7 +728,8 @@
               </div>
             </div>
 
-            <button class="btn btn-primary" id="btnCheckIn" style="width: 100%; margin-top: var(--spacing-md);">Check In Attendee</button>
+            <button class="btn btn-primary" id="btnCheckIn" style="width: 100%; margin-top: var(--spacing-md);">Check In
+              Attendee</button>
           </section>
 
           <!-- Statistics Card -->
@@ -1225,6 +1228,12 @@
         setBadge('ok', 'Checked in');
         resMeta.textContent = data.message || 'Attendee checked in successfully';
         statChecked.textContent = String(+statChecked.textContent + 1);
+
+        // Refresh attendee table to reflect the check-in status
+        const selectedEventId = eventSelect.value;
+        if (selectedEventId) {
+          loadAttendeeTable(selectedEventId);
+        }
       } catch (err) {
         console.error(err);
         setBadge('err', 'Network error');

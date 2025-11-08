@@ -538,10 +538,10 @@
           <a href="#" class="dropdown-toggle">Organizer</a>
           <ul class="dropdown-menu">
             <li><a href="organizer-dashboard.html">My Dashboard</a></li>
-                        <li><a href="organizer-create-event.html">Create Event</a></li>
-                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
-                        <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
-                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
+            <li><a href="organizer-create-event.html">Create Event</a></li>
+            <li><a href="organizer-edit-event.html?eventId">Edit Event</a></li>
+            <li><a href="organizer-analytics.html?eventId">Event Analytics</a></li>
+            <li id="qrScannerMenu"><a href="organizer-scanner.html">QR Scanner</a></li>
           </ul>
         </li>
         <li><a href="profile.html">Profile</a></li>
@@ -557,13 +557,28 @@
     </div>
   </nav>
   <script>
+    // Hide QR Scanner immediately for admin users
+    (function () {
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
+      if (isAdmin) {
+        const qrScannerMenu = document.getElementById('qrScannerMenu');
+        if (qrScannerMenu) {
+          qrScannerMenu.style.display = 'none';
+        }
+      }
+    })();
+
     document.addEventListener('DOMContentLoaded', function () {
       try {
         const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
         const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
         const organizerMenu = document.getElementById('organizerMenu');
+        const qrScannerMenu = document.getElementById('qrScannerMenu');
         if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-      } catch (e) {}
+        if (isAdmin && qrScannerMenu) qrScannerMenu.style.display = 'none';
+      } catch (e) { }
     });
   </script>
 
@@ -1197,7 +1212,22 @@
       });
 
       footer.appendChild(price);
-      footer.appendChild(ticketButton);
+
+      // Hide ticket claim button for admins and organizers (only students can claim)
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      const roleLower = user && user.role ? String(user.role).toLowerCase() : null;
+      const isAdmin = roleLower === 'admin';
+      const isOrganizer = roleLower === 'organizer';
+      if (!isAdmin && !isOrganizer) {
+        footer.appendChild(ticketButton);
+      } else {
+        const blockedMsg = document.createElement('div');
+        blockedMsg.style.fontSize = '0.75rem';
+        blockedMsg.style.color = '#b00020';
+        blockedMsg.style.marginTop = '4px';
+        blockedMsg.textContent = isAdmin ? 'Admins cannot claim tickets.' : 'Organizers cannot claim tickets.';
+        footer.appendChild(blockedMsg);
+      }
 
       // Details toggle button
       const detailsBtn = document.createElement('button');
@@ -1221,12 +1251,15 @@
         detailsPanel.style.display = detailsPanel.style.display === 'none' ? 'block' : 'none';
       });
 
-      // If the current user is the organizer of this event, show Edit and Analytics buttons
+      // If the current user is the organizer of this event OR is an admin, show Edit and Analytics buttons
       try {
         const userRaw = localStorage.getItem('user');
         if (userRaw) {
           const currentUser = JSON.parse(userRaw);
-          if (currentUser && currentUser.id && Number(currentUser.id) === Number(event.organizer_id)) {
+          const isOrganizer = currentUser && currentUser.id && Number(currentUser.id) === Number(event.organizer_id);
+          const isAdmin = currentUser && currentUser.role && String(currentUser.role).toLowerCase() === 'admin';
+
+          if (isOrganizer || isAdmin) {
             const editLink = document.createElement('a');
             editLink.href = `organizer-edit-event.html?id=${event.id}`;
             editLink.className = 'btn btn-secondary';

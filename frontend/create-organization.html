@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Organization - ConEvents</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-error {
+            color: #dc2626;
+            font-size: 13px;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .form-error.show {
+            display: block;
+        }
+
+        .small-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-submit {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-cancel {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-cancel:hover {
+            background: #e0e0e0;
+        }
+
+        .required-note {
+            color: #dc2626;
+        }
+
+        .spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-submit:disabled .spinner {
+            display: inline-block;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Create Organization</h1>
+        <p class="subtitle">Set up your organization to start hosting events</p>
+
+        <div id="message" class="alert"></div>
+
+        <div class="info-box">
+            ✓ Your organization will be reviewed by admin and approved to allow event creation
+        </div>
+
+        <form id="createOrgForm">
+            <div class="form-group">
+                <label class="form-label" for="orgName">
+                    Organization Name <span class="required-note">*</span>
+                </label>
+                <input type="text" id="orgName" class="form-control" placeholder="Enter organization name" maxlength="100" required>
+                <p class="small-text">3-100 characters</p>
+                <div class="form-error" id="orgNameError"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="orgCategory">
+                    Category <span class="required-note">*</span>
+                </label>
+                <select id="orgCategory" class="form-control" required>
+                    <option value="">-- Select a category --</option>
+                    <option value="sports">⚽ Sports</option>
+                    <option value="academic">📚 Academic</option>
+                    <option value="social">👥 Social</option>
+                    <option value="club">🎭 Club</option>
+                </select>
+                <div class="form-error" id="orgCategoryError"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="orgDescription">
+                    Description (Optional)
+                </label>
+                <textarea id="orgDescription" class="form-control" placeholder="Tell us about your organization..." maxlength="500"></textarea>
+                <p class="small-text">Max 500 characters</p>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn btn-cancel" onclick="window.location.href='organizer-dashboard.html'">Cancel</button>
+                <button type="submit" class="btn btn-submit" id="submitBtn">
+                    <span>Create Organization</span>
+                    <span class="spinner"></span>
+                </button>
+            </div>
+        </form>
+
+        <a href="organizer-dashboard.html" class="back-link">← Back to Dashboard</a>
+    </div>
+
+    <script type="module">
+        import { getApiBase } from './utils/api.js';
+
+        const form = document.getElementById('createOrgForm');
+        const messageDiv = document.getElementById('message');
+        const orgNameInput = document.getElementById('orgName');
+        const orgCategoryInput = document.getElementById('orgCategory');
+        const orgDescriptionInput = document.getElementById('orgDescription');
+        const submitBtn = document.getElementById('submitBtn');
+
+        const errors = {
+            orgName: document.getElementById('orgNameError'),
+            orgCategory: document.getElementById('orgCategoryError')
+        };
+
+        // Check authentication
+        function checkAuth() {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                const user = JSON.parse(userStr);
+                if (user.role && user.role.toLowerCase() !== 'organizer') {
+                    messageDiv.innerHTML = '<strong>Error:</strong> Only organizers can create organizations';
+                    messageDiv.className = 'alert alert-error show';
+                    submitBtn.disabled = true;
+                }
+            } catch (e) {
+                window.location.href = 'index.html';
+            }
+        }
+
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = `alert alert-${type} show`;
+            messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function hideMessage() {
+            messageDiv.className = 'alert';
+        }
+
+        function setError(field, message) {
+            const errorEl = errors[field];
+            if (!errorEl) return;
+
+            if (message) {
+                errorEl.textContent = message;
+                errorEl.classList.add('show');
+            } else {
+                errorEl.textContent = '';
+                errorEl.classList.remove('show');
+            }
+        }
+
+        function validateForm() {
+            let valid = true;
+            const orgName = orgNameInput.value.trim();
+
+            if (!orgName || orgName.length < 3) {
+                setError('orgName', 'Organization name must be at least 3 characters');
+                valid = false;
+            } else {
+                setError('orgName', '');
+            }
+
+            if (!orgCategoryInput.value) {
+                setError('orgCategory', 'Please select a category');
+                valid = false;
+            } else {
+                setError('orgCategory', '');
+            }
+
+            return valid;
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!validateForm()) {
+                showMessage('Please fix the errors above', 'error');
+                return;
+            }
+
+            hideMessage();
+            submitBtn.disabled = true;
+
+            const payload = {
+                new_organization_name: orgNameInput.value.trim(),
+                category: orgCategoryInput.value,
+                details: orgDescriptionInput.value.trim() || 'Created via organization creation form'
+            };
+
+            console.log('Submitting organization creation:', payload);
+
+            try {
+                const response = await fetch(`${getApiBase()}/api/organizer/request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
+
+                console.log('Response status:', response.status);
+                const result = await response.json();
+                console.log('Response:', result);
+
+                if (response.ok && result.success) {
+                    showMessage('✓ Organization request submitted! An admin will review it shortly.', 'success');
+                    form.reset();
+                    setTimeout(() => {
+                        window.location.href = 'organizer-requests.html';
+                    }, 2000);
+                } else {
+                    showMessage(`Error: ${result.error || result.message || 'Failed to create organization'}`, 'error');
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(`Error: ${error.message}`, 'error');
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Initialize
+        checkAuth();
+    </script>
+</body>
+</html>

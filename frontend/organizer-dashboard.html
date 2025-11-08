@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,27 +8,109 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     /* Align dashboard visuals with organizer-analytics */
-    .analytics-wrapper { max-width:1200px; margin:0 auto; padding:24px; }
-    .card { background:#fff; padding:16px; border-radius:12px; box-shadow:var(--shadow-sm); }
-    .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap }
-    .filters { display:flex; gap:8px; align-items:center }
-    #filterButtons { display:inline-flex; gap:6px; align-items:center }
-    .filter-btn { padding:8px 12px; border-radius:999px; border:1px solid #e5e7eb; background:transparent; color:#374151; cursor:pointer; font-weight:600; transition:all 150ms ease; box-shadow: none }
-    .filter-btn:hover { transform:translateY(-2px); box-shadow: 0 6px 18px rgba(15,23,42,0.06) }
-    .filter-btn.active { background:#912338; color:#fff; border-color:transparent }
-    .search-input { padding:8px 12px 8px 36px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; position:relative }
-    .search-wrapper { position:relative; display:inline-block }
-    .search-wrapper .icon { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#9ca3af; pointer-events:none }
-    .header-row { display:flex; align-items:center; gap:12px; justify-content:space-between }
-    .header-row h1 { margin:0; color:#111827; font-size: var(--font-size-3xl) }
-    .small-muted { font-size:0.95rem; color:#6b7280 }
-    
+    .analytics-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap
+    }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      align-items: center
+    }
+
+    #filterButtons {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center
+    }
+
+    .filter-btn {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: transparent;
+      color: #374151;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 150ms ease;
+      box-shadow: none
+    }
+
+    .filter-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06)
+    }
+
+    .filter-btn.active {
+      background: #912338;
+      color: #fff;
+      border-color: transparent
+    }
+
+    .search-input {
+      padding: 8px 12px 8px 36px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      position: relative
+    }
+
+    .search-wrapper {
+      position: relative;
+      display: inline-block
+    }
+
+    .search-wrapper .icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      pointer-events: none
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-content: space-between
+    }
+
+    .header-row h1 {
+      margin: 0;
+      color: #111827;
+      font-size: var(--font-size-3xl)
+    }
+
+    .small-muted {
+      font-size: 0.95rem;
+      color: #6b7280
+    }
+
     /* Existing event grid styles kept, minor polish */
     .events-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 1.5rem;
     }
+
     .event-card {
       background: var(--white);
       border-radius: 12px;
@@ -35,38 +118,46 @@
       overflow: hidden;
       transition: transform 0.2s, box-shadow 0.2s;
     }
-    .event-card:hover { transform: translateY(-4px); box-shadow: 0 6px 12px rgba(0,0,0,0.12) }
-    
+
+    .event-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12)
+    }
+
     .event-card {
-  position: relative;
-  z-index: 0;
-}
+      position: relative;
+      z-index: 0;
+    }
 
-.event-card img {
-  width: 100%;
-  height: 160px;
-  object-fit: cover;
-  display: block;
-  pointer-events: none; /* ⬅️ important: let clicks pass through */
-}
+    .event-card img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+      /* ⬅️ important: let clicks pass through */
+    }
 
-.event-card-content {
-  position: relative;
-  z-index: 1;
-}
+    .event-card-content {
+      position: relative;
+      z-index: 1;
+    }
 
     .event-card-content {
       padding: 1rem;
     }
+
     .event-card-content h3 {
       color: var(--primary-maroon);
       margin-bottom: 0.25rem;
     }
+
     .event-meta {
       font-size: 0.9rem;
       color: var(--medium-gray);
       margin-bottom: 0.75rem;
     }
+
     .progress-bar {
       width: 100%;
       height: 6px;
@@ -75,16 +166,19 @@
       overflow: hidden;
       margin-bottom: 0.75rem;
     }
+
     .progress {
       height: 100%;
       background: linear-gradient(90deg, #6B2C91, #912338);
       width: 0%;
       transition: width 0.3s ease;
     }
+
     .card-actions {
       display: flex;
       justify-content: space-between;
     }
+
     .btn-small {
       padding: 8px 14px;
       border-radius: 6px;
@@ -95,22 +189,125 @@
       cursor: pointer;
       transition: all 0.3s ease;
     }
+
     .btn-small:hover {
       background: var(--primary-maroon);
       color: white;
     }
+
     .empty-state {
       text-align: center;
       padding: 3rem 1rem;
       color: var(--medium-gray);
     }
+
     body {
       display: flex;
       flex-direction: column;
       min-height: 100vh;
     }
+
     footer {
       margin-top: auto;
+    }
+
+    /* Status Alert Styles */
+    .status-alert {
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-weight: 500;
+    }
+
+    .status-alert.pending {
+      background-color: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      color: #92400e;
+    }
+
+    .status-alert.refused {
+      background-color: #fee2e2;
+      border-left: 4px solid #ef4444;
+      color: #7f1d1d;
+    }
+
+    .status-alert.approved {
+      background-color: #dcfce7;
+      border-left: 4px solid #22c55e;
+      color: #166534;
+    }
+
+    .status-alert-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .status-alert-content {
+      flex: 1;
+    }
+
+    .status-alert-title {
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .status-alert-description {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .status-alert-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-action {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border: none;
+      background: rgba(0, 0, 0, 0.1);
+      color: inherit;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .btn-action:hover {
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .blocked-overlay {
+      position: relative;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .blocked-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+      min-width: 300px;
+    }
+
+    .blocked-message h3 {
+      color: #ef4444;
+      margin-bottom: 0.5rem;
+    }
+
+    .blocked-message p {
+      color: #666;
+      margin-bottom: 1rem;
     }
   </style>
 </head>
@@ -125,15 +322,15 @@
         <li><a href="browse.html">Browse</a></li>
         <li><a href="about.html">About</a></li>
         <li id="organizerMenu" class="dropdown" style="display:none;">
-                    <a href="#" class="dropdown-toggle">Organizer</a>
-                    <ul class="dropdown-menu">
-                        <li><a href="organizer-dashboard.html">My Dashboard</a></li>
-                        <li><a href="organizer-create-event.html">Create Event</a></li>
-                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
-                        <li><a href="organizer-analytics.html">Event Analytics</a></li>
-                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
-                    </ul>
-                </li>
+          <a href="#" class="dropdown-toggle">Organizer</a>
+          <ul class="dropdown-menu">
+            <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+            <li><a href="create-organization.html">Create Organization</a></li>
+            <li><a href="organizer-create-event.html">Create Event</a></li>
+            <li><a href="organizer-analytics.html?eventId">Event Analytics</a></li>
+            <li id="qrScannerMenu"><a href="organizer-scanner.html">QR Scanner</a></li>
+          </ul>
+        </li>
         <li><a href="profile.html">Profile</a></li>
         <li id="authLinks">
           <a href="login.html" class="btn btn-primary btn-sm">Login</a>
@@ -152,9 +349,12 @@
     document.addEventListener('DOMContentLoaded', async function () {
       try {
         const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
         const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
         const organizerMenu = document.getElementById('organizerMenu');
+        const qrScannerMenu = document.getElementById('qrScannerMenu');
         if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+        if (isAdmin && qrScannerMenu) qrScannerMenu.style.display = 'none';
 
         // Check authentication and update navbar
         if (user) {
@@ -173,16 +373,22 @@
             console.error('Auth check failed:', error);
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     });
   </script>
   <main>
     <div class="breadcrumbs"><span>Organizer</span> <span>›</span> <span>Dashboard</span></div>
     <div class="analytics-wrapper">
+      <!-- Status Alert Section -->
+      <div id="statusAlert" style="display:none;">
+        <!-- Will be populated by JavaScript -->
+      </div>
+
       <div class="card" style="margin-bottom:16px;">
         <div class="header-row">
           <h1>My Dashboard</h1>
-          <button class="btn btn-accent btn-lg" onclick="window.location.href='organizer-create-event.html'">+ Create New Event</button>
+          <button class="btn btn-accent btn-lg" id="createEventBtn"
+            onclick="window.location.href='organizer-create-event.html'">+ Create New Event</button>
         </div>
         <p class="small-muted">Manage and track all your events in one place</p>
       </div>
@@ -238,16 +444,105 @@
     const sortBy = document.getElementById("sortBy");
     const searchInput = document.getElementById("searchInput");
     const filterButtons = document.getElementById("filterButtons");
+    const statusAlert = document.getElementById("statusAlert");
+    const createEventBtn = document.getElementById("createEventBtn");
     let allEvents = [];
     let currentFilter = 'all';
     let query = '';
+    let organizerStatus = null;
+
+    // Check organizer approval status
+    async function checkOrganizerStatus() {
+      try {
+        const resp = await fetch(`${getApiBase()}/api/organizer/status`, { credentials: 'include' });
+        if (resp.ok) {
+          const data = await resp.json();
+          const statusObj = data.status || {};
+          organizerStatus = statusObj.organizer_auth_status || null;
+          displayStatusAlert();
+        }
+      } catch (error) {
+        console.error("Failed to check organizer status:", error);
+      }
+    }
+
+    // Display appropriate status alert
+    function displayStatusAlert() {
+      if (!organizerStatus) {
+        statusAlert.style.display = 'none';
+        return;
+      }
+
+      statusAlert.style.display = 'block';
+      statusAlert.innerHTML = '';
+
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `status-alert ${organizerStatus}`;
+
+      if (organizerStatus === 'pending') {
+        alertDiv.innerHTML = `
+          <div class="status-alert-icon">⏳</div>
+          <div class="status-alert-content">
+            <div class="status-alert-title">Approval Pending</div>
+            <div class="status-alert-description">Your organizer request is awaiting admin approval. You cannot create or edit events yet.</div>
+          </div>
+          <div class="status-alert-actions">
+            <button class="btn-action" onclick="window.location.href='organizer-requests.html'">View Requests</button>
+          </div>
+        `;
+        createEventBtn.disabled = true;
+        createEventBtn.style.opacity = '0.5';
+        createEventBtn.style.cursor = 'not-allowed';
+      } else if (organizerStatus === 'refused') {
+        alertDiv.innerHTML = `
+          <div class="status-alert-icon">❌</div>
+          <div class="status-alert-content">
+            <div class="status-alert-title">Request Refused</div>
+            <div class="status-alert-description">Your previous request was refused. You can submit a new request.</div>
+          </div>
+          <div class="status-alert-actions">
+            <button class="btn-action" onclick="window.location.href='organizer-requests.html'">Submit New Request</button>
+          </div>
+        `;
+        createEventBtn.disabled = true;
+        createEventBtn.style.opacity = '0.5';
+        createEventBtn.style.cursor = 'not-allowed';
+      } else if (organizerStatus === 'approved') {
+        alertDiv.innerHTML = `
+          <div class="status-alert-icon">✅</div>
+          <div class="status-alert-content">
+            <div class="status-alert-title">Approved Organizer</div>
+            <div class="status-alert-description">You are approved to create and manage events.</div>
+          </div>
+        `;
+        createEventBtn.disabled = false;
+        createEventBtn.style.opacity = '1';
+        createEventBtn.style.cursor = 'pointer';
+      }
+
+      statusAlert.appendChild(alertDiv);
+    }
 
     // Fetch organizer's events from backend
     async function loadEvents() {
       try {
         const resp = await fetch(`${getApiBase()}/api/organizer/events`, { credentials: 'include' });
-        const data = await resp.json();
 
+        if (resp.status === 403) {
+          const data = await resp.json();
+          if (data.organizer_auth_status === 'pending') {
+            organizerStatus = 'pending';
+            displayStatusAlert();
+          } else if (data.organizer_auth_status === 'refused') {
+            organizerStatus = 'refused';
+            displayStatusAlert();
+          }
+          emptyState.style.display = "block";
+          emptyState.innerHTML = '<p>Please wait for admin approval before creating events.</p>';
+          return;
+        }
+
+        const data = await resp.json();
         if (data.success && Array.isArray(data.events)) {
           allEvents = data.events.map(ev => ({
             id: ev.id,
@@ -310,12 +605,7 @@
         analyticsBtn.textContent = "View Analytics";
         analyticsBtn.onclick = () => window.location.href = `organizer-analytics.html?eventId=${ev.id}`;
 
-        const editBtn = document.createElement("button");
-        editBtn.className = "btn-small";
-        editBtn.textContent = "Edit Event";
-        editBtn.onclick = () => window.location.href = `organizer-edit-event.html?eventId=${ev.id}`;
-
-        actions.append(analyticsBtn, editBtn);
+        actions.append(analyticsBtn);
         content.append(title, meta, progressBar, actions);
         card.append(img, content);
         grid.appendChild(card);
@@ -327,14 +617,14 @@
       let list = [...allEvents];
 
       // Filter by status
-      const today = new Date(); today.setHours(0,0,0,0);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
       if (currentFilter === 'upcoming') {
         list = list.filter(ev => {
-          const d = new Date(ev.date); d.setHours(0,0,0,0); return d >= today;
+          const d = new Date(ev.date); d.setHours(0, 0, 0, 0); return d >= today;
         });
       } else if (currentFilter === 'past') {
         list = list.filter(ev => {
-          const d = new Date(ev.date); d.setHours(0,0,0,0); return d < today;
+          const d = new Date(ev.date); d.setHours(0, 0, 0, 0); return d < today;
         });
       }
 
@@ -364,12 +654,23 @@
       applyView();
     });
 
-    window.addEventListener("DOMContentLoaded", loadEvents);
+    window.addEventListener("DOMContentLoaded", () => {
+      checkOrganizerStatus();
+      loadEvents();
+    });
 
     // Logout helper re-used from other pages
     window.logout = async function logout() {
-      try { await fetch(`${getApiBase()}/api/auth/logout`, { method:'POST', credentials:'include' }); localStorage.removeItem('user'); window.location.href='index.html'; } catch(e){}
+      if (confirm('Are you sure you want to logout?')) {
+        try {
+          await fetch(`${getApiBase()}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          window.location.href = '/index.html';
+        } catch (e) { }
+      }
     }
   </script>
 </body>
+
 </html>

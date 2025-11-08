@@ -7,15 +7,28 @@ const { requireAuth } = require("../middleware/auth");
 // Import will be added when db config is integrated
 // const db = require('../config/db');
 
+// Admin security code (should be in environment variable in production)
+const ADMIN_CODE = process.env.ADMIN_CODE || "341";
+
 // Registration endpoint
 router.post("/register", async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, admin_code } = req.body;
 
   // Validation
   if (!name || !email || !password) {
     return res.status(400).json({
       error: "Missing required fields: name, email, and password are required",
     });
+  }
+
+  // Admin code validation
+  if (role && String(role).toLowerCase() === "admin") {
+    if (!admin_code) {
+      return res.status(400).json({ error: "Admin code is required for admin registration" });
+    }
+    if (String(admin_code).trim() !== ADMIN_CODE) {
+      return res.status(403).json({ error: "Invalid admin code" });
+    }
   }
 
   // Email validation
@@ -49,6 +62,11 @@ router.post("/register", async (req, res) => {
             .status(500)
             .json({ error: "Database error during registration" });
         }
+
+        // Establish session after successful registration
+        console.log(`[AUTH] Registration successful for user ${result.insertId}, establishing session`);
+        req.session.userId = result.insertId;
+
         res.status(201).json({
           message: "User registered successfully",
           userId: result.insertId,

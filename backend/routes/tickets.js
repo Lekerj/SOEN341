@@ -3,7 +3,7 @@ const crypto = require("crypto");
 const QRCode = require("qrcode");
 const router = express.Router();
 const db = require("../config/db");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requireStudent } = require("../middleware/auth");
 
 const DEMO_MODE = String(process.env.DEMO_MODE || "0") === "1";
 
@@ -26,7 +26,7 @@ function generateTicketCode() {
 }
 
 // Claim a ticket for an event (free requires auth; paid flow can be extended later)
-router.post("/claim", requireAuth, (req, res) => {
+router.post("/claim", requireStudent, (req, res) => {
   const userId = req.session.userId;
   const { event_id } = req.body;
 
@@ -34,126 +34,113 @@ router.post("/claim", requireAuth, (req, res) => {
     return res.status(400).json({ error: "Invalid or missing event_id" });
   }
 
-  db.beginTransaction((txErr) => {
-    if (txErr) {
-      console.error("Transaction start error:", txErr);
-      return res.status(500).json({ error: "Internal Server Error" });
-    }
-
-    // 1) Lock the event row to check availability safely
-    db.query(
-      "SELECT id, title, price, tickets_available FROM events WHERE id = ? FOR UPDATE",
-      [event_id],
-      (err, events) => {
-        if (err) {
-          console.error("Event select error:", err);
-          return db.rollback(() =>
-            res.status(500).json({ error: "Internal Server Error" })
-          );
-        }
-        if (events.length === 0) {
-          return db.rollback(() =>
-            res.status(404).json({ error: "Event not found" })
-          );
-        }
-
-        const event = events[0];
-        if (event.tickets_available <= 0) {
-          return db.rollback(() =>
-            res
-              .status(409)
-              .json({ error: "sold_out", message: "No tickets available" })
-          );
-        }
-
-        // 2) Ensure user doesn’t already have a ticket for this event
-        db.query(
-          "SELECT id FROM tickets WHERE user_id = ? AND event_id = ? LIMIT 1",
-          [userId, event_id],
-          (dupErr, existing) => {
-            if (dupErr) {
-              console.error("Ticket duplicate check error:", dupErr);
-              return db.rollback(() =>
-                res.status(500).json({ error: "Internal Server Error" })
-              );
-            }
-            if (existing.length > 0) {
-              return db.rollback(() =>
-                res.status(409).json({
-                  error: "already_claimed",
-                  message: "You already claimed a ticket for this event",
-                })
-              );
-            }
-
-            const code = generateTicketCode();
-            const ticketType = Number(event.price) > 0 ? "paid" : "free";
-
-            // 3) Insert ticket
-            db.query(
-              "INSERT INTO tickets (user_id, event_id, ticket_type, qr_code) VALUES (?, ?, ?, ?)",
-              [userId, event_id, ticketType, code],
-              (insErr, result) => {
-                if (insErr) {
-                  console.error("Ticket insert error:", insErr);
-                  return db.rollback(() =>
-                    res.status(500).json({ error: "Internal Server Error" })
-                  );
-                }
-
-                // 4) Decrement availability
-                db.query(
-                  "UPDATE events SET tickets_available = tickets_available - 1 WHERE id = ?",
-                  [event_id],
-                  (updErr) => {
-                    if (updErr) {
-                      console.error("Event update error:", updErr);
-                      return db.rollback(() =>
-                        res.status(500).json({ error: "Internal Server Error" })
-                      );
-                    }
-
-                    db.commit((commitErr) => {
-                      if (commitErr) {
-                        console.error("Commit error:", commitErr);
-                        return db.rollback(() =>
-                          res
-                            .status(500)
-                            .json({ error: "Internal Server Error" })
-                        );
-                      }
-
-                      res.status(201).json({
-                        success: true,
-                        ticket: {
-                          id: result.insertId,
-                          event_id: event_id,
-                          ticket_type: ticketType,
-                          code,
-                        },
-                        event: {
-                          id: event.id,
-                          title: event.title,
-                          price: event.price,
-                        },
-                      });
-                    });
-                  }
-                );
-              }
-            );
-          }
-        );
+  // 1) Check event and availability (also fetch organizer_id to prevent organizers claiming own events)
+  db.query(
+    `SELECT e.id, e.organizer_id, e.title, e.price, e.capacity, (e.capacity - COUNT(t.id)) as tickets_available
+     FROM events e
+     LEFT JOIN tickets t ON e.id = t.event_id
+     WHERE e.id = ?
+     GROUP BY e.id, e.title, e.price, e.capacity`,
+    [event_id],
+    (err, events) => {
+      if (err) {
+        console.error("Event select error:", err);
+        return res.status(500).json({ error: "Internal Server Error" });
       }
-    );
-  });
+      if (events.length === 0) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+
+      const event = events[0];
+
+      // Extra safety: prevent claiming ticket for an event you organize (even if role state is temporarily inconsistent)
+      if (Number(event.organizer_id) === Number(userId)) {
+        console.error(
+          `AUDIT: Organizer attempted to claim ticket for own event. User ID: ${userId}, Event ID: ${event_id}`
+        );
+        return res.status(403).json({
+          error:
+            "Forbidden - Organizers cannot claim tickets for their own events",
+          message:
+            "Organizers cannot claim or purchase tickets for their own events",
+        });
+      }
+      if (event.tickets_available <= 0) {
+        return res
+          .status(409)
+          .json({ error: "sold_out", message: "No tickets available" });
+      }
+
+      // 2) Ensure user doesn't already have a ticket for this event
+      db.query(
+        "SELECT id FROM tickets WHERE user_id = ? AND event_id = ? LIMIT 1",
+        [userId, event_id],
+        (dupErr, existing) => {
+          if (dupErr) {
+            console.error("Ticket duplicate check error:", dupErr);
+            return res.status(500).json({ error: "Internal Server Error" });
+          }
+          if (existing.length > 0) {
+            return res.status(409).json({
+              error: "already_claimed",
+              message: "You already claimed a ticket for this event",
+            });
+          }
+
+          const code = generateTicketCode();
+          const ticketType = Number(event.price) > 0 ? "paid" : "free";
+
+          // 3) Insert ticket
+          db.query(
+            "INSERT INTO tickets (user_id, event_id, ticket_type, qr_code) VALUES (?, ?, ?, ?)",
+            [userId, event_id, ticketType, code],
+            (insErr, result) => {
+              if (insErr) {
+                console.error("Ticket insert error:", insErr);
+                return res.status(500).json({ error: "Internal Server Error" });
+              }
+
+              // 4) Decrement availability
+              db.query(
+                "UPDATE events SET tickets_available = tickets_available - 1 WHERE id = ?",
+                [event_id],
+                (updErr) => {
+                  if (updErr) {
+                    console.error("Event update error:", updErr);
+                    return res
+                      .status(500)
+                      .json({ error: "Internal Server Error" });
+                  }
+
+                  res.status(201).json({
+                    success: true,
+                    ticket: {
+                      id: result.insertId,
+                      event_id: event_id,
+                      ticket_type: ticketType,
+                      code,
+                    },
+                    event: {
+                      id: event.id,
+                      title: event.title,
+                      price: event.price,
+                    },
+                  });
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+  );
 });
 
 // Get current user tickets
 router.get("/", requireAuth, (req, res) => {
   const userId = req.session.userId;
   const sql = `
-    SELECT t.id, t.event_id, t.ticket_type, t.qr_code, t.created_at,
+    SELECT t.id, t.event_id, t.ticket_type, t.qr_code, t.created_at, t.checked_in,
            e.title, e.event_date, e.event_time, e.location, e.price, e.description
     FROM tickets t
     JOIN events e ON t.event_id = e.id
@@ -177,7 +164,7 @@ router.get("/:id", requireAuth, (req, res) => {
     return res.status(400).json({ error: "Invalid ticket id" });
   }
   const sql = `
-    SELECT t.id, t.event_id, t.ticket_type, t.qr_code, t.created_at,
+    SELECT t.id, t.event_id, t.ticket_type, t.qr_code, t.created_at, t.checked_in,
            e.title, e.event_date, e.event_time, e.location, e.price, e.description
     FROM tickets t
     JOIN events e ON t.event_id = e.id

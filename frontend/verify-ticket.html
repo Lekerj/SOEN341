@@ -111,10 +111,10 @@
                 <li id="organizerMenu" class="dropdown" style="display:none;">
                     <a href="#" class="dropdown-toggle">Organizer</a>
                     <ul class="dropdown-menu">
-                      <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+                        <li><a href="organizer-dashboard.html">My Dashboard</a></li>
                         <li><a href="organizer-create-event.html">Create Event</a></li>
-                        <li><a href="organizer-edit-event.html?eventId=X">Edit Event</a></li>
-                        <li><a href="organizer-analytics.html?eventId=X">Event Analytics</a></li>
+                        <li><a href="organizer-edit-event.html?eventId">Edit Event</a></li>
+                        <li><a href="organizer-analytics.html?eventId">Event Analytics</a></li>
                         <li><a href="organizer-scanner.html">QR Scanner</a></li>
                     </ul>
                 </li>
@@ -123,14 +123,14 @@
         </div>
     </nav>
     <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        try {
-          const user = JSON.parse(localStorage.getItem('user') || 'null');
-          const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
-          const organizerMenu = document.getElementById('organizerMenu');
-          if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-        } catch (e) {}
-      });
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || 'null');
+                const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+                const organizerMenu = document.getElementById('organizerMenu');
+                if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+            } catch (e) { }
+        });
     </script>
 
     <div class="main-content">
@@ -297,7 +297,10 @@
                     messageArea.style.background = '#d4edda';
                     messageArea.style.color = '#155724';
                     messageArea.style.border = '2px solid #28a745';
-                    messageArea.textContent = '✓ Ticket successfully checked in!';
+                    messageArea.innerHTML = `
+                        <p style="margin: 0; font-weight: 600;">✓ Ticket successfully checked in!</p>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Your check-in has been recorded. <a href="my-tickets.html" style="color: #155724; text-decoration: underline;">View your tickets</a></p>
+                    `;
 
                     // Update status badge
                     const statusBadge = document.getElementById('statusBadge');

@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(50) DEFAULT 'student',
   profile_pic_url VARCHAR(500) DEFAULT 'https://upload.wikimedia.org/wikipedia/commons/a/ac/Default_pfp.jpg',
-  organizer_auth_status ENUM('null', 'pending', 'approved', 'refused') DEFAULT 'null',
+  organizer_auth_status ENUM('pending', 'approved', 'refused') DEFAULT NULL,
   organization_id INT DEFAULT NULL,
   organization_role ENUM('Member', 'Event Manager', 'Vice President', 'President') DEFAULT 'Member',
   request_date TIMESTAMP NULL DEFAULT NULL,
@@ -140,7 +140,7 @@ VALUES (1, 'ConEvents', 'Default system organization', 'social', TRUE);
 
 -- 10. Insert sample admin user (password: admin123)
 INSERT IGNORE INTO users (id, name, email, password_hash, role, organizer_auth_status)
-VALUES (1, 'Admin User', 'admin@conevents.com', '$2b$10$0.5S1/KTF3ZqVN4X8L3eaOVhLH9yqsXH3zMj5WKs1fXJ5V0VHh5uW', 'admin', 'approved');
+VALUES (1, 'Admin User', 'admin@conevents.com', '$2b$10$0.5S1/KTF3ZqVN4X8L3eaOVhLH9yqsXH3zMj5WKs1fXJ5V0VHh5uW', 'admin', NULL);
 
 -- 11. Add admin to default organization
 INSERT IGNORE INTO organization_members (user_id, organization_id, role, status)
