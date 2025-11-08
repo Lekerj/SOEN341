@@ -15,7 +15,8 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f5f5f5;
-            padding: 0;
+            padding-top: 64px;
+            /* Initial, adjusted dynamically via JS */
             color: #333;
         }
 
@@ -33,6 +34,7 @@
             align-items: center;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             z-index: 100;
+            flex-wrap: wrap;
         }
 
         nav.admin-navbar .brand {
@@ -43,10 +45,11 @@
 
         nav.admin-navbar .nav-center {
             display: flex;
-            gap: 2rem;
+            gap: 1.5rem;
             flex: 1;
             justify-content: center;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         nav.admin-navbar a,
@@ -61,6 +64,7 @@
             border-radius: 4px;
             transition: all 0.3s ease;
             font-weight: 500;
+            white-space: nowrap;
         }
 
         nav.admin-navbar a:hover,
@@ -132,7 +136,7 @@
         /* Container */
         .container {
             max-width: 1200px;
-            margin: 2rem auto;
+            margin: 1rem auto 2rem auto;
             padding: 0 1rem;
         }
 
@@ -419,15 +423,7 @@
         }
 
         @media (max-width: 768px) {
-            nav {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            nav .nav-center {
-                width: 100%;
-                flex-direction: column;
-            }
+            /* Navbar responsive styles are handled in the consolidated block above */
 
             table {
                 font-size: 0.9rem;
@@ -864,9 +860,36 @@
             return div.innerHTML;
         }
 
+        // Adjust body padding based on navbar height
+        function adjustNavOffset() {
+            const nav = document.querySelector('nav.admin-navbar');
+            if (nav) {
+                const navHeight = nav.offsetHeight;
+                document.body.style.paddingTop = (navHeight + 20) + 'px'; // Add 20px spacing
+            }
+        }
+
+        // Multi-pass adjustment for late layout shifts
+        function scheduleNavAdjustments() {
+            adjustNavOffset();
+            requestAnimationFrame(() => adjustNavOffset());
+            setTimeout(adjustNavOffset, 150);
+            setTimeout(adjustNavOffset, 500);
+        }
+
+        // Observe navbar size changes (e.g., wrapping on smaller screens)
+        function observeNavResize() {
+            const nav = document.querySelector('nav.admin-navbar');
+            if (!nav || typeof ResizeObserver === 'undefined') return;
+            const ro = new ResizeObserver(() => adjustNavOffset());
+            ro.observe(nav);
+        }
+
         // Remove legacy duplicate functions and ensure single initialization
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            scheduleNavAdjustments();
+            observeNavResize();
             checkAdminAuth();
             loadRequests();
 
@@ -874,6 +897,16 @@
             setInterval(() => {
                 loadRequests();
             }, 5000);
+        });
+
+        window.addEventListener('load', scheduleNavAdjustments);
+        window.addEventListener('orientationchange', scheduleNavAdjustments);
+
+        // Re-adjust on window resize (with debounce)
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(adjustNavOffset, 100);
         });
     </script>
 </body>

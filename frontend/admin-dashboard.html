@@ -16,7 +16,8 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 0;
+            padding-top: 64px;
+            /* Initial, adjusted dynamically via JS */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -36,6 +37,7 @@
             align-items: center;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             z-index: 100;
+            flex-wrap: wrap;
         }
 
         nav.admin-navbar .brand {
@@ -46,10 +48,11 @@
 
         nav.admin-navbar .nav-center {
             display: flex;
-            gap: 2rem;
+            gap: 1.5rem;
             flex: 1;
             justify-content: center;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         nav.admin-navbar a,
@@ -64,6 +67,7 @@
             border-radius: 4px;
             transition: all 0.3s ease;
             font-weight: 500;
+            white-space: nowrap;
         }
 
         nav.admin-navbar a:hover,
@@ -134,8 +138,9 @@
 
         .container {
             max-width: 1200px;
-            margin: 100px auto 2rem auto;
+            margin: 1rem auto 2rem auto;
             width: 100%;
+            padding: 0 1rem;
         }
 
         .welcome-card {
@@ -350,9 +355,46 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            scheduleNavAdjustments();
+            observeNavResize();
             checkAdmin();
             setupNavbar();
             loadStatistics();
+        });
+
+        // Adjust body padding based on navbar height
+        function adjustNavOffset() {
+            const nav = document.querySelector('nav.admin-navbar');
+            if (nav) {
+                const navHeight = nav.offsetHeight;
+                document.body.style.paddingTop = (navHeight + 20) + 'px'; // Add 20px spacing
+            }
+        }
+
+        // Observe navbar size changes (e.g., wrapping on smaller screens)
+        function observeNavResize() {
+            const nav = document.querySelector('nav.admin-navbar');
+            if (!nav || typeof ResizeObserver === 'undefined') return;
+            const ro = new ResizeObserver(() => adjustNavOffset());
+            ro.observe(nav);
+        }
+
+        // Multi-pass adjustment for late layout shifts
+        function scheduleNavAdjustments() {
+            adjustNavOffset();
+            requestAnimationFrame(() => adjustNavOffset());
+            setTimeout(adjustNavOffset, 150);
+            setTimeout(adjustNavOffset, 500);
+        }
+
+        window.addEventListener('load', scheduleNavAdjustments);
+        window.addEventListener('orientationchange', scheduleNavAdjustments);
+
+        // Re-adjust on window resize (with debounce)
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(adjustNavOffset, 100);
         });
 
         function checkAdmin() {
