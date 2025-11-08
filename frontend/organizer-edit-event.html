@@ -606,6 +606,18 @@
 
       // Load events and populate dropdown
       async function loadEventsList() {
+        const userRole = getUserRole();
+        if (userRole === 'admin') {
+          // Admins: hide selector, require eventId in URL
+          document.getElementById('eventSelectorGroup').style.display = 'none';
+          if (!eventId) {
+            showAlert(['Admins must use a direct event link (e.g. ?eventId=9) to edit events.'], true);
+          } else {
+            fetchEventAndPopulate();
+          }
+          return;
+        }
+        // Organizers: show selector and load their events
         try {
           const response = await fetch(`${getApiBase()}/api/organizer/events`, {
             credentials: 'include',
