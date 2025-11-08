@@ -3,7 +3,7 @@ const crypto = require("crypto");
 const QRCode = require("qrcode");
 const router = express.Router();
 const db = require("../config/db");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requireStudent } = require("../middleware/auth");
 
 const DEMO_MODE = String(process.env.DEMO_MODE || "0") === "1";
 
@@ -26,7 +26,7 @@ function generateTicketCode() {
 }
 
 // Claim a ticket for an event (free requires auth; paid flow can be extended later)
-router.post("/claim", requireAuth, (req, res) => {
+router.post("/claim", requireStudent, (req, res) => {
   const userId = req.session.userId;
   const { event_id } = req.body;
 
@@ -34,9 +34,9 @@ router.post("/claim", requireAuth, (req, res) => {
     return res.status(400).json({ error: "Invalid or missing event_id" });
   }
 
-  // 1) Check event and availability
+  // 1) Check event and availability (also fetch organizer_id to prevent organizers claiming own events)
   db.query(
-    `SELECT e.id, e.title, e.price, e.capacity, (e.capacity - COUNT(t.id)) as tickets_available
+    `SELECT e.id, e.organizer_id, e.title, e.price, e.capacity, (e.capacity - COUNT(t.id)) as tickets_available
      FROM events e
      LEFT JOIN tickets t ON e.id = t.event_id
      WHERE e.id = ?
@@ -52,6 +52,19 @@ router.post("/claim", requireAuth, (req, res) => {
       }
 
       const event = events[0];
+
+      // Extra safety: prevent claiming ticket for an event you organize (even if role state is temporarily inconsistent)
+      if (Number(event.organizer_id) === Number(userId)) {
+        console.error(
+          `AUDIT: Organizer attempted to claim ticket for own event. User ID: ${userId}, Event ID: ${event_id}`
+        );
+        return res.status(403).json({
+          error:
+            "Forbidden - Organizers cannot claim tickets for their own events",
+          message:
+            "Organizers cannot claim or purchase tickets for their own events",
+        });
+      }
       if (event.tickets_available <= 0) {
         return res
           .status(409)
@@ -94,7 +107,9 @@ router.post("/claim", requireAuth, (req, res) => {
                 (updErr) => {
                   if (updErr) {
                     console.error("Event update error:", updErr);
-                    return res.status(500).json({ error: "Internal Server Error" });
+                    return res
+                      .status(500)
+                      .json({ error: "Internal Server Error" });
                   }
 
                   res.status(201).json({

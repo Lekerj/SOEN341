@@ -129,6 +129,58 @@ function requireApprovedOrganizer(req, res, next) {
   );
 }
 
+/**
+ * Middleware to check if user is a STUDENT (not organizer or admin)
+ * Only students can claim/purchase tickets for events
+ */
+function requireStudent(req, res, next) {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Unauthorized - Please log in" });
+  }
+
+  // Fetch both role and organizer_auth_status to robustly detect organizer privileges
+  db.query(
+    "SELECT role, organizer_auth_status FROM users WHERE id = ?",
+    [req.session.userId],
+    (err, rows) => {
+      if (err) {
+        console.error("Database error during student check:", err);
+        return res.status(500).json({ error: "Internal Server Error" });
+      }
+
+      if (rows.length === 0) {
+        return res
+          .status(500)
+          .json({ error: "Internal Server Error: User not found" });
+      }
+
+      const { role: userRole, organizer_auth_status: orgStatus } = rows[0];
+      const normalizedRole = String(userRole || "").toLowerCase();
+      const normalizedStatus = String(orgStatus || "").toLowerCase();
+
+      // Block if: admin OR organizer role OR approved organizer status (even if role wasn't updated yet)
+      const isAdmin = normalizedRole === "admin";
+      const isOrganizerRole = normalizedRole === "organizer";
+      const isApprovedOrganizer = normalizedStatus === "approved";
+
+      if (isAdmin || isOrganizerRole || isApprovedOrganizer) {
+        console.error(
+          `AUDIT: Non-student ticket claim attempt. User ID: ${req.session.userId}, Role: ${normalizedRole}, organizer_auth_status: ${normalizedStatus}, Endpoint: ${req.originalUrl}`
+        );
+        return res.status(403).json({
+          error: "Forbidden - Only students can claim tickets",
+          message:
+            "Organizers and admins cannot claim or purchase event tickets",
+        });
+      }
+
+      // At this point user is treated as a student (may have pending/refused/null organizer request)
+      req.userRole = normalizedRole;
+      next();
+    }
+  );
+}
+
 module.exports = {
   requireAuth,
   requireRole,
@@ -136,4 +188,5 @@ module.exports = {
   requireApprovedOrganizer, // New middleware for approved organizers only
   requireAdmin,
   requireModerator,
+  requireStudent, // New middleware for student-only access (ticket claiming)
 };

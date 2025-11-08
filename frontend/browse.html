@@ -1213,11 +1213,20 @@
 
       footer.appendChild(price);
 
-      // Hide ticket button for admin users
+      // Hide ticket claim button for admins and organizers (only students can claim)
       const user = JSON.parse(localStorage.getItem('user') || 'null');
-      const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
-      if (!isAdmin) {
+      const roleLower = user && user.role ? String(user.role).toLowerCase() : null;
+      const isAdmin = roleLower === 'admin';
+      const isOrganizer = roleLower === 'organizer';
+      if (!isAdmin && !isOrganizer) {
         footer.appendChild(ticketButton);
+      } else {
+        const blockedMsg = document.createElement('div');
+        blockedMsg.style.fontSize = '0.75rem';
+        blockedMsg.style.color = '#b00020';
+        blockedMsg.style.marginTop = '4px';
+        blockedMsg.textContent = isAdmin ? 'Admins cannot claim tickets.' : 'Organizers cannot claim tickets.';
+        footer.appendChild(blockedMsg);
       }
 
       // Details toggle button
