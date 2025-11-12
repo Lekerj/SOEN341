@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS events (
     moderation_notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    tickets_available INT DEFAULT 0,
 
     INDEX idx_organizer_id (organizer_id),
     INDEX idx_event_date (event_date),
@@ -83,11 +84,11 @@ CREATE TABLE IF NOT EXISTS tickets (
     id INT AUTO_INCREMENT PRIMARY KEY,
     event_id INT NOT NULL,
     user_id INT,
-    ticket_code VARCHAR(255) UNIQUE,
     checked_in BOOLEAN DEFAULT FALSE,
-    checked_in_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    qr_code VARCHAR(255) UNIQUE,
+    ticket_type ENUM('free', 'paid') DEFAULT 'free',
 
     INDEX idx_event_id (event_id),
     INDEX idx_user_id (user_id),

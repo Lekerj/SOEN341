@@ -49,11 +49,7 @@ INSERT INTO events (
     ('Engineering Expo', 'Showcase of student engineering projects.', '2025-11-22', '14:00:00', 'Engineering Building', 0.00, 'academic', 'Engineering & Computer Science Association', NULL, 150, 140, 'https://example.com/images/engineering-expo.jpg');
 
 -- Optional: preload a few tickets for existing users.
--- Update the email list to match accounts in your users table. If none match, the INSERT simply affects zero rows.
-INSERT INTO tickets (user_id, event_id, ticket_type, qr_code, checked_in)
-SELECT u.id, e.id, 'free', CONCAT('QR-', e.id, '-', u.id), FALSE
-FROM users u
-JOIN events e ON e.title = 'Orientation Week Kickoff'
-WHERE u.email IN ('alice@example.com', 'bob@example.com');
+-- This is done via separate script to ensure proper user creation first.
+-- Users can claim tickets through the normal ticket booking flow.
 
 COMMIT;
