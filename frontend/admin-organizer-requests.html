@@ -697,7 +697,8 @@
                 const result = await response.json();
                 console.log('Loaded requests:', result);
                 allRequests = result.requests || [];
-                renderRequests(allRequests);
+                // Apply current filter instead of rendering all
+                applyFilter();
             } catch (error) {
                 console.error('Error loading requests:', error);
                 showAlert('error', `Failed to load requests: ${error.message}`);
@@ -710,6 +711,15 @@
                     </tr>
                 `;
             }
+        }
+
+        // Apply filter with current filter value
+        function applyFilter() {
+            const filtered = allRequests.filter(req => {
+                if (!statusFilter.value) return true;
+                return req.status === statusFilter.value;
+            });
+            renderRequests(filtered);
         }
 
         // Render requests
@@ -799,11 +809,8 @@
                 if (response.ok && result.success) {
                     showAlert('success', 'Request approved successfully');
                     closeModal();
-                    // Optimistically update UI: remove from pending list
-                    allRequests = allRequests.filter(r => String(r.id) !== String(requestId));
-                    renderRequests(allRequests);
-                    // Background refresh after a brief delay to sync state
-                    setTimeout(() => { loadRequests(); }, 600);
+                    // Reload all requests to ensure filter works correctly
+                    loadRequests();
                 } else {
                     showAlert('error', result.message || 'Failed to approve request');
                 }
@@ -831,11 +838,8 @@
                 if (response.ok && result.success) {
                     showAlert('success', 'Request rejected');
                     closeModal();
-                    // Optimistically update UI: remove from pending list
-                    allRequests = allRequests.filter(r => String(r.id) !== String(requestId));
-                    renderRequests(allRequests);
-                    // Background refresh after a brief delay to sync state
-                    setTimeout(() => { loadRequests(); }, 600);
+                    // Reload all requests to ensure filter works correctly
+                    loadRequests();
                 } else {
                     showAlert('error', result.message || 'Failed to reject request');
                 }
@@ -846,13 +850,7 @@
         };
 
         // Filter by status
-        statusFilter.addEventListener('change', () => {
-            const filtered = allRequests.filter(req => {
-                if (!statusFilter.value) return true;
-                return req.status === statusFilter.value;
-            });
-            renderRequests(filtered);
-        });
+        statusFilter.addEventListener('change', applyFilter);
 
         // Escape HTML
         function escapeHtml(text) {

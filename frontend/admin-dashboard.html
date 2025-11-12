@@ -299,17 +299,12 @@
             <div class="stat-card">
                 <div class="stat-icon">📋</div>
                 <div class="stat-value" id="totalEvents">0</div>
-                <div class="stat-label">Total Events</div>
+                <div class="stat-label">All Requests</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon">👥</div>
                 <div class="stat-value" id="totalOrganizations">0</div>
                 <div class="stat-label">Organizations</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">⏳</div>
-                <div class="stat-value" id="pendingApprovals">0</div>
-                <div class="stat-label">Pending Approvals</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon">🚩</div>
@@ -448,16 +443,13 @@
 
         async function loadStatistics() {
             try {
-                // Load total events
-                const eventsRes = await fetch(apiUrl('/api/admin/events'), {
+                // Load all requests
+                const requestsRes = await fetch(apiUrl('/api/admin/organizer/requests'), {
                     credentials: 'include'
                 });
-                const eventsData = await eventsRes.json();
-                if (eventsData.success) {
-                    const total = eventsData.events ? eventsData.events.length : 0;
-                    const flagged = eventsData.events ? eventsData.events.filter(e => e.is_flagged).length : 0;
-                    document.getElementById('totalEvents').textContent = total;
-                    document.getElementById('flaggedEvents').textContent = flagged;
+                const requestsData = await requestsRes.json();
+                if (requestsData.success) {
+                    document.getElementById('totalEvents').textContent = requestsData.requests ? requestsData.requests.length : 0;
                 }
 
                 // Load organizations
@@ -469,13 +461,14 @@
                     document.getElementById('totalOrganizations').textContent = orgsData.organizations ? orgsData.organizations.length : 0;
                 }
 
-                // Load pending approvals
-                const pendingRes = await fetch(apiUrl('/api/admin/organizer/requests'), {
+                // Load flagged events
+                const eventsRes = await fetch(apiUrl('/api/admin/events'), {
                     credentials: 'include'
                 });
-                const pendingData = await pendingRes.json();
-                if (pendingData.success) {
-                    document.getElementById('pendingApprovals').textContent = pendingData.requests ? pendingData.requests.length : 0;
+                const eventsData = await eventsRes.json();
+                if (eventsData.success) {
+                    const flagged = eventsData.events ? eventsData.events.filter(e => e.is_flagged).length : 0;
+                    document.getElementById('flaggedEvents').textContent = flagged;
                 }
             } catch (err) {
                 console.error('Error loading statistics:', err);

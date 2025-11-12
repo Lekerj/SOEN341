@@ -88,19 +88,21 @@ EXIT;
 
 ### Step 3: Load Database Schema
 
-**macOS:**
+Load the complete database schema using the setup file:
+
+**macOS/Windows:**
 ```bash
-mysql -u 341 -pPass341! convenevents < backend/sql/users_table.sql
-mysql -u 341 -pPass341! convenevents < backend/sql/events_table.sql
-mysql -u 341 -pPass341! convenevents < backend/sql/tickets_table.sql
+mysql -u 341 -pPass341! convenevents < backend/sql/setup-database.sql
 ```
 
-**Windows:**
-```bash
-mysql -u 341 -pPass341! convenevents < backend\sql\users_table.sql
-mysql -u 341 -pPass341! convenevents < backend\sql\events_table.sql
-mysql -u 341 -pPass341! convenevents < backend\sql\tickets_table.sql
-```
+This will create all 7 tables with the complete schema:
+- organizations
+- users
+- organization_members
+- events (with is_flagged, moderation_notes, tickets_available)
+- tickets (with qr_code, ticket_type)
+- organizer_requests
+- notifications
 
 ### Step 4: Install Dependencies
 
@@ -118,7 +120,7 @@ npm --prefix frontend --no-save install http-server
 
 ### Step 5: (Optional) Seed Demo Data
 
-Load sample events for testing:
+To create sample test data:
 
 ```bash
 npm --prefix backend run seed
@@ -128,59 +130,64 @@ npm --prefix backend run seed
 
 ---
 
-## 3. Database Update (Existing Database)
+## 3. Database Reset (Existing Database)
 
 **Use this section if:**
-- You switched from `main` to `sprint2/tickets-details-claims` branch
-- Your database schema is outdated
-- You're syncing with the latest team changes
+- You need to reset your database to match the latest schema
+- Your colleague's database is missing columns
+- You want to sync with the team's working database
+- You're switching branches and need to update the schema
 
-### Step 1: Update Dependencies
+### Step 1: Reset Database (⚠️ Warning: Existing data will be lost)
 
+Simply reload the complete schema:
+
+**macOS/Windows:**
 ```bash
-npm --prefix backend install
-npm --prefix frontend --no-save install http-server
+mysql -u 341 -pPass341! convenevents < backend/sql/setup-database.sql
 ```
 
-### Step 2: Update Database Schema
+This will:
+- Drop all existing tables
+- Create all 7 tables with your exact working schema
+- Restore the default organization
 
-**⚠️ Warning:** This will **DROP and RECREATE** all tables. Existing data will be lost.
+### Step 2: (Optional) Seed Demo Data
 
-**macOS:**
-```bash
-mysql -u 341 -pPass341! convenevents < backend/sql/users_table.sql
-mysql -u 341 -pPass341! convenevents < backend/sql/events_table.sql
-mysql -u 341 -pPass341! convenevents < backend/sql/tickets_table.sql
-```
-
-**Windows:**
-```bash
-mysql -u 341 -pPass341! convenevents < backend\sql\users_table.sql
-mysql -u 341 -pPass341! convenevents < backend\sql\events_table.sql
-mysql -u 341 -pPass341! convenevents < backend\sql\tickets_table.sql
-```
-
-**Alternative (using MySQL shell):**
-
-```bash
-mysql -u 341 -pPass341! convenevents
-```
-
-Then run:
-```sql
-SOURCE backend/sql/users_table.sql;
-SOURCE backend/sql/events_table.sql;
-SOURCE backend/sql/tickets_table.sql;
-EXIT;
-```
-
-### Step 3: (Optional) Reseed Demo Data
+To repopulate sample data for testing:
 
 ```bash
 npm --prefix backend run seed
 ```
 
-✅ **Database updated!** Now choose your mode: [Demo Mode](#4-running-the-app---demo-mode) or [Local Mode](#5-running-the-app---local-mode).
+✅ **Database reset complete!** You're now synced with the working schema.
+
+---
+
+## Database Schema
+
+Your working database includes these 7 tables:
+
+| Table | Key Columns | Purpose |
+|-------|------------|---------|
+| **users** | id, email, password_hash, role, organizer_auth_status | User accounts and profiles |
+| **organizations** | id, name, category, is_default | Organization/club entities |
+| **organization_members** | user_id, organization_id, role, status | Organization memberships |
+| **events** | id, title, event_date, is_flagged, moderation_notes, tickets_available | Event listings with moderation |
+| **tickets** | id, event_id, user_id, qr_code, ticket_type | Ticket bookings and check-in |
+| **organizer_requests** | id, user_id, status, request_type | Organizer approval workflow |
+| **notifications** | id, user_id, type, title, message, is_read | User notifications |
+
+### Important Columns in Your Schema
+
+**events table:**
+- `is_flagged` (BOOLEAN) - Flag events for admin review ✓
+- `moderation_notes` (TEXT) - Admin review notes ✓
+- `tickets_available` (INT) - Track available tickets ✓
+
+**tickets table:**
+- `qr_code` (VARCHAR(255), UNIQUE) - QR code for check-in ✓
+- `ticket_type` (ENUM: 'free'/'paid') - Ticket classification ✓
 
 ---
 
