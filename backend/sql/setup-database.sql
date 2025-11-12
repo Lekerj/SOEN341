@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(50) DEFAULT 'student',
   profile_pic_url VARCHAR(500) DEFAULT 'https://upload.wikimedia.org/wikipedia/commons/a/ac/Default_pfp.jpg',
+  average_rating DECIMAL(3,2) NULL COMMENT 'Average rating for user when acting as organizer',
   organizer_auth_status ENUM('pending', 'approved', 'refused') DEFAULT NULL,
   organization_id INT DEFAULT NULL,
   organization_role ENUM('Member', 'Event Manager', 'Vice President', 'President') DEFAULT 'Member',
@@ -18,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   INDEX idx_organizer_auth_status (organizer_auth_status),
+  INDEX idx_average_rating (average_rating),
   FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -133,15 +135,81 @@ CREATE TABLE IF NOT EXISTS notifications (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 8. Insert default organization
+-- 8. Create reviews table (for Epic #14 - Reviews & Q&A Feature)
+CREATE TABLE IF NOT EXISTS reviews (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL COMMENT 'The user who wrote the review',
+  event_id INT NOT NULL COMMENT 'The event being reviewed',
+  organizer_id INT NOT NULL COMMENT 'The organizer of the event',
+  rating TINYINT NOT NULL COMMENT 'Star rating from 1 to 5',
+  title VARCHAR(255) NOT NULL COMMENT 'Title of the review',
+  content TEXT NOT NULL COMMENT 'Full review text',
+  category VARCHAR(50) DEFAULT NULL COMMENT 'Classification of review type',
+  image_urls JSON DEFAULT NULL COMMENT 'List of URLs for uploaded images',
+  helpful_count INT NOT NULL DEFAULT 0 COMMENT 'Count of users who found this review helpful',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp of review submission',
+  
+  UNIQUE KEY unique_user_event (user_id, event_id),
+  INDEX idx_reviews_user_id (user_id),
+  INDEX idx_reviews_event_id (event_id),
+  INDEX idx_reviews_organizer_id (organizer_id),
+  INDEX idx_reviews_rating (rating),
+  
+  CONSTRAINT fk_reviews_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_reviews_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_reviews_organizer FOREIGN KEY (organizer_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT chk_rating_range CHECK (rating BETWEEN 1 AND 5)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 9. Create questions table (for Epic #14 - Reviews & Q&A Feature)
+CREATE TABLE IF NOT EXISTS questions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL COMMENT 'The user who asked the question',
+  event_id INT NOT NULL COMMENT 'The event the question is about',
+  organizer_id INT NOT NULL COMMENT 'The organizer related to the question',
+  title VARCHAR(255) NOT NULL COMMENT 'Title/summary of the question',
+  content TEXT NOT NULL COMMENT 'Full question text/details',
+  is_answered BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Flag indicating if question has been answered',
+  helpful_count INT NOT NULL DEFAULT 0 COMMENT 'Count of users who found this question helpful',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp of question submission',
+  
+  INDEX idx_questions_user_id (user_id),
+  INDEX idx_questions_event_id (event_id),
+  INDEX idx_questions_organizer_id (organizer_id),
+  INDEX idx_questions_is_answered (is_answered),
+  
+  CONSTRAINT fk_questions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_questions_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_questions_organizer FOREIGN KEY (organizer_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 10. Create answers table (for Epic #14 - Reviews & Q&A Feature)
+CREATE TABLE IF NOT EXISTS answers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  question_id INT NOT NULL COMMENT 'The question this answer responds to',
+  user_id INT NOT NULL COMMENT 'The user who provided the answer',
+  content TEXT NOT NULL COMMENT 'Full content of the answer',
+  is_official_organizer_response BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Flag to note if answerer is the event organizer',
+  helpful_count INT NOT NULL DEFAULT 0 COMMENT 'Count of users who found this answer helpful',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp of answer submission',
+  
+  INDEX idx_answers_question_id (question_id),
+  INDEX idx_answers_user_id (user_id),
+  INDEX idx_answers_is_official (is_official_organizer_response),
+  
+  CONSTRAINT fk_answers_question FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_answers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 11. Insert default organization
 INSERT IGNORE INTO organizations (id, name, description, category, is_default)
 VALUES (1, 'ConEvents', 'Default system organization', 'social', TRUE);
 
--- 9. Insert sample admin user (password: admin123 - hashed)
+-- 12. Insert sample admin user (password: admin123 - hashed)
 INSERT IGNORE INTO users (id, name, email, password_hash, role, organizer_auth_status, created_at)
 VALUES (1, 'Admin', 'admin@conevents.com', '$2b$10$0.5S1/KTF3ZqVN4X8L3eaOVhLH9yqsXH3zMj5WKs1fXJ5V0VHh5uW', 'admin', 'approved', NOW());
 
--- 10. Add admin to default organization
+-- 13. Add admin to default organization
 INSERT IGNORE INTO organization_members (user_id, organization_id, role, status)
 VALUES (1, 1, 'President', 'active');
 
