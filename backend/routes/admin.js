@@ -246,28 +246,27 @@ router.get("/organization", requireAdmin, (req, res) => {
 
 /**
  * GET /api/admin/organizer/requests
- * Returns list of organizer_requests with pending status for review.
+ * Returns list of all organizer_requests (pending, approved, refused) for review and filtering.
  */
 router.get("/organizer/requests", requireAdmin, (req, res) => {
-  console.log("[ADMIN] Fetching pending organizer requests...");
+  console.log("[ADMIN] Fetching all organizer requests...");
   const sql = `SELECT r.id, r.user_id, r.organization_id, r.request_type, r.status, r.details, r.created_at,
                         u.name AS user_name, u.email AS user_email,
                         o.name AS organization_name, o.category AS organization_category
                  FROM organizer_requests r
                  LEFT JOIN users u ON r.user_id = u.id
                  LEFT JOIN organizations o ON r.organization_id = o.id
-                 WHERE r.status = 'pending'
-                 ORDER BY r.created_at ASC`;
+                 ORDER BY r.created_at DESC`;
   db.query(sql, (err, rows) => {
     if (err) {
       // Return an empty list instead of a 500 so the admin UI stays stable
       console.error(
-        "[ADMIN] DB error fetching pending organizer requests (returning empty list):",
+        "[ADMIN] DB error fetching organizer requests (returning empty list):",
         err
       );
       return res.status(200).json({ success: true, requests: [] });
     }
-    console.log(`[ADMIN] Found ${rows.length} pending requests`);
+    console.log(`[ADMIN] Found ${rows.length} total requests`);
     res.status(200).json({ success: true, requests: rows });
   });
 });
