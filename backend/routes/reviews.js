@@ -151,10 +151,34 @@ router.get("/", async (req, res) => {
       user_id,
       limit = 20,
       offset = 0,
-      sort = "created_at",
-      order = "DESC"
+      sort = "most_recent"
     } = req.query;
     const conn = db.promise();
+
+    const filterEventId = event_id === undefined ? null : Number(event_id);
+    const filterOrganizerId = organizer_id === undefined ? null : Number(organizer_id);
+    const filterUserId = user_id === undefined ? null : Number(user_id);
+
+    if (event_id !== undefined) {
+      if (!Number.isInteger(filterEventId) || filterEventId <= 0) {
+        return res.status(400).json({ error: "event_id must be a positive integer" });
+      }
+    }
+    if (organizer_id !== undefined) {
+      if (!Number.isInteger(filterOrganizerId) || filterOrganizerId <= 0) {
+        return res.status(400).json({ error: "organizer_id must be a positive integer" });
+      }
+    }
+    if (filterEventId && filterOrganizerId) {
+      return res
+        .status(400)
+        .json({ error: "Provide either event_id or organizer_id, not both" });
+    }
+    if (user_id !== undefined) {
+      if (!Number.isInteger(filterUserId) || filterUserId <= 0) {
+        return res.status(400).json({ error: "user_id must be a positive integer" });
+      }
+    }
 
     // Build dynamic query based on filters
     let query = `
@@ -169,51 +193,67 @@ router.get("/", async (req, res) => {
     `;
     const params = [];
 
-    if (event_id) {
+    if (filterEventId) {
       query += " AND r.event_id = ?";
-      params.push(event_id);
+      params.push(filterEventId);
     }
-    if (organizer_id) {
+    if (filterOrganizerId) {
       query += " AND r.organizer_id = ?";
-      params.push(organizer_id);
+      params.push(filterOrganizerId);
     }
-    if (user_id) {
+    if (filterUserId) {
       query += " AND r.user_id = ?";
-      params.push(user_id);
+      params.push(filterUserId);
     }
 
-    // Validate sort column to prevent SQL injection
-  const allowedSort = ["created_at", "updated_at", "rating"];
-    const sortColumn = allowedSort.includes(sort) ? sort : "created_at";
-    const sortOrder = order.toUpperCase() === "ASC" ? "ASC" : "DESC";
-  query += ` ORDER BY r.${sortColumn} ${sortOrder}`;
+    const sortParam = typeof sort === "string" ? sort.toLowerCase() : "most_recent";
+    let sortClause = "";
+    switch (sortParam) {
+      case "most_recent":
+        sortClause = "ORDER BY r.created_at DESC";
+        break;
+      case "most_helpful":
+        sortClause = "ORDER BY r.helpful_count DESC, r.created_at DESC";
+        break;
+      case "highest_rated":
+        sortClause = "ORDER BY r.rating DESC, r.created_at DESC";
+        break;
+      case "lowest_rated":
+        sortClause = "ORDER BY r.rating ASC, r.created_at DESC";
+        break;
+      default:
+        return res.status(400).json({
+          error: "Invalid sort option. Use most_recent, most_helpful, highest_rated, or lowest_rated"
+        });
+    }
+    query += ` ${sortClause}`;
 
     // Add pagination
-  let safeLimit = parseInt(limit);
-  let safeOffset = parseInt(offset);
-  if (!Number.isFinite(safeLimit)) safeLimit = 20;
-  if (!Number.isFinite(safeOffset)) safeOffset = 0;
-  safeLimit = Math.max(1, Math.min(safeLimit, 100));
-  safeOffset = Math.max(0, safeOffset);
-  query += " LIMIT ? OFFSET ?";
-  params.push(safeLimit, safeOffset);
+    let safeLimit = parseInt(limit, 10);
+    let safeOffset = parseInt(offset, 10);
+    if (!Number.isFinite(safeLimit)) safeLimit = 20;
+    if (!Number.isFinite(safeOffset)) safeOffset = 0;
+    safeLimit = Math.max(1, Math.min(safeLimit, 100));
+    safeOffset = Math.max(0, safeOffset);
+    query += " LIMIT ? OFFSET ?";
+    params.push(safeLimit, safeOffset);
 
     const [reviews] = await conn.query(query, params);
 
     // Get total count for pagination metadata
     let countQuery = "SELECT COUNT(*) as total FROM reviews WHERE 1=1";
     const countParams = [];
-    if (event_id) {
+    if (filterEventId) {
       countQuery += " AND event_id = ?";
-      countParams.push(event_id);
+      countParams.push(filterEventId);
     }
-    if (organizer_id) {
+    if (filterOrganizerId) {
       countQuery += " AND organizer_id = ?";
-      countParams.push(organizer_id);
+      countParams.push(filterOrganizerId);
     }
-    if (user_id) {
+    if (filterUserId) {
       countQuery += " AND user_id = ?";
-      countParams.push(user_id);
+      countParams.push(filterUserId);
     }
     const [countResult] = await conn.query(countQuery, countParams);
     const total = countResult[0].total;
@@ -353,10 +393,8 @@ router.put("/:id", requireAuth, async (req, res) => {
       params
     );
 
-    // If rating changed, recalculate organizer's average
-    if (rating !== undefined) {
-      await recalcAverageRating(existing[0].organizer_id);
-    }
+    // Organizer rating recalculation must always run after an update
+    await recalcAverageRating(existing[0].organizer_id);
 
     // Fetch and return updated review
     const [updated] = await conn.query(
@@ -390,15 +428,9 @@ router.delete("/:id", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Review not found" });
     }
 
-    // Check authorization: owner or admin can delete
-    const [user] = await conn.query(
-      "SELECT role FROM users WHERE id = ? LIMIT 1",
-      [userId]
-    );
+    // Check authorization: only the owner can delete
     const isOwner = Number(existing[0].user_id) === Number(userId);
-    const isAdmin = user.length && user[0].role === "admin";
-
-    if (!isOwner && !isAdmin) {
+    if (!isOwner) {
       return res.status(403).json({ error: "Unauthorized: You can only delete your own reviews" });
     }
 
