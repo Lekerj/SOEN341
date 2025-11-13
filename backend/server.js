@@ -14,6 +14,7 @@ const organizerRoutes = require("./routes/organizer");
 
 // Import reviews route file
 const reviewsRoutes = require("./routes/reviews");
+const questionsRoutes = require("./routes/questions");
 
 //Import the database connection
 const db = require("./config/db");
@@ -76,6 +77,7 @@ app.use("/api/organizer", organizerRoutes);
 app.use('/api/admin' , adminRoutes); 
 // Adding ^ for the admin.js which handles organizer role testing.
 app.use("/api/reviews", reviewsRoutes);
+app.use("/api/questions", questionsRoutes);
 app.get("/api/test", (req, res) => {
   res.json({ message: "API is working!" });
 });
