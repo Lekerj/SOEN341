@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS reviews (
   image_urls JSON DEFAULT NULL COMMENT 'List of URLs for uploaded images',
   helpful_count INT NOT NULL DEFAULT 0 COMMENT 'Count of users who found this review helpful',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp of review submission',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Timestamp of last update',
   
   -- Unique constraint: one review per user per event
   UNIQUE KEY unique_user_event (user_id, event_id),
