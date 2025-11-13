@@ -228,3 +228,68 @@ describe('GET /api/reviews/:id', () => {
     expect(res.body.error).toMatch(/Review not found/);
   });
 });
+
+// Test PUT /api/reviews/:id
+describe('PUT /api/reviews/:id', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('should update review successfully', async () => {
+    const existingReview = { id: 1, user_id: userId, organizer_id: organizerId, rating: 3 };
+    const updatedReview = { ...existingReview, rating: 5, title: 'Updated' };
+    db.promise.mockReturnValue({
+      query: jest.fn()
+        .mockResolvedValueOnce([[existingReview], []]) // fetch existing
+        .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // update query
+        .mockResolvedValueOnce([[{ avg_rating: 4.5 }], []]) // recalc avg
+        .mockResolvedValueOnce([[], []]) // recalc update
+        .mockResolvedValueOnce([[updatedReview], []]) // fetch updated
+    });
+    const res = await request(app)
+      .put('/api/reviews/1')
+      .send({ rating: 5, title: 'Updated' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toMatch(/Review updated/);
+    expect(res.body.review.rating).toBe(5);
+  });
+
+  test('should reject if review not found', async () => {
+    db.promise.mockReturnValue({
+      query: jest.fn().mockResolvedValueOnce([[], []])
+    });
+    const res = await request(app).put('/api/reviews/999').send({ rating: 4 });
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toMatch(/Review not found/);
+  });
+
+  test('should reject if user is not owner', async () => {
+    const existingReview = { id: 1, user_id: 999, organizer_id: organizerId }; // different user
+    db.promise.mockReturnValue({
+      query: jest.fn().mockResolvedValueOnce([[existingReview], []])
+    });
+    const res = await request(app).put('/api/reviews/1').send({ rating: 4 });
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error).toMatch(/Unauthorized/);
+  });
+
+  test('should reject invalid rating on update', async () => {
+    const existingReview = { id: 1, user_id: userId, organizer_id: organizerId };
+    db.promise.mockReturnValue({
+      query: jest.fn().mockResolvedValueOnce([[existingReview], []])
+    });
+    const res = await request(app).put('/api/reviews/1').send({ rating: 10 });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toMatch(/Rating must be a number between 1 and 5/);
+  });
+
+  test('should reject if no fields to update', async () => {
+    const existingReview = { id: 1, user_id: userId, organizer_id: organizerId };
+    db.promise.mockReturnValue({
+      query: jest.fn().mockResolvedValueOnce([[existingReview], []])
+    });
+    const res = await request(app).put('/api/reviews/1').send({});
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toMatch(/No fields to update/);
+  });
+});
