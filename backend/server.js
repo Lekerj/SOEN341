@@ -12,6 +12,9 @@ const eventRoutes = require("./routes/events");
 // Adding this (PERSON1): Import the organizer route file
 const organizerRoutes = require("./routes/organizer");
 
+// Import reviews route file
+const reviewsRoutes = require("./routes/reviews");
+
 //Import the database connection
 const db = require("./config/db");
 
@@ -71,7 +74,8 @@ app.use("/api/tickets", ticketRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/organizer", organizerRoutes);
 app.use('/api/admin' , adminRoutes); 
-// Adding ^ for the admin.js which handles organizer role testing. 
+// Adding ^ for the admin.js which handles organizer role testing.
+app.use("/api/reviews", reviewsRoutes);
 app.get("/api/test", (req, res) => {
   res.json({ message: "API is working!" });
 });
