@@ -360,8 +360,44 @@ router.put("/:id", requireAuth, async (req, res) => {
 });
 
 // DELETE /api/reviews/:id - Delete an existing review
-router.delete("/:id", requireAuth, (req, res) => {
-  res.status(501).json({ error: "Not implemented yet" });
+router.delete("/:id", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session.userId;
+    const conn = db.promise();
+
+    // Fetch existing review to verify ownership and get organizer_id
+    const [existing] = await conn.query(
+      "SELECT * FROM reviews WHERE id = ? LIMIT 1",
+      [id]
+    );
+    if (!existing.length) {
+      return res.status(404).json({ error: "Review not found" });
+    }
+
+    // Check authorization: owner or admin can delete
+    const [user] = await conn.query(
+      "SELECT role FROM users WHERE id = ? LIMIT 1",
+      [userId]
+    );
+    const isOwner = Number(existing[0].user_id) === Number(userId);
+    const isAdmin = user.length && user[0].role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: "Unauthorized: You can only delete your own reviews" });
+    }
+
+    // Delete the review (CASCADE will handle questions/answers if configured)
+    await conn.query("DELETE FROM reviews WHERE id = ?", [id]);
+
+    // Recalculate organizer's average rating
+    await recalcAverageRating(existing[0].organizer_id);
+
+    res.status(200).json({ message: "Review deleted successfully" });
+  } catch (err) {
+    console.error("[REVIEWS] Error deleting review:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
 });
 
 // Export both the router and the helper function
