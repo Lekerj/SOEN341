@@ -156,3 +156,75 @@ describe('recalcAverageRating', () => {
     expect(avg).toBe(4.25);
   });
 });
+
+// Test GET /api/reviews (list)
+describe('GET /api/reviews', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('should fetch reviews with pagination', async () => {
+    const mockReviews = [
+      { id: 1, user_id: userId, event_id: eventId, rating: 5, title: 'Great', content: 'Awesome event', reviewer_name: 'John', event_title: 'Test Event' },
+      { id: 2, user_id: userId, event_id: eventId, rating: 4, title: 'Good', content: 'Nice event', reviewer_name: 'Jane', event_title: 'Test Event' }
+    ];
+    db.promise.mockReturnValue({
+      query: jest.fn()
+        .mockResolvedValueOnce([mockReviews, []]) // reviews query
+        .mockResolvedValueOnce([[{ total: 2 }], []]) // count query
+    });
+    const res = await request(app).get('/api/reviews?limit=10&offset=0');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.reviews).toHaveLength(2);
+    expect(res.body.pagination.total).toBe(2);
+  });
+
+  test('should filter by event_id', async () => {
+    db.promise.mockReturnValue({
+      query: jest.fn()
+        .mockResolvedValueOnce([[{ id: 1, event_id: eventId }], []]) // reviews query
+        .mockResolvedValueOnce([[{ total: 1 }], []]) // count query
+    });
+    const res = await request(app).get(`/api/reviews?event_id=${eventId}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.reviews).toHaveLength(1);
+  });
+
+  test('should sort by rating descending', async () => {
+    db.promise.mockReturnValue({
+      query: jest.fn()
+        .mockResolvedValueOnce([[{ id: 1, rating: 5 }, { id: 2, rating: 3 }], []]) // reviews query
+        .mockResolvedValueOnce([[{ total: 2 }], []]) // count query
+    });
+    const res = await request(app).get('/api/reviews?sort=rating&order=DESC');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.reviews[0].rating).toBe(5);
+  });
+});
+
+// Test GET /api/reviews/:id (single)
+describe('GET /api/reviews/:id', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('should fetch single review by id', async () => {
+    const mockReview = { id: 1, user_id: userId, event_id: eventId, rating: 5, title: 'Great', content: 'Awesome', reviewer_name: 'John', event_title: 'Test Event' };
+    db.promise.mockReturnValue({
+      query: jest.fn().mockResolvedValueOnce([[mockReview], []])
+    });
+    const res = await request(app).get('/api/reviews/1');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.review.id).toBe(1);
+    expect(res.body.review.title).toBe('Great');
+  });
+
+  test('should return 404 if review not found', async () => {
+    db.promise.mockReturnValue({
+      query: jest.fn().mockResolvedValueOnce([[], []])
+    });
+    const res = await request(app).get('/api/reviews/999');
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toMatch(/Review not found/);
+  });
+});
