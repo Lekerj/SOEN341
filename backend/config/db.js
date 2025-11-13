@@ -15,14 +15,21 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// Test the pool connection
-pool.getConnection((err, connection) => {
-  if (err) {
-    console.error("Database connection failed:", err);
-    process.exit(1);
-  }
-  console.log("Connected to MySQL database");
-  connection.release(); // Release connection back to pool
-});
+// Only test the pool connection outside of test environments to avoid
+// killing Jest/CI runs when no DB is provisioned.
+const isTestEnv = process.env.NODE_ENV === "test" || process.env.JEST_WORKER_ID;
+if (!isTestEnv) {
+  pool.getConnection((err, connection) => {
+    if (err) {
+      console.error("Database connection failed:", err);
+      process.exit(1);
+    }
+    console.log("Connected to MySQL database");
+    connection.release(); // Release connection back to pool
+  });
+} else {
+  // Keep silent in tests to reduce noise and prevent async handles from staying open
+  // Skipping live DB connectivity checks under Jest.
+}
 
 module.exports = pool;
