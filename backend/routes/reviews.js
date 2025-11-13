@@ -140,8 +140,88 @@ router.post("/", requireAuth, async (req, res) => {
 });
 
 // GET /api/reviews - Fetch reviews (with optional query params for filtering)
-router.get("/", (req, res) => {
-  res.status(501).json({ error: "Not implemented yet" });
+router.get("/", async (req, res) => {
+  try {
+    const {
+      event_id,
+      organizer_id,
+      user_id,
+      limit = 20,
+      offset = 0,
+      sort = "created_at",
+      order = "DESC"
+    } = req.query;
+    const conn = db.promise();
+
+    // Build dynamic query based on filters
+    let query = `
+      SELECT 
+        r.*,
+        u.name as reviewer_name,
+        e.title as event_title
+      FROM reviews r
+      LEFT JOIN users u ON r.user_id = u.id
+      LEFT JOIN events e ON r.event_id = e.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (event_id) {
+      query += " AND r.event_id = ?";
+      params.push(event_id);
+    }
+    if (organizer_id) {
+      query += " AND r.organizer_id = ?";
+      params.push(organizer_id);
+    }
+    if (user_id) {
+      query += " AND r.user_id = ?";
+      params.push(user_id);
+    }
+
+    // Validate sort column to prevent SQL injection
+    const allowedSort = ["created_at", "updated_at", "rating"];
+    const sortColumn = allowedSort.includes(sort) ? sort : "created_at";
+    const sortOrder = order.toUpperCase() === "ASC" ? "ASC" : "DESC";
+    query += ` ORDER BY r.${sortColumn} ${sortOrder}`;
+
+    // Add pagination
+    query += " LIMIT ? OFFSET ?";
+    params.push(parseInt(limit), parseInt(offset));
+
+    const [reviews] = await conn.query(query, params);
+
+    // Get total count for pagination metadata
+    let countQuery = "SELECT COUNT(*) as total FROM reviews WHERE 1=1";
+    const countParams = [];
+    if (event_id) {
+      countQuery += " AND event_id = ?";
+      countParams.push(event_id);
+    }
+    if (organizer_id) {
+      countQuery += " AND organizer_id = ?";
+      countParams.push(organizer_id);
+    }
+    if (user_id) {
+      countQuery += " AND user_id = ?";
+      countParams.push(user_id);
+    }
+    const [countResult] = await conn.query(countQuery, countParams);
+    const total = countResult[0].total;
+
+    res.status(200).json({
+      reviews,
+      pagination: {
+        total,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        hasMore: parseInt(offset) + reviews.length < total
+      }
+    });
+  } catch (err) {
+    console.error("[REVIEWS] Error fetching reviews:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
 });
 
 // PUT /api/reviews/:id - Update an existing review
