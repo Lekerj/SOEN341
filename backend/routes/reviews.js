@@ -255,8 +255,108 @@ router.get("/:id", async (req, res) => {
 });
 
 // PUT /api/reviews/:id - Update an existing review
-router.put("/:id", requireAuth, (req, res) => {
-  res.status(501).json({ error: "Not implemented yet" });
+router.put("/:id", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rating, title, content, category, image_urls } = req.body;
+    const userId = req.session.userId;
+    const conn = db.promise();
+
+    // Fetch existing review to verify ownership
+    const [existing] = await conn.query(
+      "SELECT * FROM reviews WHERE id = ? LIMIT 1",
+      [id]
+    );
+    if (!existing.length) {
+      return res.status(404).json({ error: "Review not found" });
+    }
+
+    // Only allow owner to edit their review
+    if (Number(existing[0].user_id) !== Number(userId)) {
+      return res.status(403).json({ error: "Unauthorized: You can only edit your own reviews" });
+    }
+
+    // Validate updated fields (same rules as POST)
+    if (rating !== undefined) {
+      if (typeof rating !== "number" || rating < 1 || rating > 5) {
+        return res.status(400).json({ error: "Rating must be a number between 1 and 5" });
+      }
+    }
+    if (title !== undefined) {
+      if (typeof title !== "string" || title.length > 255) {
+        return res.status(400).json({ error: "Title must be a string up to 255 characters" });
+      }
+    }
+    if (content !== undefined) {
+      if (typeof content !== "string" || content.length > 5000) {
+        return res.status(400).json({ error: "Content must be a string up to 5000 characters" });
+      }
+    }
+    if (category !== undefined && category !== null) {
+      if (typeof category !== "string") {
+        return res.status(400).json({ error: "Category must be a string" });
+      }
+    }
+    if (image_urls !== undefined && image_urls !== null) {
+      if (!Array.isArray(image_urls)) {
+        return res.status(400).json({ error: "image_urls must be an array of strings" });
+      }
+    }
+
+    // Build update query dynamically based on provided fields
+    const updates = [];
+    const params = [];
+
+    if (rating !== undefined) {
+      updates.push("rating = ?");
+      params.push(rating);
+    }
+    if (title !== undefined) {
+      updates.push("title = ?");
+      params.push(title);
+    }
+    if (content !== undefined) {
+      updates.push("content = ?");
+      params.push(content);
+    }
+    if (category !== undefined) {
+      updates.push("category = ?");
+      params.push(category || null);
+    }
+    if (image_urls !== undefined) {
+      updates.push("image_urls = ?");
+      params.push(image_urls ? JSON.stringify(image_urls) : null);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: "No fields to update" });
+    }
+
+    // Always update the updated_at timestamp
+    updates.push("updated_at = NOW()");
+    params.push(id, userId);
+
+    await conn.query(
+      `UPDATE reviews SET ${updates.join(", ")} WHERE id = ? AND user_id = ?`,
+      params
+    );
+
+    // If rating changed, recalculate organizer's average
+    if (rating !== undefined) {
+      await recalcAverageRating(existing[0].organizer_id);
+    }
+
+    // Fetch and return updated review
+    const [updated] = await conn.query(
+      "SELECT * FROM reviews WHERE id = ?",
+      [id]
+    );
+
+    res.status(200).json({ message: "Review updated", review: updated[0] });
+  } catch (err) {
+    console.error("[REVIEWS] Error updating review:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
 });
 
 // DELETE /api/reviews/:id - Delete an existing review
