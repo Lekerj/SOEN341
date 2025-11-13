@@ -85,11 +85,58 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/questions/:id/answers - answer a question (stub)
-router.post("/:id/answers", (req, res) => {
-  res
-    .status(501)
-    .json({ message: "Submit answer not implemented yet" });
+// POST /api/questions/:id/answers - submit an answer
+router.post("/:id/answers", requireAuth, async (req, res) => {
+  try {
+    const userId = Number(req.session.userId);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    const questionId = Number(req.params.id);
+    if (!Number.isInteger(questionId) || questionId <= 0) {
+      return res.status(400).json({ error: "Question id must be a positive integer" });
+    }
+
+    const { content } = req.body;
+    if (typeof content !== "string" || content.trim().length === 0 || content.length > 5000) {
+      return res
+        .status(400)
+        .json({ error: "Content must be a non-empty string up to 5000 characters" });
+    }
+
+    const conn = db.promise();
+
+    // Ensure the question exists
+    const [questions] = await conn.query(
+      "SELECT id, organizer_id FROM questions WHERE id = ? LIMIT 1",
+      [questionId]
+    );
+    if (!questions.length) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+
+    const [result] = await conn.query(
+      "INSERT INTO answers (question_id, user_id, content, is_official_organizer_response) VALUES (?, ?, ?, FALSE)",
+      [questionId, userId, content.trim()]
+    );
+
+    // Mark question as answered
+    await conn.query(
+      "UPDATE questions SET is_answered = TRUE WHERE id = ?",
+      [questionId]
+    );
+
+    const [answerRows] = await conn.query(
+      "SELECT * FROM answers WHERE id = ?",
+      [result.insertId]
+    );
+
+    res.status(201).json({ message: "Answer submitted", answer: answerRows[0] });
+  } catch (err) {
+    console.error("[QUESTIONS] Error submitting answer:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
 });
 
 // GET /api/questions - fetch questions (stub)
