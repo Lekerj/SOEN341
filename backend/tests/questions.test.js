@@ -119,7 +119,7 @@ describe("POST /api/questions/:id/answers", () => {
     expect(res.body.error).toMatch(/Question not found/);
   });
 
-  test("creates an answer successfully", async () => {
+  test("creates an answer successfully for non-organizer", async () => {
     const queryMock = jest
       .fn()
       .mockResolvedValueOnce([[{ id: 10, organizer_id: 2 }], []]) // question lookup
@@ -141,5 +141,23 @@ describe("POST /api/questions/:id/answers", () => {
       user_id: 5,
       is_official_organizer_response: 0
     });
+  });
+
+  test("marks answer as official when organizer responds", async () => {
+    const queryMock = jest
+      .fn()
+      .mockResolvedValueOnce([[{ id: 10, organizer_id: 5 }], []]) // question lookup organizer matches session user
+      .mockResolvedValueOnce([{ insertId: 77 }, []]) // insert answer
+      .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // update question
+      .mockResolvedValueOnce([[{ id: 77, question_id: 10, user_id: 5, content: "Official answer", is_official_organizer_response: 1 }], []]); // fetch answer
+
+    db.promise.mockReturnValue({ query: queryMock });
+
+    const res = await request(app)
+      .post("/api/questions/10/answers")
+      .send({ content: "Official answer" });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.answer.is_official_organizer_response).toBe(1);
   });
 });

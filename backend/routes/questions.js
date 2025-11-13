@@ -115,10 +115,12 @@ router.post("/:id/answers", requireAuth, async (req, res) => {
     if (!questions.length) {
       return res.status(404).json({ error: "Question not found" });
     }
+    const question = questions[0];
+    const isOfficial = Number(question.organizer_id) === Number(userId);
 
     const [result] = await conn.query(
-      "INSERT INTO answers (question_id, user_id, content, is_official_organizer_response) VALUES (?, ?, ?, FALSE)",
-      [questionId, userId, content.trim()]
+      "INSERT INTO answers (question_id, user_id, content, is_official_organizer_response) VALUES (?, ?, ?, ?)",
+      [questionId, userId, content.trim(), isOfficial ? true : false]
     );
 
     // Mark question as answered
