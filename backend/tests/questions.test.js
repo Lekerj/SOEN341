@@ -98,3 +98,48 @@ describe("POST /api/questions", () => {
     expect(res.body.question.is_answered).toBe(0);
   });
 });
+
+describe("POST /api/questions/:id/answers", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("returns 404 when question is not found", async () => {
+    db.promise.mockReturnValue({
+      query: jest
+        .fn()
+        .mockResolvedValueOnce([[], []]) // question lookup
+    });
+
+    const res = await request(app)
+      .post("/api/questions/10/answers")
+      .send({ content: "Answer" });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toMatch(/Question not found/);
+  });
+
+  test("creates an answer successfully", async () => {
+    const queryMock = jest
+      .fn()
+      .mockResolvedValueOnce([[{ id: 10, organizer_id: 2 }], []]) // question lookup
+      .mockResolvedValueOnce([{ insertId: 55 }, []]) // insert answer
+      .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // update question
+      .mockResolvedValueOnce([[{ id: 55, question_id: 10, user_id: 5, content: "Answer", is_official_organizer_response: 0 }], []]); // fetch answer
+
+    db.promise.mockReturnValue({ query: queryMock });
+
+    const res = await request(app)
+      .post("/api/questions/10/answers")
+      .send({ content: "Answer" });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.message).toMatch(/Answer submitted/);
+    expect(res.body.answer).toMatchObject({
+      id: 55,
+      question_id: 10,
+      user_id: 5,
+      is_official_organizer_response: 0
+    });
+  });
+});
