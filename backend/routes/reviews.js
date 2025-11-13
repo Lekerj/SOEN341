@@ -224,6 +224,36 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET /api/reviews/:id - Fetch a single review by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const conn = db.promise();
+
+    const [reviews] = await conn.query(
+      `SELECT 
+        r.*,
+        u.name as reviewer_name,
+        e.title as event_title
+      FROM reviews r
+      LEFT JOIN users u ON r.user_id = u.id
+      LEFT JOIN events e ON r.event_id = e.id
+      WHERE r.id = ?
+      LIMIT 1`,
+      [id]
+    );
+
+    if (!reviews.length) {
+      return res.status(404).json({ error: "Review not found" });
+    }
+
+    res.status(200).json({ review: reviews[0] });
+  } catch (err) {
+    console.error("[REVIEWS] Error fetching review:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
 // PUT /api/reviews/:id - Update an existing review
 router.put("/:id", requireAuth, (req, res) => {
   res.status(501).json({ error: "Not implemented yet" });
