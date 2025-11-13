@@ -17,7 +17,7 @@
     "start:local": "node scripts/start-local.js",
     "start:demo": "node scripts/start-demo.js",
     "dev": "nodemon server.js",
-    "test": "jest",
+    "test": "NODE_ENV=test jest --runInBand",
     "seed": "node scripts/seed.js",
     "print:config": "node scripts/print-config.js",
     "health:db": "node scripts/db-health.js"
