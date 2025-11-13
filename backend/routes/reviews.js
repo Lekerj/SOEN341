@@ -49,20 +49,23 @@ router.post("/", requireAuth, async (req, res) => {
       category,
       image_urls
     } = req.body;
-    const userId = req.session.userId;
+    const userId = Number(req.session.userId);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
     const conn = db.promise();
 
     // Validate required fields
     if (!event_id || !organizer_id || !rating || !title || !content) {
       return res.status(400).json({ error: "Missing required fields: event_id, organizer_id, rating, title, content" });
     }
-    if (typeof rating !== "number" || rating < 1 || rating > 5) {
+    if (typeof rating !== "number" || !Number.isInteger(rating) || rating < 1 || rating > 5) {
       return res.status(400).json({ error: "Rating must be a number between 1 and 5" });
     }
-    if (typeof title !== "string" || title.length > 255) {
+    if (typeof title !== "string" || title.trim().length === 0 || title.length > 255) {
       return res.status(400).json({ error: "Title must be a string up to 255 characters" });
     }
-    if (typeof content !== "string" || content.length > 5000) {
+    if (typeof content !== "string" || content.trim().length === 0 || content.length > 5000) {
       return res.status(400).json({ error: "Content must be a string up to 5000 characters" });
     }
     if (category && typeof category !== "string") {
@@ -180,14 +183,20 @@ router.get("/", async (req, res) => {
     }
 
     // Validate sort column to prevent SQL injection
-    const allowedSort = ["created_at", "updated_at", "rating"];
+  const allowedSort = ["created_at", "updated_at", "rating"];
     const sortColumn = allowedSort.includes(sort) ? sort : "created_at";
     const sortOrder = order.toUpperCase() === "ASC" ? "ASC" : "DESC";
-    query += ` ORDER BY r.${sortColumn} ${sortOrder}`;
+  query += ` ORDER BY r.${sortColumn} ${sortOrder}`;
 
     // Add pagination
-    query += " LIMIT ? OFFSET ?";
-    params.push(parseInt(limit), parseInt(offset));
+  let safeLimit = parseInt(limit);
+  let safeOffset = parseInt(offset);
+  if (!Number.isFinite(safeLimit)) safeLimit = 20;
+  if (!Number.isFinite(safeOffset)) safeOffset = 0;
+  safeLimit = Math.max(1, Math.min(safeLimit, 100));
+  safeOffset = Math.max(0, safeOffset);
+  query += " LIMIT ? OFFSET ?";
+  params.push(safeLimit, safeOffset);
 
     const [reviews] = await conn.query(query, params);
 
@@ -213,9 +222,9 @@ router.get("/", async (req, res) => {
       reviews,
       pagination: {
         total,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        hasMore: parseInt(offset) + reviews.length < total
+        limit: safeLimit,
+        offset: safeOffset,
+        hasMore: safeOffset + reviews.length < total
       }
     });
   } catch (err) {
@@ -259,7 +268,10 @@ router.put("/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { rating, title, content, category, image_urls } = req.body;
-    const userId = req.session.userId;
+    const userId = Number(req.session.userId);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
     const conn = db.promise();
 
     // Fetch existing review to verify ownership
@@ -278,17 +290,17 @@ router.put("/:id", requireAuth, async (req, res) => {
 
     // Validate updated fields (same rules as POST)
     if (rating !== undefined) {
-      if (typeof rating !== "number" || rating < 1 || rating > 5) {
+      if (typeof rating !== "number" || !Number.isInteger(rating) || rating < 1 || rating > 5) {
         return res.status(400).json({ error: "Rating must be a number between 1 and 5" });
       }
     }
     if (title !== undefined) {
-      if (typeof title !== "string" || title.length > 255) {
+      if (typeof title !== "string" || title.trim().length === 0 || title.length > 255) {
         return res.status(400).json({ error: "Title must be a string up to 255 characters" });
       }
     }
     if (content !== undefined) {
-      if (typeof content !== "string" || content.length > 5000) {
+      if (typeof content !== "string" || content.trim().length === 0 || content.length > 5000) {
         return res.status(400).json({ error: "Content must be a string up to 5000 characters" });
       }
     }
@@ -363,7 +375,10 @@ router.put("/:id", requireAuth, async (req, res) => {
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.session.userId;
+    const userId = Number(req.session.userId);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
     const conn = db.promise();
 
     // Fetch existing review to verify ownership and get organizer_id
