@@ -190,13 +190,13 @@ describe('GET /api/reviews', () => {
     expect(res.body.reviews).toHaveLength(1);
   });
 
-  test('should sort by rating descending', async () => {
+  test('should sort by highest rated', async () => {
     db.promise.mockReturnValue({
       query: jest.fn()
         .mockResolvedValueOnce([[{ id: 1, rating: 5 }, { id: 2, rating: 3 }], []]) // reviews query
         .mockResolvedValueOnce([[{ total: 2 }], []]) // count query
     });
-    const res = await request(app).get('/api/reviews?sort=rating&order=DESC');
+    const res = await request(app).get('/api/reviews?sort=highest_rated');
     expect(res.statusCode).toBe(200);
     expect(res.body.reviews[0].rating).toBe(5);
   });
@@ -305,36 +305,11 @@ describe('DELETE /api/reviews/:id', () => {
     db.promise.mockReturnValue({
       query: jest.fn()
         .mockResolvedValueOnce([[existingReview], []]) // fetch existing
-        .mockResolvedValueOnce([[{ role: 'user' }], []]) // fetch user role
         .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // delete query
         .mockResolvedValueOnce([[{ avg_rating: 4.0 }], []]) // recalc avg
         .mockResolvedValueOnce([[], []]) // recalc update
     });
     const res = await request(app).delete('/api/reviews/1');
-    expect(res.statusCode).toBe(200);
-    expect(res.body.message).toMatch(/Review deleted successfully/);
-  });
-
-  test('should delete review as admin', async () => {
-    // Set admin session for this test
-    const adminApp = express();
-    adminApp.use(express.json());
-    adminApp.use((req, res, next) => {
-      req.session = { userId: 99 }; // different user, but admin
-      next();
-    });
-    adminApp.use('/api/reviews', reviewsRouter);
-
-    const existingReview = { id: 1, user_id: userId, organizer_id: organizerId }; // owned by userId=3
-    db.promise.mockReturnValue({
-      query: jest.fn()
-        .mockResolvedValueOnce([[existingReview], []]) // fetch existing
-        .mockResolvedValueOnce([[{ role: 'admin' }], []]) // fetch user role (admin)
-        .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // delete query
-        .mockResolvedValueOnce([[{ avg_rating: 4.0 }], []]) // recalc avg
-        .mockResolvedValueOnce([[], []]) // recalc update
-    });
-    const res = await request(adminApp).delete('/api/reviews/1');
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toMatch(/Review deleted successfully/);
   });
@@ -348,12 +323,11 @@ describe('DELETE /api/reviews/:id', () => {
     expect(res.body.error).toMatch(/Review not found/);
   });
 
-  test('should reject if user is not owner and not admin', async () => {
+  test('should reject if user is not owner', async () => {
     const existingReview = { id: 1, user_id: 999, organizer_id: organizerId }; // different user
     db.promise.mockReturnValue({
       query: jest.fn()
         .mockResolvedValueOnce([[existingReview], []]) // fetch existing
-        .mockResolvedValueOnce([[{ role: 'user' }], []]) // fetch user role (not admin)
     });
     const res = await request(app).delete('/api/reviews/1');
     expect(res.statusCode).toBe(403);
