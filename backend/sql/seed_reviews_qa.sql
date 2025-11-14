@@ -33,23 +33,23 @@ INSERT INTO answers (question_id, user_id, content, is_official_organizer_respon
 
 -- Update average_rating for organizer (user_id = 1) based on the sample reviews
 -- This calculates: (5 + 4 + 5 + 3) / 4 = 4.25
-UPDATE users 
+UPDATE users
 SET average_rating = (
-    SELECT ROUND(AVG(rating), 2) 
-    FROM reviews 
+    SELECT ROUND(AVG(rating), 2)
+    FROM reviews
     WHERE organizer_id = 1
-) 
+)
 WHERE id = 1;
 
 -- Mark questions as answered if they have official organizer responses
 UPDATE questions q
 SET is_answered = TRUE
 WHERE EXISTS (
-    SELECT 1 FROM answers a 
-    WHERE a.question_id = q.id 
+    SELECT 1 FROM answers a
+    WHERE a.question_id = q.id
     AND a.is_official_organizer_response = TRUE
 );
 
 -- Confirmation
 SELECT 'Successfully seeded sample reviews, questions, and answers' AS status;
-SELECT CONCAT('Organizer average rating updated to: ', average_rating) AS rating_update FROM users WHERE id = 1;
+SELECT CONCAT('Organizer average rating updated to: ', COALESCE(average_rating, 'N/A')) AS rating_update FROM users WHERE id = 1;
