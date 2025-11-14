@@ -185,6 +185,7 @@ router.get("/", async (req, res) => {
       SELECT 
         r.*,
         u.name as reviewer_name,
+        u.profile_pic_url AS reviewer_avatar,
         e.title as event_title
       FROM reviews r
       LEFT JOIN users u ON r.user_id = u.id
@@ -283,6 +284,7 @@ router.get("/:id", async (req, res) => {
       `SELECT 
         r.*,
         u.name as reviewer_name,
+        u.profile_pic_url AS reviewer_avatar,
         e.title as event_title
       FROM reviews r
       LEFT JOIN users u ON r.user_id = u.id
@@ -299,6 +301,38 @@ router.get("/:id", async (req, res) => {
     res.status(200).json({ review: reviews[0] });
   } catch (err) {
     console.error("[REVIEWS] Error fetching review:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// POST /api/reviews/:id/helpful - Increment/decrement helpful count
+router.post("/:id/helpful", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action = "increment" } = req.body || {};
+    const conn = db.promise();
+    const delta = action === "decrement" ? -1 : 1;
+
+    const [existing] = await conn.query(
+      "SELECT id, helpful_count FROM reviews WHERE id = ? LIMIT 1",
+      [id]
+    );
+    if (!existing.length) {
+      return res.status(404).json({ error: "Review not found" });
+    }
+
+    await conn.query(
+      "UPDATE reviews SET helpful_count = GREATEST(0, helpful_count + ?) WHERE id = ?",
+      [delta, id]
+    );
+    const [updated] = await conn.query(
+      "SELECT helpful_count FROM reviews WHERE id = ? LIMIT 1",
+      [id]
+    );
+
+    res.status(200).json({ helpful_count: updated[0].helpful_count });
+  } catch (err) {
+    console.error("[REVIEWS] Error updating helpful count:", err);
     res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });

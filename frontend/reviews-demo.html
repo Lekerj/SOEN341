@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reviews & Q&A Demo - ConEvents</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+      <ul class="navbar-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="browse.html">Browse</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="container">
+      <section class="page-header" style="margin-bottom: 2rem;">
+        <p class="reviews-qa__eyebrow">Story #162 · Demo Sandbox</p>
+        <h1 style="color: var(--white);">Reviews & Q&amp;A Container Demo</h1>
+        <p style="color: rgba(255,255,255,0.85); max-width: 640px;">
+          This sandbox mounts the main container independently so engineers working on downstream
+          tickets (P3-T2 &amp; P3-T5) can visualize the tab experience and data payloads before integration
+          into the Event Detail page.
+        </p>
+      </section>
+
+      <div id="reviewsQaDemo"></div>
+
+      <div class="card" style="margin-top: 2rem;">
+        <div class="card-header">
+          <h3>Context Switcher</h3>
+        </div>
+        <div class="card-body" style="display: flex; flex-wrap: wrap; gap: 1rem;">
+          <button id="loadEventA" class="btn btn-primary">Load Event EVT-341</button>
+          <button id="loadEventB" class="btn btn-secondary">Load Event EVT-999</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-content">
+      <div class="footer-links">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms</a>
+      </div>
+      <p>&copy; 2025 ConEvents. All Rights Reserved.</p>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { mountReviewsQaContainer } from "./components/reviews/main-container.js";
+    import { reviewsTabRenderer } from "./components/reviews/reviews-tab.js";
+
+    const mockUser = {
+      name: "Demo Attendee",
+      email: "demo@conevents.com",
+      role: "attendee",
+    };
+
+    const qaRenderer = async ({ eventId, organizerId }) => {
+      // Simulate async fetch
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const wrapper = document.createElement("div");
+      wrapper.className = "card";
+      wrapper.innerHTML = `
+        <div class="card-header">
+          <h3>Live Q&amp;A</h3>
+        </div>
+        <div class="card-body">
+          <p>Questions for Event ${eventId} with Organizer ${organizerId} will be rendered here.</p>
+          <ul>
+            <li>What time do doors open?</li>
+            <li>Is there parking available?</li>
+            <li>How can I volunteer?</li>
+          </ul>
+        </div>
+      `;
+      return wrapper;
+    };
+
+    const demoComponent = mountReviewsQaContainer({
+      target: "#reviewsQaDemo",
+      eventId: "EVT-341",
+      organizerId: "ORG-22",
+      currentUser: mockUser,
+      renderers: {
+        reviews: reviewsTabRenderer,
+        qa: qaRenderer,
+      },
+    });
+
+    document.getElementById("loadEventA").addEventListener("click", () => {
+      demoComponent.updateProps({
+        eventId: "EVT-341",
+        organizerId: "ORG-22",
+        currentUser: mockUser,
+      });
+    });
+
+    document.getElementById("loadEventB").addEventListener("click", () => {
+      demoComponent.updateProps({
+        eventId: "EVT-999",
+        organizerId: "ORG-77",
+        currentUser: { ...mockUser, name: "VIP Organizer" },
+      });
+    });
+  </script>
+</body>
+
+</html>
