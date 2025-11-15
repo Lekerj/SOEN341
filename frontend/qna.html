@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q&A - ConEvents</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="components/forms.css">
+    <style>
+        .qna-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .qna-header {
+            background: linear-gradient(135deg, #6b2c91 0%, #912338 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .qna-header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+        }
+
+        .qna-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .qna-controls {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sort-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .sort-controls label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .sort-select {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            color: #374151;
+            font-size: 0.9rem;
+            min-width: 150px;
+        }
+
+        .sort-select:focus {
+            outline: none;
+            border-color: #6b2c91;
+            box-shadow: 0 0 0 3px rgba(107, 44, 145, 0.1);
+        }
+
+        .question-count {
+            color: #6b7280;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .ask-question-placeholder {
+            background: #f9fafb;
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #6b7280;
+        }
+
+        .ask-question-placeholder h3 {
+            margin: 0 0 0.5rem 0;
+            color: #374151;
+        }
+
+        .ask-question-placeholder p {
+            margin: 0;
+        }
+
+        .questions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .question-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .question-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .question-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0;
+            flex: 1;
+            line-height: 1.4;
+        }
+
+        .question-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 1rem;
+        }
+
+        .status-answered {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-unanswered {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .question-content {
+            color: #4b5563;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .question-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #6b7280;
+            font-size: 0.85rem;
+        }
+
+        .question-stats {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        .error-state {
+            text-align: center;
+            padding: 2rem;
+            color: #dc2626;
+            background: #fef2f2;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+
+        .empty-state h3 {
+            margin: 0 0 0.5rem 0;
+            color: #374151;
+        }
+
+        /* Form Toggle Styles */
+        .forms-toggle {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            justify-content: center;
+        }
+
+        .toggle-btn {
+            padding: 0.75rem 2rem;
+            border: none;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #4a5568;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .toggle-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .toggle-btn:hover::before {
+            left: 100%;
+        }
+
+        .toggle-btn.active {
+            background: linear-gradient(135deg, #6b2c91 0%, #8b5a9f 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(107, 44, 145, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .toggle-btn:hover:not(.active) {
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .toggle-btn.active:hover {
+            background: linear-gradient(135deg, #553c75 0%, #6b4c7d 100%);
+        }
+
+        @media (max-width: 768px) {
+            .qna-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .sort-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .question-header {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .question-status {
+                margin-left: 0;
+                align-self: flex-start;
+            }
+
+            .question-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: flex-start;
+            }
+
+            .forms-toggle {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+            <ul class="navbar-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="browse.html">Browse</a></li>
+                <li><a href="qna.html" aria-current="page">Q&A</a></li>
+                <li><a href="about.html">About</a></li>
+                <li id="organizerMenu" class="dropdown" style="display:none;">
+                    <a href="#" class="dropdown-toggle">Organizer</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+                        <li><a href="organizer-create-event.html">Create Event</a></li>
+                        <li><a href="organizer-edit-event.html">Edit Event</a></li>
+                        <li><a href="organizer-analytics.html">Event Analytics</a></li>
+                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
+                    </ul>
+                </li>
+                <li><a href="profile.html">Profile</a></li>
+                <li id="authLinks">
+                    <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+                    <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+                </li>
+                <li id="userLinks" style="display: none;">
+                    <span id="welcomeMessage" class="text-muted"></span>
+                    <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="qna-container">
+            <!-- Header Section -->
+            <div class="qna-header">
+                <h1>Questions & Answers</h1>
+                <p>Ask questions and get answers from the ConEvents community</p>
+            </div>
+
+            <!-- Ask Question Form Section -->
+            <div class="qna-forms-section">
+                <!-- Form Toggle Buttons -->
+                <div class="forms-toggle">
+                    <button id="toggle-ask-question" class="toggle-btn">
+                        Ask New Question
+                    </button>
+                    <button id="toggle-answer-form" class="toggle-btn" style="display: none;">
+                        Submit Answer
+                    </button>
+                </div>
+                
+                <!-- Ask Question Form Container -->
+                <div id="ask-question-form-container" style="display: none;"></div>
+                
+                <!-- Answer Form Container -->
+                <div id="answer-form-container" style="display: none;"></div>
+            </div>
+
+            <!-- Controls Section -->
+            <div class="qna-controls">
+                <div class="sort-controls">
+                    <label for="sortSelect">Sort by:</label>
+                    <select id="sortSelect" class="sort-select">
+                        <option value="recent">Most Recent</option>
+                        <option value="helpful">Most Helpful</option>
+                        <option value="unanswered">Unanswered First</option>
+                    </select>
+                </div>
+                <div class="question-count" id="questionCount">
+                    Loading questions...
+                </div>
+            </div>
+
+            <!-- Questions List -->
+            <div id="questionsContainer">
+                <div class="loading-state" id="loadingState">
+                    <p>Loading questions...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="about.html">About Us</a>
+            <a href="browse.html">Events</a>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms.html">Terms of Service</a>
+            <a href="contact.html">Contact</a>
+        </div>
+        <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+    </footer>
+
+    <script type="module" src="components/qna-tab.js"></script>
+    <script type="module">
+        // Import form components
+        import { AskQuestionForm } from './components/ask-question-form.js';
+        import { AnswerForm } from './components/answer-form.js';
+
+        // Initialize form components
+        let askQuestionForm;
+        let answerForm;
+        let currentUserId = null;
+        let currentEventId = null;
+        let currentOrganizerId = null;
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Handle organizer menu visibility first
+            handleOrganizerMenu();
+            
+            // Get current user session
+            await checkUserSession();
+            
+            // Initialize form components
+            initializeForms();
+            
+            // Setup form toggle handlers
+            setupFormToggles();
+        });
+
+        function handleOrganizerMenu() {
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || 'null');
+                const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+                const organizerMenu = document.getElementById('organizerMenu');
+                if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+            } catch (e) {}
+        }
+
+        async function checkUserSession() {
+            try {
+                const response = await fetch('/api/auth/session', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUserId = data.user?.id;
+                }
+            } catch (error) {
+                console.error('Error checking user session:', error);
+            }
+        }
+
+        function initializeForms() {
+            // Initialize Ask Question Form
+            askQuestionForm = new AskQuestionForm();
+            
+            // Set default event context (you may want to get this from URL params or page context)
+            currentEventId = getEventIdFromUrl() || 1; // Default for demo
+            currentOrganizerId = getOrganizerIdFromUrl() || 1; // Default for demo
+            
+            askQuestionForm.setEventContext(currentEventId, currentOrganizerId);
+            askQuestionForm.setOnSuccess(() => {
+                // Refresh questions list when new question is submitted
+                if (window.qnaTab) {
+                    window.qnaTab.refresh();
+                }
+                // Hide form after successful submission
+                toggleAskQuestionForm(false);
+            });
+
+            // Initialize Answer Form
+            answerForm = new AnswerForm();
+            answerForm.setContext(null, currentUserId, currentOrganizerId);
+            answerForm.setOnSuccess(() => {
+                // Refresh questions list when answer is submitted
+                if (window.qnaTab) {
+                    window.qnaTab.refresh();
+                }
+            });
+        }
+
+        function setupFormToggles() {
+            const askToggle = document.getElementById('toggle-ask-question');
+            const answerToggle = document.getElementById('toggle-answer-form');
+
+            if (askToggle) {
+                askToggle.addEventListener('click', () => {
+                    toggleAskQuestionForm();
+                });
+            }
+
+            if (answerToggle) {
+                answerToggle.addEventListener('click', () => {
+                    answerForm.toggle();
+                });
+            }
+
+            // Show answer form toggle only for organizers
+            if (currentUserId && currentOrganizerId && 
+                Number(currentUserId) === Number(currentOrganizerId)) {
+                if (answerToggle) {
+                    answerToggle.style.display = 'inline-block';
+                }
+            }
+        }
+
+        function toggleAskQuestionForm(show = null) {
+            const container = document.getElementById('ask-question-form-container');
+            const toggle = document.getElementById('toggle-ask-question');
+            
+            if (container && toggle) {
+                const isCurrentlyVisible = container.style.display !== 'none';
+                const shouldShow = show !== null ? show : !isCurrentlyVisible;
+                
+                container.style.display = shouldShow ? 'block' : 'none';
+                toggle.textContent = shouldShow ? 'Cancel' : 'Ask New Question';
+                toggle.classList.toggle('active', shouldShow);
+                
+                if (shouldShow) {
+                    askQuestionForm.setVisible(true);
+                } else {
+                    askQuestionForm.resetForm();
+                }
+            }
+        }
+
+        function getEventIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('eventId');
+        }
+
+        function getOrganizerIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('organizerId');
+        }
+
+        // Make forms globally accessible for debugging
+        window.askQuestionForm = null;
+        window.answerForm = null;
+        
+        // Export initialization function
+        window.initializeQnaForms = () => {
+            window.askQuestionForm = askQuestionForm;
+            window.answerForm = answerForm;
+        };
+    </script>
+    <script>
+
+        // Logout function
+        async function logout() {
+            const confirmLogout = confirm('Are you sure you want to log out?');
+            if (!confirmLogout) return;
+
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    localStorage.removeItem('user');
+                    window.location.reload();
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('An error occurred during logout.');
+            }
+        }
+    </script>
+</body>
+</html>
