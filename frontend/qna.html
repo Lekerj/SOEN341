@@ -527,9 +527,6 @@
                     <button id="toggle-ask-question" class="toggle-btn">
                         Ask New Question
                     </button>
-                    <button id="toggle-answer-form" class="toggle-btn" style="display: none;">
-                        Submit Answer
-                    </button>
                 </div>
                 
                 <!-- Ask Question Form Container -->
@@ -757,7 +754,6 @@
                 answerForm
             });
 
-            updateAnswerToggleVisibility();
             return true;
         }
 
@@ -895,8 +891,6 @@
                 answerForm.clearQuestion();
             }
 
-            updateAnswerToggleVisibility();
-
             if (window.qnaTab && typeof window.qnaTab.setContext === 'function') {
                 window.qnaTab.setContext(currentEventId, currentOrganizerId);
             }
@@ -929,38 +923,11 @@
 
         function setupFormToggles() {
             const askToggle = document.getElementById('toggle-ask-question');
-            const answerToggle = document.getElementById('toggle-answer-form');
 
             if (askToggle) {
                 askToggle.addEventListener('click', () => {
                     toggleAskQuestionForm();
                 });
-            }
-
-            if (answerToggle) {
-                answerToggle.addEventListener('click', () => {
-                    answerForm.toggle();
-                });
-            }
-
-            updateAnswerToggleVisibility();
-        }
-
-        function updateAnswerToggleVisibility() {
-            const answerToggle = document.getElementById('toggle-answer-form');
-            if (!answerToggle) return;
-
-            const canAnswer = Boolean(
-                currentUserId &&
-                currentOrganizerId &&
-                Number(currentUserId) === Number(currentOrganizerId)
-            );
-
-            answerToggle.style.display = canAnswer ? 'inline-block' : 'none';
-            answerToggle.disabled = !canAnswer;
-
-            if (!canAnswer && answerForm) {
-                answerForm.hide();
             }
         }
 
@@ -1099,11 +1066,6 @@
                 eventSelectElement.disabled = true;
             }
 
-            const answerToggle = document.getElementById('toggle-answer-form');
-            if (answerToggle) {
-                answerToggle.disabled = true;
-                answerToggle.classList.add('disabled');
-            }
         }
 
         // Make forms globally accessible for debugging
