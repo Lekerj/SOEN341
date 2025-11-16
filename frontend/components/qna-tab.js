@@ -332,13 +332,17 @@ class QnATab {
 
         // Add question helpful button click handler
         const questionHelpfulBtn = card.querySelector('.question-helpful-btn');
+        console.log('🔍 Looking for question helpful button for question', question.id, 'found:', !!questionHelpfulBtn);
         if (questionHelpfulBtn) {
+            console.log('✅ Attaching click handler to helpful button for question', question.id);
             questionHelpfulBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const questionId = parseInt(questionHelpfulBtn.getAttribute('data-question-id'));
                 console.log('👍 Helpful button clicked for question:', questionId);
                 this.handleQuestionHelpful(questionId, questionHelpfulBtn);
             });
+        } else {
+            console.warn('⚠️ Question helpful button not found for question', question.id);
         }
 
         return container;
