@@ -268,6 +268,11 @@ router.get("/", async (req, res) => {
         if (!grouped[key]) grouped[key] = [];
         grouped[key].push(answer);
       }
+
+      // Debug: Log sample answer to verify author_name is being returned
+      if (answerRows.length > 0) {
+        console.log('[QUESTIONS] Sample answer from DB:', JSON.stringify(answerRows[0], null, 2));
+      }
       questions = questionRows.map((q) => ({
         ...q,
         answers: grouped[q.id] || []
