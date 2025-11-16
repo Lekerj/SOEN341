@@ -295,8 +295,8 @@ ORDER BY TABLE_NAME;
 
 SELECT '' as '';
 SELECT 'Sample Admin User Created:' as Info;
-SELECT 'Email: admin@conevents.com' as '';
-SELECT 'Password: admin123' as '';
+SELECT 'Email: admin@concordia.com' as '';
+SELECT 'Password: Admin123!' as '';
 SELECT 'Role: admin' as '';
 
 SELECT '' as '';
