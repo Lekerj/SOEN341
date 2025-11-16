@@ -238,7 +238,7 @@ class QnATab {
 
             <div class="question-meta">
                 <div class="question-stats">
-                    <div class="stat-item">
+                    <div class="stat-item question-helpful-btn" data-question-id="${question.id}" title="Mark as helpful">
                         <span>👍</span>
                         <span>${question.helpful_count || 0}</span>
                     </div>
@@ -327,6 +327,17 @@ class QnATab {
                     console.error('❌ Answer form not initialized');
                     alert('Answer form is not available. Please refresh the page.');
                 }
+            });
+        }
+
+        // Add question helpful button click handler
+        const questionHelpfulBtn = card.querySelector('.question-helpful-btn');
+        if (questionHelpfulBtn) {
+            questionHelpfulBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const questionId = parseInt(questionHelpfulBtn.getAttribute('data-question-id'));
+                console.log('👍 Helpful button clicked for question:', questionId);
+                this.handleQuestionHelpful(questionId, questionHelpfulBtn);
             });
         }
 
@@ -472,9 +483,7 @@ class QnATab {
      * Handle helpful button click on answers
      */
     async handleAnswerHelpful(answerId, buttonElement) {
-        // TODO: Implement helpful count update via API
-        // For now, just show feedback
-        console.log('Marked answer', answerId, 'as helpful');
+        console.log('Marking answer', answerId, 'as helpful');
         buttonElement.disabled = true;
         buttonElement.style.opacity = '0.6';
 
@@ -482,11 +491,92 @@ class QnATab {
         const originalText = buttonElement.textContent;
         buttonElement.textContent = '✓ Thanks!';
 
+        try {
+            // Find the question ID for this answer
+            let questionId = null;
+            for (const question of this.questions) {
+                if (question.answers && question.answers.some(a => a.id === answerId)) {
+                    questionId = question.id;
+                    break;
+                }
+            }
+
+            if (!questionId) {
+                console.error('Question ID not found for answer:', answerId);
+                throw new Error('Question ID not found');
+            }
+
+            // Call API to mark answer as helpful
+            const response = await apiFetch(
+                `/api/questions/${questionId}/answers/${answerId}/helpful`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                }
+            );
+
+            const data = await response.json();
+            console.log('✅ Answer marked as helpful:', data);
+
+            // Refresh questions to update the UI with new helpful count
+            await this.loadQuestions();
+        } catch (error) {
+            console.error('❌ Error marking answer as helpful:', error);
+            alert('Failed to mark answer as helpful. Please try again.');
+            // Restore button state on error
+            buttonElement.textContent = originalText;
+            buttonElement.disabled = false;
+            buttonElement.style.opacity = '1';
+            return;
+        }
+
         setTimeout(() => {
             buttonElement.textContent = originalText;
             buttonElement.disabled = false;
             buttonElement.style.opacity = '1';
         }, 2000);
+    }
+
+    /**
+     * Handle helpful button click on questions
+     */
+    async handleQuestionHelpful(questionId, buttonElement) {
+        console.log('Marking question', questionId, 'as helpful');
+        buttonElement.style.opacity = '0.6';
+        buttonElement.style.cursor = 'default';
+        buttonElement.style.pointerEvents = 'none';
+
+        try {
+            // Call API to mark question as helpful
+            const response = await apiFetch(
+                `/api/questions/${questionId}/helpful`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                }
+            );
+
+            const data = await response.json();
+            console.log('✅ Question marked as helpful:', data);
+
+            // Update the helpful count in the UI
+            if (data.question && data.question.helpful_count !== undefined) {
+                const countSpan = buttonElement.querySelector('span:last-child');
+                if (countSpan) {
+                    countSpan.textContent = data.question.helpful_count;
+                }
+            }
+
+            // Show temporary feedback
+            buttonElement.style.opacity = '1';
+        } catch (error) {
+            console.error('❌ Error marking question as helpful:', error);
+            alert('Failed to mark question as helpful. Please try again.');
+            // Restore button state on error
+            buttonElement.style.opacity = '1';
+            buttonElement.style.cursor = 'pointer';
+            buttonElement.style.pointerEvents = 'auto';
+        }
     }
 
     /**
