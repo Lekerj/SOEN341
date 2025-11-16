@@ -125,6 +125,14 @@ router.post("/:id/answers", requireAuth, async (req, res) => {
       [questionId, userId, content.trim(), isOfficial ? true : false, isAnonymous ? true : false]
     );
 
+    // Debug: Log what we're storing
+    console.log('[QUESTIONS] Answer submitted:', {
+      is_anonymous_from_request: is_anonymous,
+      isOfficial,
+      isAnonymous_final: isAnonymous,
+      stored_value: isAnonymous ? 1 : 0
+    });
+
     // Mark question as answered
     await conn.query(
       "UPDATE questions SET is_answered = TRUE WHERE id = ?",

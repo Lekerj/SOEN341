@@ -387,12 +387,15 @@ class QnATab {
         const isAnonymous = answer.is_anonymous;
 
         // Debug: Log answer data for troubleshooting
+        const isAnonymousBoolDebug = isAnonymous === true || isAnonymous === 1 || isAnonymous === '1';
         console.log('Answer display data:', {
             id: answer.id,
             user_id: answer.user_id,
             author_name: answer.author_name,
             is_anonymous: isAnonymous,
+            is_anonymous_boolean: isAnonymousBoolDebug,
             is_official: isOfficial,
+            will_show: isAnonymousBoolDebug ? 'Anonymous' : (answer.author_name || 'Anonymous'),
             content: answer.content?.substring(0, 50)
         });
 
@@ -401,8 +404,11 @@ class QnATab {
             : '<span class="community-badge">Community</span>';
 
         // Determine author name display based on anonymous flag and official status
+        // Note: isAnonymous can be 0/1 (from MySQL) or true/false (from JavaScript)
+        const isAnonymousBool = isAnonymous === true || isAnonymous === 1 || isAnonymous === '1';
+
         let authorName;
-        if (isAnonymous === true) {
+        if (isAnonymousBool) {
             // User explicitly chose to be anonymous
             authorName = 'Anonymous';
         } else if (isOfficial) {
