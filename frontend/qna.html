@@ -130,14 +130,38 @@
             display: flex;
             flex-wrap: wrap;
             gap: 1rem;
-            align-items: center;
+            align-items: flex-start;
             justify-content: space-between;
         }
 
+        .event-selector,
         .sort-controls {
             display: flex;
-            gap: 1rem;
-            align-items: center;
+            flex-direction: column;
+            gap: 0.35rem;
+            min-width: 240px;
+            flex: 1 1 240px;
+        }
+
+        .event-selector label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .event-select {
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            min-width: 240px;
+            font-size: 0.9rem;
+            color: #111827;
+            background: #fff;
+        }
+
+        .event-select:focus {
+            outline: none;
+            border-color: #6b2c91;
+            box-shadow: 0 0 0 3px rgba(107, 44, 145, 0.1);
         }
 
         .sort-controls label {
@@ -165,6 +189,31 @@
             color: #6b7280;
             font-size: 0.9rem;
             font-weight: 500;
+            margin-left: auto;
+            align-self: flex-end;
+        }
+
+        .question-actions {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .question-actions .answer-btn {
+            border: none;
+            background: linear-gradient(135deg, #6b2c91 0%, #912338 100%);
+            color: #fff;
+            padding: 0.5rem 1.25rem;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(145, 35, 56, 0.25);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .question-actions .answer-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(145, 35, 56, 0.3);
         }
 
         .ask-question-placeholder {
@@ -352,9 +401,18 @@
                 align-items: stretch;
             }
 
+            .event-selector,
             .sort-controls {
-                flex-direction: column;
-                align-items: stretch;
+                width: 100%;
+            }
+
+            .question-actions {
+                justify-content: flex-start;
+            }
+
+            .question-count {
+                align-self: flex-start;
+                margin-left: 0;
             }
 
             .question-header {
@@ -478,11 +536,17 @@
                 <div id="ask-question-form-container" style="display: none;"></div>
                 
                 <!-- Answer Form Container -->
-                <div id="answer-form-container" style="display: none;"></div>
+                <div id="answer-form-container"></div>
             </div>
 
             <!-- Controls Section -->
             <div class="qna-controls">
+                <div class="event-selector" id="eventSelectorWrapper">
+                    <label for="eventSelect">Event:</label>
+                    <select id="eventSelect" class="event-select">
+                        <option value="">Loading events...</option>
+                    </select>
+                </div>
                 <div class="sort-controls">
                     <label for="sortSelect">Sort by:</label>
                     <select id="sortSelect" class="sort-select">
@@ -523,6 +587,7 @@
         import { AskQuestionForm } from './components/ask-question-form.js';
         import { AnswerForm } from './components/answer-form.js';
         import { QnATab } from './components/qna-tab.js';
+        import { apiFetch } from './utils/api.js';
 
         // Initialize form components
         let askQuestionForm;
@@ -530,10 +595,16 @@
         let currentUserId = null;
         let currentEventId = null;
         let currentOrganizerId = null;
+        let currentUserRole = null;
+        let currentUserData = null;
+        let eventSelectElement = null;
+        let availableEvents = [];
+        const eventLookup = new Map();
 
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('🚀 Q&A Page: DOM loaded, starting initialization...');
+            eventSelectElement = document.getElementById('eventSelect');
             
             // Get current user session first
             await checkUserSession();
@@ -542,13 +613,17 @@
             // Handle organizer menu visibility after checking session
             handleOrganizerMenu();
             
-            // Initialize form components
-            initializeForms();
+            // Load events for selector and initialize components
+            const initialContext = await populateEventSelector();
+            const formsReady = await initializeForms(initialContext);
             
-            // Setup form toggle handlers
-            setupFormToggles();
-            
-            console.log('✅ Q&A Page: Initialization complete');
+            if (formsReady) {
+                // Setup form toggle handlers
+                setupFormToggles();
+                console.log('✅ Q&A Page: Initialization complete');
+            } else {
+                console.warn('⚠️ Q&A Page: Initialization skipped due to missing event context');
+            }
         });
 
         function handleOrganizerMenu() {
@@ -618,32 +693,50 @@
                 const userData = localStorage.getItem('user');
                 if (userData) {
                     const user = JSON.parse(userData);
+                    currentUserData = user;
                     currentUserId = user.id;
+                    currentUserRole = String(user.role || '').toLowerCase();
+                } else {
+                    currentUserData = null;
+                    currentUserId = null;
+                    currentUserRole = null;
                 }
             } catch (error) {
                 console.error('Error reading user session:', error);
+                currentUserData = null;
+                currentUserId = null;
+                currentUserRole = null;
             }
         }
 
-        function initializeForms() {
+        async function initializeForms(preloadedContext = null) {
+            let context = preloadedContext;
+            
+            try {
+                if (!context) {
+                    context = await resolveEventContext();
+                }
+            } catch (error) {
+                console.error('❌ Unable to resolve event context:', error);
+                showContextError('Unable to load event details. Please refresh the page or open Q&A from a specific event.');
+                return false;
+            }
+
+            if (!context) {
+                showContextError('We need to know which event you are viewing. Please open the Q&A tab from an event card or add ?eventId=<id> to the URL.');
+                return false;
+            }
+
+            currentEventId = context.eventId;
+            currentOrganizerId = context.organizerId;
+
             // Initialize Ask Question Form
             askQuestionForm = new AskQuestionForm();
-            
-            // Set default event context (you may want to get this from URL params or page context)
-            currentEventId = getEventIdFromUrl() || 1; // Default for demo
-            currentOrganizerId = getOrganizerIdFromUrl() || 3; // Default for demo (Test Organizer)
-            
-            // Initialize Q&A Tab with proper context
-            console.log('🎯 Initializing Q&A Tab with IDs:', { eventId: currentEventId, organizerId: currentOrganizerId });
-            window.qnaTab = new QnATab(currentEventId, currentOrganizerId);
-            
             askQuestionForm.setEventContext(currentEventId, currentOrganizerId);
             askQuestionForm.setOnSuccess(() => {
-                // Refresh questions list when new question is submitted
                 if (window.qnaTab) {
                     window.qnaTab.refresh();
                 }
-                // Hide form after successful submission
                 toggleAskQuestionForm(false);
             });
 
@@ -651,11 +744,187 @@
             answerForm = new AnswerForm();
             answerForm.setContext(null, currentUserId, currentOrganizerId);
             answerForm.setOnSuccess(() => {
-                // Refresh questions list when answer is submitted
                 if (window.qnaTab) {
                     window.qnaTab.refresh();
                 }
+                answerForm.clearQuestion();
             });
+
+            // Initialize Q&A Tab with proper context
+            console.log('🎯 Initializing Q&A Tab with IDs:', { eventId: currentEventId, organizerId: currentOrganizerId });
+            window.qnaTab = new QnATab(currentEventId, currentOrganizerId, {
+                currentUserId,
+                answerForm
+            });
+
+            updateAnswerToggleVisibility();
+            return true;
+        }
+
+        async function populateEventSelector() {
+            if (!eventSelectElement) return null;
+
+            eventLookup.clear();
+            eventSelectElement.disabled = true;
+            eventSelectElement.innerHTML = '<option value="">Loading events...</option>';
+
+            try {
+                const response = await apiFetch('/api/events');
+                const data = await response.json();
+                const events = Array.isArray(data.events) ? data.events : [];
+                availableEvents = filterEventsForCurrentUser(events);
+
+                if (!availableEvents.length) {
+                    eventSelectElement.innerHTML = '<option value="">No events available</option>';
+                    showContextError('No events are available for Q&A yet.');
+                    return null;
+                }
+
+                renderEventOptions(availableEvents);
+                eventSelectElement.disabled = false;
+                const initialContext = determineInitialEventContext(availableEvents);
+                if (initialContext) {
+                    eventSelectElement.value = String(initialContext.eventId);
+                } else {
+                    eventSelectElement.value = '';
+                    showContextError('No events with assigned organizers are available for Q&A yet.');
+                    return null;
+                }
+
+                eventSelectElement.addEventListener('change', handleEventSelectionChange);
+                return initialContext;
+            } catch (error) {
+                console.error('Error loading events for selector:', error);
+                eventSelectElement.innerHTML = '<option value="">Failed to load events</option>';
+                showContextError('Unable to load event list. Please try again later.');
+                return null;
+            }
+        }
+
+        function filterEventsForCurrentUser(events) {
+            if (!Array.isArray(events)) return [];
+            if (currentUserRole === 'organizer' && currentUserId) {
+                return events.filter(evt => Number(evt.organizer_id) === Number(currentUserId));
+            }
+            return events;
+        }
+
+        function renderEventOptions(events) {
+            if (!eventSelectElement) return;
+
+            eventSelectElement.innerHTML = '';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Select an event';
+            placeholder.disabled = true;
+            placeholder.selected = true;
+            eventSelectElement.appendChild(placeholder);
+
+            let hasSelectableEvent = false;
+
+            events.forEach(evt => {
+                const option = document.createElement('option');
+                const hasOrganizer = hasOrganizerAssigned(evt);
+                option.value = String(evt.id);
+                option.textContent = formatEventOptionLabel(evt, hasOrganizer);
+                option.disabled = !hasOrganizer;
+                if (hasOrganizer && !hasSelectableEvent) {
+                    hasSelectableEvent = true;
+                }
+                eventSelectElement.appendChild(option);
+                eventLookup.set(String(evt.id), evt);
+            });
+
+            if (!hasSelectableEvent) {
+                placeholder.textContent = 'No events with organizers available';
+            }
+        }
+
+        function hasOrganizerAssigned(evt) {
+            return evt && Number(evt.organizer_id);
+        }
+
+        function formatEventOptionLabel(evt, hasOrganizer = true) {
+            const title = evt.title || `Event #${evt.id}`;
+            const datePart = evt.event_date ? ` (${evt.event_date})` : '';
+            const suffix = hasOrganizer ? '' : ' (Organizer pending)';
+            return `${title}${datePart}${suffix}`;
+        }
+
+        function determineInitialEventContext(events) {
+            if (!events.length) return null;
+
+            const urlEventId = getEventIdFromUrl();
+            if (urlEventId) {
+                const match = events.find(evt => String(evt.id) === String(urlEventId));
+                if (match) {
+                    const ctx = mapEventToContext(match);
+                    if (ctx) {
+                        return ctx;
+                    }
+                }
+            }
+
+            for (const evt of events) {
+                const ctx = mapEventToContext(evt);
+                if (ctx) {
+                    return ctx;
+                }
+            }
+
+            return null;
+        }
+
+        function handleEventSelectionChange() {
+            const context = getSelectedEventContext();
+            if (!context) {
+                showContextError('Selected event is missing organizer information. Please choose a different event.');
+                return;
+            }
+
+            currentEventId = context.eventId;
+            currentOrganizerId = context.organizerId;
+
+            if (askQuestionForm) {
+                askQuestionForm.setEventContext(currentEventId, currentOrganizerId);
+                askQuestionForm.resetForm();
+            }
+
+            if (answerForm) {
+                answerForm.setContext(null, currentUserId, currentOrganizerId);
+                answerForm.clearQuestion();
+            }
+
+            updateAnswerToggleVisibility();
+
+            if (window.qnaTab && typeof window.qnaTab.setContext === 'function') {
+                window.qnaTab.setContext(currentEventId, currentOrganizerId);
+            }
+
+            if (askQuestionForm) {
+                toggleAskQuestionForm(false);
+            }
+        }
+
+        function getSelectedEventContext() {
+            if (!eventSelectElement) return null;
+            const selectedId = eventSelectElement.value;
+            if (!selectedId) return null;
+            const eventData = eventLookup.get(String(selectedId));
+            return mapEventToContext(eventData);
+        }
+
+        function mapEventToContext(eventData) {
+            if (!eventData) return null;
+            const eventId = Number(eventData.id);
+            const organizerId = Number(eventData.organizer_id);
+            if (!Number.isFinite(eventId) || !Number.isFinite(organizerId)) {
+                return null;
+            }
+            return {
+                eventId,
+                organizerId
+            };
         }
 
         function setupFormToggles() {
@@ -674,12 +943,24 @@
                 });
             }
 
-            // Show answer form toggle only for organizers
-            if (currentUserId && currentOrganizerId && 
-                Number(currentUserId) === Number(currentOrganizerId)) {
-                if (answerToggle) {
-                    answerToggle.style.display = 'inline-block';
-                }
+            updateAnswerToggleVisibility();
+        }
+
+        function updateAnswerToggleVisibility() {
+            const answerToggle = document.getElementById('toggle-answer-form');
+            if (!answerToggle) return;
+
+            const canAnswer = Boolean(
+                currentUserId &&
+                currentOrganizerId &&
+                Number(currentUserId) === Number(currentOrganizerId)
+            );
+
+            answerToggle.style.display = canAnswer ? 'inline-block' : 'none';
+            answerToggle.disabled = !canAnswer;
+
+            if (!canAnswer && answerForm) {
+                answerForm.hide();
             }
         }
 
@@ -738,6 +1019,93 @@
             return params.get('organizerId');
         }
 
+        async function resolveEventContext() {
+            const dropdownContext = getSelectedEventContext();
+            if (dropdownContext) {
+                return dropdownContext;
+            }
+
+            const urlEventId = getEventIdFromUrl();
+            const urlOrganizerId = getOrganizerIdFromUrl();
+
+            if (urlEventId && urlOrganizerId) {
+                return {
+                    eventId: Number(urlEventId),
+                    organizerId: Number(urlOrganizerId)
+                };
+            }
+
+            if (urlEventId) {
+                const eventDetails = await fetchEventDetails(urlEventId);
+                if (eventDetails) {
+                    const derivedOrganizerId = Number(eventDetails.organizer_id ?? eventDetails.organizerId);
+                    if (derivedOrganizerId) {
+                        return {
+                            eventId: Number(urlEventId),
+                            organizerId: derivedOrganizerId
+                        };
+                    }
+                }
+            }
+
+            if (availableEvents.length) {
+                const fallback = mapEventToContext(availableEvents[0]);
+                if (fallback) {
+                    return fallback;
+                }
+            }
+
+            return null;
+        }
+
+        async function fetchEventDetails(eventId) {
+            console.log('📡 Fetching event details for Q&A context:', eventId);
+            const response = await apiFetch(`/api/events/${eventId}`);
+            const payload = await response.json();
+            if (payload && payload.event) {
+                return payload.event;
+            }
+            return payload;
+        }
+
+        function showContextError(message) {
+            const questionsContainer = document.getElementById('questionsContainer');
+            if (questionsContainer) {
+                questionsContainer.innerHTML = `
+                    <div class="error-state">
+                        <h3>Event Required</h3>
+                        <p>${message}</p>
+                    </div>
+                `;
+            }
+
+            const askFormContainer = document.getElementById('ask-question-form-container');
+            if (askFormContainer) {
+                askFormContainer.innerHTML = `
+                    <div class="error-state">
+                        <h3>Unable to show form</h3>
+                        <p>${message}</p>
+                    </div>
+                `;
+            }
+
+            const askToggle = document.getElementById('toggle-ask-question');
+            if (askToggle) {
+                askToggle.disabled = true;
+                askToggle.classList.add('disabled');
+            }
+
+            if (eventSelectElement) {
+                eventSelectElement.disabled = true;
+            }
+
+            const answerToggle = document.getElementById('toggle-answer-form');
+            if (answerToggle) {
+                answerToggle.disabled = true;
+                answerToggle.classList.add('disabled');
+            }
+        }
+
         // Make forms globally accessible for debugging
         window.askQuestionForm = null;
         window.answerForm = null;
@@ -747,14 +1115,17 @@
             window.askQuestionForm = askQuestionForm;
             window.answerForm = answerForm;
         };
+        window.handleOrganizerMenu = handleOrganizerMenu;
     </script>
     <script>
 
         // API Base URL helper function
         function getApiBase() {
-            return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                ? 'http://localhost:3000'
-                : '';
+            const host = window.location.hostname && window.location.hostname !== ''
+                ? window.location.hostname
+                : 'localhost';
+            const port = 3000;
+            return `http://${host}:${port}`;
         }
 
         // Logout function
@@ -773,7 +1144,9 @@
                 if (response.ok) {
                     localStorage.removeItem('user');
                     // Update navbar immediately before reload
-                    handleOrganizerMenu();
+                    if (typeof window.handleOrganizerMenu === 'function') {
+                        window.handleOrganizerMenu();
+                    }
                     window.location.reload();
                 } else {
                     alert('Logout failed. Please try again.');
