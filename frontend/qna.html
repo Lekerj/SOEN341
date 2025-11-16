@@ -1,12 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Q&A - ConEvents</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="components/forms.css">
+</head>
+
+<body>
     <style>
+        /* Force navbar to use exact same styles as index.html */
+        .navbar {
+            background: rgba(255, 255, 255, 0.98) !important;
+            backdrop-filter: blur(10px) !important;
+            box-shadow: var(--shadow-md) !important;
+            padding: var(--spacing-md) 0 !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 1000 !important;
+            transition: all var(--transition-base) !important;
+            border-bottom: 2px solid transparent !important;
+        }
+        
+        .navbar-container {
+            max-width: 1200px !important;
+            margin: 0 auto !important;
+            padding: 0 var(--spacing-lg) !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+        
+        .navbar-menu #authLinks .btn {
+            padding: 12px 32px !important;
+            border-radius: var(--radius-lg) !important;
+        }
+        
+        .navbar-menu .btn-sm {
+            padding: 10px 22px !important;
+            font-size: var(--font-size-sm) !important;
+        }
+
+        /* Force logout button to match index.html exactly */
+        .navbar-menu #userLinks .btn-secondary {
+            background: var(--white) !important;
+            color: var(--primary-maroon) !important;
+            border: 2px solid var(--primary-maroon) !important;
+            box-shadow: var(--shadow-sm) !important;
+            transition: all var(--transition-base) !important;
+            padding: 10px 22px !important;
+            font-size: var(--font-size-sm) !important;
+            display: inline-block !important;
+            border-radius: var(--radius-md) !important;
+            font-weight: 600 !important;
+            text-decoration: none !important;
+            text-align: center !important;
+            cursor: pointer !important;
+        }
+
+        .navbar-menu #userLinks .btn-secondary:hover {
+            background: var(--primary-maroon) !important;
+            color: var(--white) !important;
+            border-color: var(--primary-maroon) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: var(--shadow-md) !important;
+        }
+
+        .navbar-menu #userLinks {
+            display: flex !important;
+            gap: 1rem !important;
+            align-items: center !important;
+        }
+
+        .navbar-menu #userLinks #welcomeMessage {
+            margin-right: 0 !important;
+            color: var(--dark-gray) !important;
+            font-weight: 500 !important;
+            font-size: 1rem !important;
+            line-height: 1.5 !important;
+            padding: var(--spacing-xs) 0 !important;
+            white-space: nowrap !important;
+        }
+
+        /* Force userLinks to be hidden by default */
+        .navbar-menu #userLinks {
+            display: none !important;
+        }
+
+        /* Only show userLinks when user is logged in */
+        .navbar-menu #userLinks.logged-in {
+            display: flex !important;
+            gap: 1rem !important;
+            align-items: center !important;
+        }
+
         .qna-container {
             max-width: 1000px;
             margin: 2rem auto;
@@ -296,34 +385,74 @@
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="navbar-container">
-            <a href="index.html" class="navbar-logo">🎫 ConEvents</a>
+            <a href="index.html" class="navbar-logo">
+                🎫 ConEvents
+            </a>
             <ul class="navbar-menu">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="browse.html">Browse</a></li>
-                <li><a href="qna.html" aria-current="page">Q&A</a></li>
-                <li><a href="about.html">About</a></li>
+                <li id="homeLink"><a href="index.html">Home</a></li>
+                <li id="browseLink"><a href="browse.html">Browse</a></li>
+                <li id="qnaLink"><a href="qna.html">Q&A</a></li>
+                <li id="aboutLink"><a href="about.html">About</a></li>
+                <li id="adminMenu" class="dropdown" style="display:none;">
+                    <a href="#" class="dropdown-toggle">Admin</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="admin-dashboard.html">Dashboard</a></li>
+                        <li><a href="admin-organization-management.html">Organizations</a></li>
+                        <li><a href="admin-moderation.html">Event Moderation</a></li>
+                    </ul>
+                </li>
                 <li id="organizerMenu" class="dropdown" style="display:none;">
                     <a href="#" class="dropdown-toggle">Organizer</a>
                     <ul class="dropdown-menu">
                         <li><a href="organizer-dashboard.html">My Dashboard</a></li>
                         <li><a href="organizer-create-event.html">Create Event</a></li>
-                        <li><a href="organizer-edit-event.html">Edit Event</a></li>
-                        <li><a href="organizer-analytics.html">Event Analytics</a></li>
-                        <li><a href="organizer-scanner.html">QR Scanner</a></li>
+                        <li><a href="organizer-edit-event.html?eventId">Edit Event</a></li>
+                        <li><a href="organizer-analytics.html?eventId">Event Analytics</a></li>
+                        <li id="qrScannerMenu"><a href="organizer-scanner.html">QR Scanner</a></li>
                     </ul>
                 </li>
-                <li><a href="profile.html">Profile</a></li>
+                <li id="profileLink"><a href="profile.html">Profile</a></li>
                 <li id="authLinks">
                     <a href="login.html" class="btn btn-primary btn-sm">Login</a>
                     <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
                 </li>
-                <li id="userLinks" style="display: none;">
+                <li id="userLinks" style="display: none !important;">
                     <span id="welcomeMessage" class="text-muted"></span>
                     <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
                 </li>
             </ul>
         </div>
     </nav>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        try {
+          const user = JSON.parse(localStorage.getItem('user') || 'null');
+          const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
+          const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+
+          const adminMenu = document.getElementById('adminMenu');
+          const organizerMenu = document.getElementById('organizerMenu');
+          const browseLink = document.getElementById('browseLink');
+          const aboutLink = document.getElementById('aboutLink');
+          const profileLink = document.getElementById('profileLink');
+          const qrScannerMenu = document.getElementById('qrScannerMenu');
+
+          // Show/hide admin menu
+          if (adminMenu) adminMenu.style.display = isAdmin ? '' : 'none';
+
+          // Show/hide organizer menu
+          if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+
+          // Hide browse/about/profile for admins, show only admin menu
+          if (isAdmin) {
+            if (browseLink) browseLink.style.display = 'none';
+            if (aboutLink) aboutLink.style.display = 'none';
+            if (profileLink) profileLink.style.display = 'none';
+            if (qrScannerMenu) qrScannerMenu.style.display = 'none';
+          }
+        } catch (e) {}
+      });
+    </script>
 
     <div class="main-content">
         <div class="qna-container">
@@ -393,6 +522,7 @@
         // Import form components
         import { AskQuestionForm } from './components/ask-question-form.js';
         import { AnswerForm } from './components/answer-form.js';
+        import { QnATab } from './components/qna-tab.js';
 
         // Initialize form components
         let askQuestionForm;
@@ -403,40 +533,95 @@
 
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', async () => {
-            // Handle organizer menu visibility first
-            handleOrganizerMenu();
+            console.log('🚀 Q&A Page: DOM loaded, starting initialization...');
             
-            // Get current user session
+            // Get current user session first
             await checkUserSession();
+            console.log('👤 Current user ID:', currentUserId);
+            
+            // Handle organizer menu visibility after checking session
+            handleOrganizerMenu();
             
             // Initialize form components
             initializeForms();
             
             // Setup form toggle handlers
             setupFormToggles();
+            
+            console.log('✅ Q&A Page: Initialization complete');
         });
 
         function handleOrganizerMenu() {
             try {
                 const user = JSON.parse(localStorage.getItem('user') || 'null');
+                console.log('🔍 HandleOrganizerMenu - User data:', user);
+                
+                // Handle role-based menu visibility
+                const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
                 const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+                const isLoggedIn = user && user.id;
+                
+                console.log('🔍 User status:', { isLoggedIn, isAdmin, isOrganizer });
+                
+                const adminMenu = document.getElementById('adminMenu');
                 const organizerMenu = document.getElementById('organizerMenu');
+                const authLinks = document.getElementById('authLinks');
+                const userLinks = document.getElementById('userLinks');
+                const welcomeMessage = document.getElementById('welcomeMessage');
+                
+                // Show/hide role-based menus
+                if (adminMenu) adminMenu.style.display = isAdmin ? '' : 'none';
                 if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
-            } catch (e) {}
+                
+                if (isLoggedIn) {
+                    // User is logged in - show logout button, hide login/signup
+                    console.log('👤 User is logged in, showing logout button');
+                    if (authLinks) authLinks.style.display = 'none';
+                    if (userLinks) {
+                        userLinks.classList.add('logged-in');
+                        userLinks.style.display = 'flex';
+                        userLinks.style.gap = '1rem';
+                        userLinks.style.alignItems = 'center';
+                    }
+                    if (welcomeMessage) welcomeMessage.textContent = `Welcome, ${user.name}!`;
+                } else {
+                    // User is logged out - show login/signup, hide logout button
+                    console.log('🚪 User is logged out, hiding logout button');
+                    if (authLinks) authLinks.style.display = 'flex';
+                    if (userLinks) {
+                        userLinks.classList.remove('logged-in');
+                        userLinks.style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                console.error('❌ Error in handleOrganizerMenu:', e);
+                // If error reading user data, assume logged out
+                const authLinks = document.getElementById('authLinks');
+                const userLinks = document.getElementById('userLinks');
+                const adminMenu = document.getElementById('adminMenu');
+                const organizerMenu = document.getElementById('organizerMenu');
+                
+                console.log('🚪 Error occurred, assuming logged out');
+                if (authLinks) authLinks.style.display = 'flex';  
+                if (userLinks) {
+                    userLinks.classList.remove('logged-in');
+                    userLinks.style.display = 'none';
+                }
+                if (adminMenu) adminMenu.style.display = 'none';
+                if (organizerMenu) organizerMenu.style.display = 'none';
+            }
         }
 
         async function checkUserSession() {
+            // Use existing user data from localStorage instead of making API calls
             try {
-                const response = await fetch('/api/auth/session', {
-                    credentials: 'include'
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    currentUserId = data.user?.id;
+                const userData = localStorage.getItem('user');
+                if (userData) {
+                    const user = JSON.parse(userData);
+                    currentUserId = user.id;
                 }
             } catch (error) {
-                console.error('Error checking user session:', error);
+                console.error('Error reading user session:', error);
             }
         }
 
@@ -446,7 +631,11 @@
             
             // Set default event context (you may want to get this from URL params or page context)
             currentEventId = getEventIdFromUrl() || 1; // Default for demo
-            currentOrganizerId = getOrganizerIdFromUrl() || 1; // Default for demo
+            currentOrganizerId = getOrganizerIdFromUrl() || 3; // Default for demo (Test Organizer)
+            
+            // Initialize Q&A Tab with proper context
+            console.log('🎯 Initializing Q&A Tab with IDs:', { eventId: currentEventId, organizerId: currentOrganizerId });
+            window.qnaTab = new QnATab(currentEventId, currentOrganizerId);
             
             askQuestionForm.setEventContext(currentEventId, currentOrganizerId);
             askQuestionForm.setOnSuccess(() => {
@@ -502,6 +691,31 @@
                 const isCurrentlyVisible = container.style.display !== 'none';
                 const shouldShow = show !== null ? show : !isCurrentlyVisible;
                 
+                // Check if user is logged in when trying to show the form
+                if (shouldShow) {
+                    // Double-check authentication by looking at localStorage
+                    let isLoggedIn = false;
+                    try {
+                        const userData = localStorage.getItem('user');
+                        isLoggedIn = userData && JSON.parse(userData).id;
+                    } catch (e) {
+                        isLoggedIn = false;
+                    }
+                    
+                    // Also check currentUserId as backup
+                    isLoggedIn = isLoggedIn || currentUserId;
+                    
+                    if (!isLoggedIn) {
+                        // Show error message and redirect to login page
+                        console.log('User not logged in, redirecting to login page');
+                        alert('You must be logged in your account to post a question');
+                        window.location.href = 'login.html';
+                        return;
+                    } else {
+                        console.log('User is logged in, showing form');
+                    }
+                }
+                
                 container.style.display = shouldShow ? 'block' : 'none';
                 toggle.textContent = shouldShow ? 'Cancel' : 'Ask New Question';
                 toggle.classList.toggle('active', shouldShow);
@@ -536,19 +750,30 @@
     </script>
     <script>
 
+        // API Base URL helper function
+        function getApiBase() {
+            return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://localhost:3000'
+                : '';
+        }
+
         // Logout function
         async function logout() {
             const confirmLogout = confirm('Are you sure you want to log out?');
-            if (!confirmLogout) return;
+            if (!confirmLogout) {
+                return;
+            }
 
             try {
-                const response = await fetch('/api/auth/logout', {
+                const response = await fetch(`${getApiBase()}/api/auth/logout`, {
                     method: 'POST',
                     credentials: 'include'
                 });
 
                 if (response.ok) {
                     localStorage.removeItem('user');
+                    // Update navbar immediately before reload
+                    handleOrganizerMenu();
                     window.location.reload();
                 } else {
                     alert('Logout failed. Please try again.');

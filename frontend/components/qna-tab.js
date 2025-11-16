@@ -1,5 +1,4 @@
 import { getApiBase, apiFetch } from '../utils/api.js';
-import { mockQuestions, mockApiCall, sortQuestions } from './qna-mock-data.js';
 
 /**
  * Q&A Tab Component
@@ -10,11 +9,15 @@ import { mockQuestions, mockApiCall, sortQuestions } from './qna-mock-data.js';
  * - Loading and error states
  */
 class QnATab {
-    constructor() {
+    constructor(eventId = null, organizerId = null) {
         this.questions = [];
         this.currentSort = 'recent';
         this.isLoading = false;
         this.error = null;
+        this.eventId = eventId;
+        this.organizerId = organizerId;
+        
+        console.log('🏗️ Initializing Q&A Tab with context:', { eventId: this.eventId, organizerId: this.organizerId });
         
         this.initializeElements();
         this.attachEventListeners();
@@ -46,47 +49,46 @@ class QnATab {
         this.error = null;
 
         try {
-            // Build query parameters for sorting
+            // Build query parameters - the backend API handles sorting internally
             const params = new URLSearchParams();
             
-            switch (this.currentSort) {
-                case 'recent':
-                    params.set('sortBy', 'date');
-                    params.set('order', 'desc');
-                    break;
-                case 'helpful':
-                    params.set('sortBy', 'helpful');
-                    params.set('order', 'desc');
-                    break;
-                case 'unanswered':
-                    params.set('sortBy', 'unanswered');
-                    params.set('order', 'desc');
-                    break;
+            // Add event and organizer filters if available
+            if (this.eventId) {
+                params.set('event_id', this.eventId);
+                console.log('🏷️ Filtering by event_id:', this.eventId);
             }
+            if (this.organizerId) {
+                params.set('organizer_id', this.organizerId);
+                console.log('🏷️ Filtering by organizer_id:', this.organizerId);
+            }
+            
+            // Add any filters for unanswered questions
+            if (this.currentSort === 'unanswered') {
+                params.set('is_answered', 'false');
+            }
+            
+            // Include answers in the response
+            params.set('include_answers', 'true');
 
             let data;
             
-            try {
-                // Try to fetch from real API first
-                const response = await apiFetch(`/api/questions?${params.toString()}`);
-                
-                if (!response.ok) {
-                    throw new Error(`API returned ${response.status}`);
-                }
-
-                data = await response.json();
-                console.log('✅ Loaded questions from API');
-                
-            } catch (apiError) {
-                // Fallback to mock data for development
-                console.warn('📝 API not available, using mock data:', apiError.message);
-                
-                // Simulate API call with mock data
-                await mockApiCall(mockQuestions, 500, 0.05);
-                data = sortQuestions(mockQuestions, this.currentSort);
-            }
+            // Fetch from real API
+            console.log('🌐 Fetching questions from:', `/api/questions?${params.toString()}`);
+            const response = await apiFetch(`/api/questions?${params.toString()}`);
+            
+            // apiFetch now throws errors automatically, so if we get here, it's successful
+            data = await response.json();
+            console.log('✅ Loaded questions from API:', data);
+            console.log('📊 Questions array length:', data.questions ? data.questions.length : 'no questions property');
 
             this.questions = Array.isArray(data) ? data : data.questions || [];
+            
+            console.log('📊 Loaded', this.questions.length, 'questions from API');
+            
+            // Sort questions based on current sort selection
+            this.sortQuestions();
+            
+            console.log('🔄 Questions after sorting:', this.questions.length);
             
             this.renderQuestions();
             this.updateQuestionCount();
@@ -97,6 +99,32 @@ class QnATab {
             this.renderError();
         } finally {
             this.setLoadingState(false);
+        }
+    }
+
+    /**
+     * Sort questions based on current selection
+     */
+    sortQuestions() {
+        switch (this.currentSort) {
+            case 'recent':
+                this.questions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                break;
+            case 'helpful':
+                this.questions.sort((a, b) => (b.helpful_count || 0) - (a.helpful_count || 0));
+                break;
+            case 'unanswered':
+                // Unanswered first, then by recent
+                this.questions.sort((a, b) => {
+                    const aAnswered = a.is_answered === 1 || a.is_answered === true;
+                    const bAnswered = b.is_answered === 1 || b.is_answered === true;
+                    
+                    if (aAnswered === bAnswered) {
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    }
+                    return aAnswered ? 1 : -1;
+                });
+                break;
         }
     }
 
@@ -131,7 +159,10 @@ class QnATab {
      * Render the questions list
      */
     renderQuestions() {
-        if (!this.questionsContainer) return;
+        if (!this.questionsContainer) {
+            console.error('❌ questionsContainer not found!');
+            return;
+        }
 
         // Clear container
         this.questionsContainer.innerHTML = '';
@@ -161,38 +192,41 @@ class QnATab {
         const card = document.createElement('div');
         card.className = 'question-card';
         
-        // Determine question status
-        const isAnswered = question.answered || question.answer_count > 0;
+        // Determine question status - use is_answered field from API
+        const isAnswered = question.is_answered === 1 || question.is_answered === true;
         const statusClass = isAnswered ? 'status-answered' : 'status-unanswered';
         const statusText = isAnswered ? 'Answered' : 'Unanswered';
 
         // Format date
-        const createdDate = new Date(question.created_at || question.date);
+        const createdDate = new Date(question.created_at);
         const timeAgo = this.formatTimeAgo(createdDate);
+
+        // Count answers if available
+        const answerCount = question.answers ? question.answers.length : 0;
 
         card.innerHTML = `
             <div class="question-header">
-                <h3 class="question-title">${this.escapeHtml(question.title || question.question)}</h3>
+                <h3 class="question-title">${this.escapeHtml(question.title)}</h3>
                 <span class="question-status ${statusClass}">${statusText}</span>
             </div>
             
             <div class="question-content">
-                ${this.escapeHtml(this.truncateText(question.content || question.description || '', 150))}
+                ${this.escapeHtml(this.truncateText(question.content, 150))}
             </div>
             
             <div class="question-meta">
                 <div class="question-stats">
                     <div class="stat-item">
                         <span>👍</span>
-                        <span>${question.helpful_count || question.likes || 0}</span>
+                        <span>${question.helpful_count || 0}</span>
                     </div>
                     <div class="stat-item">
                         <span>💬</span>
-                        <span>${question.answer_count || question.replies || 0} answers</span>
+                        <span>${answerCount} answers</span>
                     </div>
                     <div class="stat-item">
                         <span>👤</span>
-                        <span>${this.escapeHtml(question.author || question.user_name || 'Anonymous')}</span>
+                        <span>${this.escapeHtml(question.asker_name || 'Anonymous')}</span>
                     </div>
                 </div>
                 <div class="question-date">
@@ -297,15 +331,13 @@ class QnATab {
      * Public method to refresh questions
      */
     refresh() {
+        console.log('🔄 Q&A Tab: Refresh called - reloading questions...');
         this.loadQuestions();
     }
 }
 
-// Initialize the Q&A tab when the DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    // Make instance globally accessible for debugging and external calls
-    window.qnaTab = new QnATab();
-});
+// Note: Q&A tab is now initialized from the main page with proper context
+// No automatic DOM initialization
 
 // Export for potential use in other modules
 export { QnATab };

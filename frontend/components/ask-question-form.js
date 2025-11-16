@@ -158,6 +158,8 @@ class AskQuestionForm {
         
         if (this.isSubmitting) return;
         
+
+        
         const formData = new FormData(this.form);
         const title = formData.get('title').trim();
         const content = formData.get('content').trim();
@@ -184,20 +186,40 @@ class AskQuestionForm {
                 }
             });
 
+            // Parse the JSON response
+            const result = await response.json();
+
+            console.log('✅ Question submitted successfully!', result);
             this.showSuccess('Question submitted successfully! The organizer will be notified.');
             this.resetForm();
             
             // Trigger refresh of questions list if callback provided
             if (this.onSuccessCallback && typeof this.onSuccessCallback === 'function') {
-                this.onSuccessCallback(response.question);
+                console.log('🔄 Calling refresh callback...');
+                this.onSuccessCallback(result.question);
+            } else {
+                console.warn('⚠️ No success callback found - questions list will not refresh automatically');
             }
             
         } catch (error) {
-            console.error('Error submitting question:', error);
+            console.error('❌ Error submitting question:', error);
+            
             let errorMessage = 'Failed to submit question. Please try again.';
             
             if (error.message) {
                 errorMessage = error.message;
+                
+                // If it's an unauthorized error, suggest login
+                if (error.message.toLowerCase().includes('unauthorized') || 
+                    error.message.toLowerCase().includes('401')) {
+                    errorMessage = 'You must be logged in to ask questions.';
+                    
+                    setTimeout(() => {
+                        if (confirm('Would you like to go to the login page?')) {
+                            window.location.href = '/login.html';
+                        }
+                    }, 1000);
+                }
             }
             
             this.showError(errorMessage);
@@ -205,6 +227,8 @@ class AskQuestionForm {
             this.setSubmittingState(false);
         }
     }
+
+
 
     /**
      * Validate form data

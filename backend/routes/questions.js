@@ -141,9 +141,148 @@ router.post("/:id/answers", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/questions - fetch questions (stub)
-router.get("/", (req, res) => {
-  res.status(501).json({ message: "Fetch questions not implemented yet" });
+// GET /api/questions - fetch questions with optional filters and answers
+router.get("/", async (req, res) => {
+  try {
+    const {
+      event_id,
+      organizer_id,
+      user_id,
+      is_answered,
+      include_answers = "false",
+      limit = 20,
+      offset = 0
+    } = req.query;
+    const conn = db.promise();
+
+    const filterEventId =
+      event_id === undefined ? null : Number(event_id);
+    if (event_id !== undefined && (!Number.isInteger(filterEventId) || filterEventId <= 0)) {
+      return res.status(400).json({ error: "event_id must be a positive integer" });
+    }
+
+    const filterOrganizerId =
+      organizer_id === undefined ? null : Number(organizer_id);
+    if (organizer_id !== undefined && (!Number.isInteger(filterOrganizerId) || filterOrganizerId <= 0)) {
+      return res.status(400).json({ error: "organizer_id must be a positive integer" });
+    }
+
+    const filterUserId =
+      user_id === undefined ? null : Number(user_id);
+    if (user_id !== undefined && (!Number.isInteger(filterUserId) || filterUserId <= 0)) {
+      return res.status(400).json({ error: "user_id must be a positive integer" });
+    }
+
+    let answeredFilter = null;
+    if (is_answered !== undefined) {
+      if (
+        String(is_answered).toLowerCase() !== "true" &&
+        String(is_answered).toLowerCase() !== "false"
+      ) {
+        return res.status(400).json({ error: "is_answered must be true or false" });
+      }
+      answeredFilter = String(is_answered).toLowerCase() === "true" ? 1 : 0;
+    }
+
+    const includeAnswers =
+      String(include_answers).toLowerCase() === "true";
+
+    let query = `
+      SELECT 
+        q.*,
+        asker.name AS asker_name,
+        e.title AS event_title
+      FROM questions q
+      LEFT JOIN users asker ON q.user_id = asker.id
+      LEFT JOIN events e ON q.event_id = e.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (filterEventId) {
+      query += " AND q.event_id = ?";
+      params.push(filterEventId);
+    }
+    if (filterOrganizerId) {
+      query += " AND q.organizer_id = ?";
+      params.push(filterOrganizerId);
+    }
+    if (filterUserId) {
+      query += " AND q.user_id = ?";
+      params.push(filterUserId);
+    }
+    if (answeredFilter !== null) {
+      query += " AND q.is_answered = ?";
+      params.push(answeredFilter);
+    }
+
+    let safeLimit = parseInt(limit, 10);
+    let safeOffset = parseInt(offset, 10);
+    if (!Number.isFinite(safeLimit)) safeLimit = 20;
+    if (!Number.isFinite(safeOffset)) safeOffset = 0;
+    safeLimit = Math.max(1, Math.min(safeLimit, 100));
+    safeOffset = Math.max(0, safeOffset);
+
+    query += " ORDER BY q.created_at DESC LIMIT ? OFFSET ?";
+    params.push(safeLimit, safeOffset);
+
+    const [questionRows] = await conn.query(query, params);
+
+    let countQuery = "SELECT COUNT(*) as total FROM questions WHERE 1=1";
+    const countParams = [];
+    if (filterEventId) {
+      countQuery += " AND event_id = ?";
+      countParams.push(filterEventId);
+    }
+    if (filterOrganizerId) {
+      countQuery += " AND organizer_id = ?";
+      countParams.push(filterOrganizerId);
+    }
+    if (filterUserId) {
+      countQuery += " AND user_id = ?";
+      countParams.push(filterUserId);
+    }
+    if (answeredFilter !== null) {
+      countQuery += " AND is_answered = ?";
+      countParams.push(answeredFilter);
+    }
+    const [countRows] = await conn.query(countQuery, countParams);
+    const total = countRows[0]?.total || 0;
+
+    let questions = questionRows;
+
+    if (includeAnswers && questionRows.length) {
+      const questionIds = questionRows.map((q) => q.id);
+      const placeholders = questionIds.map(() => "?").join(", ");
+      const [answerRows] = await conn.query(
+        `SELECT * FROM answers WHERE question_id IN (${placeholders}) ORDER BY created_at ASC`,
+        questionIds
+      );
+      const grouped = {};
+      for (const answer of answerRows) {
+        const key = answer.question_id;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(answer);
+      }
+      questions = questionRows.map((q) => ({
+        ...q,
+        answers: grouped[q.id] || []
+      }));
+    }
+
+    res.status(200).json({
+      questions,
+      pagination: {
+        total,
+        limit: safeLimit,
+        offset: safeOffset,
+        hasMore: safeOffset + questionRows.length < total
+      }
+    });
+  } catch (err) {
+    console.error("[QUESTIONS] Error fetching questions:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
 });
 
 module.exports = router;
