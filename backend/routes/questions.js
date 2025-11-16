@@ -85,6 +85,114 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
+// POST /api/questions/:id/helpful - mark question as helpful
+// MUST come before /:id/answers to avoid route conflicts
+router.post("/:id/helpful", requireAuth, async (req, res) => {
+  try {
+    const userId = Number(req.session.userId);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    const questionId = Number(req.params.id);
+    if (!Number.isInteger(questionId) || questionId <= 0) {
+      return res.status(400).json({ error: "Question id must be a positive integer" });
+    }
+
+    const conn = db.promise();
+
+    // Ensure the question exists
+    const [questions] = await conn.query(
+      "SELECT id, helpful_count FROM questions WHERE id = ? LIMIT 1",
+      [questionId]
+    );
+    if (!questions.length) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+
+    // Increment helpful count (prevent negative counts with GREATEST)
+    await conn.query(
+      "UPDATE questions SET helpful_count = GREATEST(0, helpful_count + 1) WHERE id = ?",
+      [questionId]
+    );
+
+    // Get updated question data
+    const [updatedQuestions] = await conn.query(
+      "SELECT id, helpful_count FROM questions WHERE id = ?",
+      [questionId]
+    );
+
+    res.status(200).json({
+      message: "Question marked as helpful",
+      question: updatedQuestions[0]
+    });
+  } catch (err) {
+    console.error("[QUESTIONS] Error marking question as helpful:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// POST /api/questions/:questionId/answers/:answerId/helpful - mark answer as helpful
+// MUST come before /:id/answers to avoid route conflicts
+router.post("/:questionId/answers/:answerId/helpful", requireAuth, async (req, res) => {
+  try {
+    const userId = Number(req.session.userId);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    const questionId = Number(req.params.questionId);
+    const answerId = Number(req.params.answerId);
+
+    if (!Number.isInteger(questionId) || questionId <= 0) {
+      return res.status(400).json({ error: "Question id must be a positive integer" });
+    }
+    if (!Number.isInteger(answerId) || answerId <= 0) {
+      return res.status(400).json({ error: "Answer id must be a positive integer" });
+    }
+
+    const conn = db.promise();
+
+    // Ensure the question exists
+    const [questions] = await conn.query(
+      "SELECT id FROM questions WHERE id = ? LIMIT 1",
+      [questionId]
+    );
+    if (!questions.length) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+
+    // Ensure the answer exists and belongs to the question
+    const [answers] = await conn.query(
+      "SELECT id, helpful_count FROM answers WHERE id = ? AND question_id = ? LIMIT 1",
+      [answerId, questionId]
+    );
+    if (!answers.length) {
+      return res.status(404).json({ error: "Answer not found or does not belong to this question" });
+    }
+
+    // Increment helpful count (prevent negative counts with GREATEST)
+    await conn.query(
+      "UPDATE answers SET helpful_count = GREATEST(0, helpful_count + 1) WHERE id = ?",
+      [answerId]
+    );
+
+    // Get updated answer data
+    const [updatedAnswers] = await conn.query(
+      "SELECT id, helpful_count FROM answers WHERE id = ?",
+      [answerId]
+    );
+
+    res.status(200).json({
+      message: "Answer marked as helpful",
+      answer: updatedAnswers[0]
+    });
+  } catch (err) {
+    console.error("[QUESTIONS] Error marking answer as helpful:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
 // POST /api/questions/:id/answers - submit an answer
 router.post("/:id/answers", requireAuth, async (req, res) => {
   try {
@@ -298,112 +406,6 @@ router.get("/", async (req, res) => {
     });
   } catch (err) {
     console.error("[QUESTIONS] Error fetching questions:", err);
-    res.status(500).json({ error: "Internal server error", details: err.message });
-  }
-});
-
-// POST /api/questions/:id/helpful - mark question as helpful
-router.post("/:id/helpful", requireAuth, async (req, res) => {
-  try {
-    const userId = Number(req.session.userId);
-    if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(401).json({ error: "Invalid session" });
-    }
-
-    const questionId = Number(req.params.id);
-    if (!Number.isInteger(questionId) || questionId <= 0) {
-      return res.status(400).json({ error: "Question id must be a positive integer" });
-    }
-
-    const conn = db.promise();
-
-    // Ensure the question exists
-    const [questions] = await conn.query(
-      "SELECT id, helpful_count FROM questions WHERE id = ? LIMIT 1",
-      [questionId]
-    );
-    if (!questions.length) {
-      return res.status(404).json({ error: "Question not found" });
-    }
-
-    // Increment helpful count (prevent negative counts with GREATEST)
-    await conn.query(
-      "UPDATE questions SET helpful_count = GREATEST(0, helpful_count + 1) WHERE id = ?",
-      [questionId]
-    );
-
-    // Get updated question data
-    const [updatedQuestions] = await conn.query(
-      "SELECT id, helpful_count FROM questions WHERE id = ?",
-      [questionId]
-    );
-
-    res.status(200).json({
-      message: "Question marked as helpful",
-      question: updatedQuestions[0]
-    });
-  } catch (err) {
-    console.error("[QUESTIONS] Error marking question as helpful:", err);
-    res.status(500).json({ error: "Internal server error", details: err.message });
-  }
-});
-
-// POST /api/questions/:questionId/answers/:answerId/helpful - mark answer as helpful
-router.post("/:questionId/answers/:answerId/helpful", requireAuth, async (req, res) => {
-  try {
-    const userId = Number(req.session.userId);
-    if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(401).json({ error: "Invalid session" });
-    }
-
-    const questionId = Number(req.params.questionId);
-    const answerId = Number(req.params.answerId);
-
-    if (!Number.isInteger(questionId) || questionId <= 0) {
-      return res.status(400).json({ error: "Question id must be a positive integer" });
-    }
-    if (!Number.isInteger(answerId) || answerId <= 0) {
-      return res.status(400).json({ error: "Answer id must be a positive integer" });
-    }
-
-    const conn = db.promise();
-
-    // Ensure the question exists
-    const [questions] = await conn.query(
-      "SELECT id FROM questions WHERE id = ? LIMIT 1",
-      [questionId]
-    );
-    if (!questions.length) {
-      return res.status(404).json({ error: "Question not found" });
-    }
-
-    // Ensure the answer exists and belongs to the question
-    const [answers] = await conn.query(
-      "SELECT id, helpful_count FROM answers WHERE id = ? AND question_id = ? LIMIT 1",
-      [answerId, questionId]
-    );
-    if (!answers.length) {
-      return res.status(404).json({ error: "Answer not found or does not belong to this question" });
-    }
-
-    // Increment helpful count (prevent negative counts with GREATEST)
-    await conn.query(
-      "UPDATE answers SET helpful_count = GREATEST(0, helpful_count + 1) WHERE id = ?",
-      [answerId]
-    );
-
-    // Get updated answer data
-    const [updatedAnswers] = await conn.query(
-      "SELECT id, helpful_count FROM answers WHERE id = ?",
-      [answerId]
-    );
-
-    res.status(200).json({
-      message: "Answer marked as helpful",
-      answer: updatedAnswers[0]
-    });
-  } catch (err) {
-    console.error("[QUESTIONS] Error marking answer as helpful:", err);
     res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });
