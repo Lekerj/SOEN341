@@ -380,6 +380,10 @@
     display: flex;
     align-items: center;
     gap: 0.3rem;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    margin: 0;
 }
 
 .question-helpful-btn:hover {
@@ -391,6 +395,11 @@
 
 .question-helpful-btn:active {
     transform: scale(0.95);
+}
+
+.question-helpful-btn:focus {
+    outline: 2px solid #6b2c91;
+    outline-offset: 2px;
 }
 
 .question-date {

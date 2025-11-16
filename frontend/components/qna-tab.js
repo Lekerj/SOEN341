@@ -284,10 +284,10 @@ class QnATab {
 
             <div class="question-meta">
                 <div class="question-stats">
-                    <div class="stat-item question-helpful-btn" data-question-id="${question.id}" title="Mark as helpful">
+                    <button class="stat-item question-helpful-btn" data-question-id="${question.id}" title="Mark as helpful" type="button">
                         <span>👍</span>
                         <span>${question.helpful_count || 0}</span>
-                    </div>
+                    </button>
                     <div class="stat-item">
                         <span>💬</span>
                         <span>${answerCount} answers</span>
