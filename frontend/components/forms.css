@@ -376,13 +376,17 @@
     border-radius: 6px;
     transition: all 0.2s ease;
     background: transparent;
-    border: 1px solid rgba(226, 232, 240, 0);
+    border: 1px solid #d1d5db;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
 }
 
 .question-helpful-btn:hover {
     background: #f3f4f6;
-    border-color: #d1d5db;
+    border-color: #9ca3af;
     color: #374151;
+    transform: scale(1.05);
 }
 
 .question-helpful-btn:active {

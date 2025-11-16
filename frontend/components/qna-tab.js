@@ -541,13 +541,19 @@ class QnATab {
      * Handle helpful button click on questions
      */
     async handleQuestionHelpful(questionId, buttonElement) {
-        console.log('Marking question', questionId, 'as helpful');
+        console.log('👍 Marking question', questionId, 'as helpful');
+        console.log('🔍 Button element:', buttonElement);
+        console.log('📊 Questions array:', this.questions);
+
+        // Visual feedback
+        const originalStyle = buttonElement.style.cssText;
         buttonElement.style.opacity = '0.6';
         buttonElement.style.cursor = 'default';
         buttonElement.style.pointerEvents = 'none';
 
         try {
             // Call API to mark question as helpful
+            console.log('🌐 Calling API: /api/questions/' + questionId + '/helpful');
             const response = await apiFetch(
                 `/api/questions/${questionId}/helpful`,
                 {
@@ -561,28 +567,34 @@ class QnATab {
 
             // Update the question in the local questions array
             const question = this.questions.find(q => q.id === questionId);
+            console.log('🔍 Found question in array:', question);
+
             if (question && data.question && data.question.helpful_count !== undefined) {
                 question.helpful_count = data.question.helpful_count;
-                console.log('📊 Updated question helpful count:', question.helpful_count);
+                console.log('📊 Updated question helpful count to:', question.helpful_count);
             }
 
             // Update the helpful count in the UI
             if (data.question && data.question.helpful_count !== undefined) {
                 const countSpan = buttonElement.querySelector('span:last-child');
+                console.log('🔍 Count span element:', countSpan);
                 if (countSpan) {
+                    const oldCount = countSpan.textContent;
                     countSpan.textContent = data.question.helpful_count;
+                    console.log('📝 Updated UI count from', oldCount, 'to', data.question.helpful_count);
+                } else {
+                    console.warn('⚠️ Count span not found!');
                 }
             }
 
             // Show temporary feedback
             buttonElement.style.opacity = '1';
+            console.log('✅ Helpful button update complete');
         } catch (error) {
             console.error('❌ Error marking question as helpful:', error);
             alert('Failed to mark question as helpful. Please try again.');
             // Restore button state on error
-            buttonElement.style.opacity = '1';
-            buttonElement.style.cursor = 'pointer';
-            buttonElement.style.pointerEvents = 'auto';
+            buttonElement.style.cssText = originalStyle;
         }
     }
 
