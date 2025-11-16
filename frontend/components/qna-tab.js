@@ -211,16 +211,25 @@ class QnATab {
      */
     attachQuestionHelpfulListeners() {
         console.log('🔌 Attaching event delegation for question helpful buttons');
+        console.log('📍 Container element:', this.questionsContainer);
 
         // Remove any old listeners first
         if (this.questionsContainer.helpfulListener) {
             this.questionsContainer.removeEventListener('click', this.questionsContainer.helpfulListener);
         }
 
-        // Create the event handler
+        // Create the event handler - log ALL clicks to debug
         const handler = (e) => {
+            // Log every single click to see what's happening
+            console.log('🖱️ Click detected on:', e.target, 'Class:', e.target.className);
+
             const btn = e.target.closest('.question-helpful-btn');
-            if (!btn) return;
+            console.log('🔍 Looking for .question-helpful-btn, found:', !!btn);
+
+            if (!btn) {
+                console.log('⚠️ Not a helpful button click, ignoring');
+                return;
+            }
 
             e.preventDefault();
             e.stopPropagation();
@@ -235,8 +244,8 @@ class QnATab {
         // Store the handler reference so we can remove it later
         this.questionsContainer.helpfulListener = handler;
 
-        // Attach the listener to the container
-        this.questionsContainer.addEventListener('click', handler);
+        // Attach the listener to the container with capture phase
+        this.questionsContainer.addEventListener('click', handler, true);
         console.log('✅ Event delegation attached to container');
     }
 
