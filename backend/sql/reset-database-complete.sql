@@ -1,8 +1,45 @@
--- Complete Database Setup for ConEvents
--- This script creates all necessary tables in the correct order
+-- ============================================================================
+-- COMPLETE DATABASE RESET AND SETUP SCRIPT
+-- ============================================================================
+-- This script will:
+--   1. DROP all tables (in correct order to avoid foreign key constraints)
+--   2. CREATE all tables fresh (in correct dependency order)
+--   3. INSERT default data
+--   4. Seed sample data
+--
+-- This ensures your database matches the main repository EXACTLY
+--
+-- Usage:
+--   mysql -u 341 -p"Pass341!" -h localhost convenevents < backend/sql/reset-database-complete.sql
+--
+-- WARNING: This will DELETE all data in the database. Make sure you want to do this!
+-- ============================================================================
 
--- 1. Create users table first (no dependencies)
-CREATE TABLE IF NOT EXISTS users (
+-- STEP 1: DISABLE FOREIGN KEY CHECKS (to allow dropping in any order)
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- STEP 2: DROP ALL TABLES IN REVERSE DEPENDENCY ORDER
+DROP TABLE IF EXISTS helpful_votes;
+DROP TABLE IF EXISTS answers;
+DROP TABLE IF EXISTS questions;
+DROP TABLE IF EXISTS reviews;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS organizer_requests;
+DROP TABLE IF EXISTS tickets;
+DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS organization_members;
+DROP TABLE IF EXISTS organizations;
+DROP TABLE IF EXISTS users;
+
+-- STEP 3: RE-ENABLE FOREIGN KEY CHECKS
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- ============================================================================
+-- STEP 4: CREATE ALL TABLES (in correct dependency order)
+-- ============================================================================
+
+-- 1. Create users table (no dependencies)
+CREATE TABLE users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
@@ -23,8 +60,8 @@ CREATE TABLE IF NOT EXISTS users (
   FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2. Create organizations table
-CREATE TABLE IF NOT EXISTS organizations (
+-- 2. Create organizations table (no dependencies)
+CREATE TABLE organizations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
@@ -39,7 +76,7 @@ CREATE TABLE IF NOT EXISTS organizations (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 3. Create organization_members table
-CREATE TABLE IF NOT EXISTS organization_members (
+CREATE TABLE organization_members (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     organization_id INT NOT NULL,
@@ -57,7 +94,7 @@ CREATE TABLE IF NOT EXISTS organization_members (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4. Create events table
-CREATE TABLE IF NOT EXISTS events (
+CREATE TABLE events (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description LONGTEXT,
@@ -82,7 +119,7 @@ CREATE TABLE IF NOT EXISTS events (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 5. Create tickets table
-CREATE TABLE IF NOT EXISTS tickets (
+CREATE TABLE tickets (
     id INT AUTO_INCREMENT PRIMARY KEY,
     event_id INT NOT NULL,
     user_id INT,
@@ -100,7 +137,7 @@ CREATE TABLE IF NOT EXISTS tickets (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 6. Create organizer_requests table
-CREATE TABLE IF NOT EXISTS organizer_requests (
+CREATE TABLE organizer_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     organization_id INT NULL,
@@ -119,7 +156,7 @@ CREATE TABLE IF NOT EXISTS organizer_requests (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 7. Create notifications table
-CREATE TABLE IF NOT EXISTS notifications (
+CREATE TABLE notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     type VARCHAR(50) NOT NULL,
@@ -135,8 +172,8 @@ CREATE TABLE IF NOT EXISTS notifications (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 8. Create reviews table (for Epic #14 - Reviews & Q&A Feature)
-CREATE TABLE IF NOT EXISTS reviews (
+-- 8. Create reviews table
+CREATE TABLE reviews (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL COMMENT 'The user who wrote the review',
   event_id INT NOT NULL COMMENT 'The event being reviewed',
@@ -148,21 +185,21 @@ CREATE TABLE IF NOT EXISTS reviews (
   image_urls JSON DEFAULT NULL COMMENT 'List of URLs for uploaded images',
   helpful_count INT NOT NULL DEFAULT 0 COMMENT 'Count of users who found this review helpful',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp of review submission',
-  
+
   UNIQUE KEY unique_user_event (user_id, event_id),
   INDEX idx_reviews_user_id (user_id),
   INDEX idx_reviews_event_id (event_id),
   INDEX idx_reviews_organizer_id (organizer_id),
   INDEX idx_reviews_rating (rating),
-  
+
   CONSTRAINT fk_reviews_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_reviews_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_reviews_organizer FOREIGN KEY (organizer_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT chk_rating_range CHECK (rating BETWEEN 1 AND 5)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 9. Create questions table (for Epic #14 - Reviews & Q&A Feature)
-CREATE TABLE IF NOT EXISTS questions (
+-- 9. Create questions table
+CREATE TABLE questions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL COMMENT 'The user who asked the question',
   event_id INT NOT NULL COMMENT 'The event the question is about',
@@ -172,19 +209,19 @@ CREATE TABLE IF NOT EXISTS questions (
   is_answered BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Flag indicating if question has been answered',
   helpful_count INT NOT NULL DEFAULT 0 COMMENT 'Count of users who found this question helpful',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp of question submission',
-  
+
   INDEX idx_questions_user_id (user_id),
   INDEX idx_questions_event_id (event_id),
   INDEX idx_questions_organizer_id (organizer_id),
   INDEX idx_questions_is_answered (is_answered),
-  
+
   CONSTRAINT fk_questions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_questions_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_questions_organizer FOREIGN KEY (organizer_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 10. Create answers table (for Epic #14 - Reviews & Q&A Feature)
-CREATE TABLE IF NOT EXISTS answers (
+-- 10. Create answers table
+CREATE TABLE answers (
   id INT AUTO_INCREMENT PRIMARY KEY,
   question_id INT NOT NULL COMMENT 'The question this answer responds to',
   user_id INT NOT NULL COMMENT 'The user who provided the answer',
@@ -202,8 +239,8 @@ CREATE TABLE IF NOT EXISTS answers (
   CONSTRAINT fk_answers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 11. Create helpful_votes table (for tracking user votes on questions and answers)
-CREATE TABLE IF NOT EXISTS helpful_votes (
+-- 11. Create helpful_votes table
+CREATE TABLE helpful_votes (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL COMMENT 'User who marked as helpful',
   question_id INT COMMENT 'Question being voted on (NULL if voting on answer)',
@@ -224,18 +261,42 @@ CREATE TABLE IF NOT EXISTS helpful_votes (
   UNIQUE KEY unique_user_answer_vote (user_id, answer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 12. Insert default organization
-INSERT IGNORE INTO organizations (id, name, description, category, is_default)
+-- ============================================================================
+-- STEP 5: INSERT DEFAULT DATA
+-- ============================================================================
+
+-- Insert default organization
+INSERT INTO organizations (id, name, description, category, is_default)
 VALUES (1, 'ConEvents', 'Default system organization', 'social', TRUE);
 
--- 13. Insert sample admin user (password: admin123 - hashed)
-INSERT IGNORE INTO users (id, name, email, password_hash, role, organizer_auth_status, created_at)
+-- Insert sample admin user (password: admin123 - hashed)
+INSERT INTO users (id, name, email, password_hash, role, organizer_auth_status, created_at)
 VALUES (1, 'Admin', 'admin@conevents.com', '$2b$10$0.5S1/KTF3ZqVN4X8L3eaOVhLH9yqsXH3zMj5WKs1fXJ5V0VHh5uW', 'admin', 'approved', NOW());
 
--- 14. Add admin to default organization
-INSERT IGNORE INTO organization_members (user_id, organization_id, role, status)
+-- Add admin to default organization
+INSERT INTO organization_members (user_id, organization_id, role, status)
 VALUES (1, 1, 'President', 'active');
 
--- Display confirmation messages
-SELECT 'Database setup completed successfully!' as status;
-SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME;
+-- ============================================================================
+-- STEP 6: CONFIRMATION AND VERIFICATION
+-- ============================================================================
+
+SELECT '✅ DATABASE RESET COMPLETE!' as Status;
+SELECT '' as '';
+SELECT 'All tables have been created successfully:' as Info;
+
+SELECT TABLE_NAME as Table_Name,
+       TABLE_ROWS as Row_Count,
+       ROUND(((data_length + index_length) / 1024 / 1024), 2) as Size_MB
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+ORDER BY TABLE_NAME;
+
+SELECT '' as '';
+SELECT 'Sample Admin User Created:' as Info;
+SELECT 'Email: admin@conevents.com' as '';
+SELECT 'Password: admin123' as '';
+SELECT 'Role: admin' as '';
+
+SELECT '' as '';
+SELECT '✅ Your database now matches the main repository exactly!' as Final_Status;

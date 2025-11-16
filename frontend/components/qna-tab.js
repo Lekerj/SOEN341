@@ -16,11 +16,15 @@ class QnATab {
         this.error = null;
         this.eventId = eventId;
         this.organizerId = organizerId;
-        
+        this.pendingHelpfulRequests = new Set(); // Track pending helpful requests to prevent duplicates
+        this.userVotedQuestionIds = new Set(); // Track which questions user has already voted on
+        this.userVotedAnswerIds = new Set(); // Track which answers user has already voted on
+
         console.log('🏗️ Initializing Q&A Tab with context:', { eventId: this.eventId, organizerId: this.organizerId });
-        
+
         this.initializeElements();
         this.attachEventListeners();
+        this.loadUserVotes(); // Load user's vote history first
         this.loadQuestions();
     }
 
@@ -99,6 +103,31 @@ class QnATab {
             this.renderError();
         } finally {
             this.setLoadingState(false);
+        }
+    }
+
+    /**
+     * Load current user's helpful vote history
+     */
+    async loadUserVotes() {
+        try {
+            console.log('📥 Loading user vote history...');
+            const response = await apiFetch('/api/questions/user-votes');
+            const data = await response.json();
+
+            // Store voted question and answer IDs in Sets for O(1) lookup
+            this.userVotedQuestionIds = new Set(data.votedQuestionIds || []);
+            this.userVotedAnswerIds = new Set(data.votedAnswerIds || []);
+
+            console.log('✅ Loaded user votes:', {
+                votedQuestions: this.userVotedQuestionIds.size,
+                votedAnswers: this.userVotedAnswerIds.size,
+                questionIds: Array.from(this.userVotedQuestionIds),
+                answerIds: Array.from(this.userVotedAnswerIds)
+            });
+        } catch (error) {
+            console.warn('⚠️ Could not load user vote history:', error);
+            // It's okay if we can't load votes - just continue without pre-disabling
         }
     }
 
@@ -379,6 +408,18 @@ class QnATab {
         // Note: Question helpful button click handling is now done via event delegation
         // in attachQuestionHelpfulListeners() method
 
+        // Disable helpful button if user has already voted on this question
+        if (this.userVotedQuestionIds.has(question.id)) {
+            const helpfulBtn = card.querySelector('.question-helpful-btn');
+            if (helpfulBtn) {
+                helpfulBtn.disabled = true;
+                helpfulBtn.style.opacity = '0.5';
+                helpfulBtn.style.cursor = 'not-allowed';
+                helpfulBtn.title = 'You have already marked this as helpful';
+                console.log('🔒 Pre-disabled helpful button for question', question.id);
+            }
+        }
+
         return container;
     }
 
@@ -497,10 +538,20 @@ class QnATab {
         // Add helpful button event listener
         const helpfulBtn = card.querySelector('.answer-helpful-button');
         if (helpfulBtn) {
-            helpfulBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.handleAnswerHelpful(answer.id, helpfulBtn);
-            });
+            // Check if user has already voted on this answer
+            if (this.userVotedAnswerIds.has(answer.id)) {
+                helpfulBtn.disabled = true;
+                helpfulBtn.style.opacity = '0.5';
+                helpfulBtn.style.cursor = 'not-allowed';
+                helpfulBtn.title = 'You have already marked this as helpful';
+                helpfulBtn.textContent = '✓ Already Helpful';
+                console.log('🔒 Pre-disabled helpful button for answer', answer.id);
+            } else {
+                helpfulBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.handleAnswerHelpful(answer.id, helpfulBtn);
+                });
+            }
         }
 
         return card;
@@ -560,12 +611,25 @@ class QnATab {
             await this.loadQuestions();
         } catch (error) {
             console.error('❌ Error marking answer as helpful:', error);
-            alert('Failed to mark answer as helpful. Please try again.');
-            // Restore button state on error
-            buttonElement.textContent = originalText;
-            buttonElement.disabled = false;
-            buttonElement.style.opacity = '1';
-            return;
+
+            // Check if it's a duplicate vote error (409 Conflict)
+            if (error.status === 409) {
+                console.warn('⚠️ User has already marked this answer as helpful');
+                // Disable the button permanently for this answer
+                buttonElement.style.opacity = '0.5';
+                buttonElement.style.cursor = 'not-allowed';
+                buttonElement.title = 'You have already marked this as helpful';
+                buttonElement.textContent = '✓ Already Helpful';
+                alert('You have already marked this answer as helpful');
+                return;
+            } else {
+                alert('Failed to mark answer as helpful. Please try again.');
+                // Restore button state on error for other errors
+                buttonElement.textContent = originalText;
+                buttonElement.disabled = false;
+                buttonElement.style.opacity = '1';
+                return;
+            }
         }
 
         setTimeout(() => {
@@ -582,6 +646,15 @@ class QnATab {
         console.log('👍 Marking question', questionId, 'as helpful');
         console.log('🔍 Button element:', buttonElement);
         console.log('📊 Questions array:', this.questions);
+
+        // Prevent duplicate requests for the same question
+        if (this.pendingHelpfulRequests.has(questionId)) {
+            console.warn('⚠️ Request already pending for question', questionId, 'ignoring duplicate click');
+            return;
+        }
+
+        // Mark this request as pending
+        this.pendingHelpfulRequests.add(questionId);
 
         // Visual feedback
         const originalStyle = buttonElement.style.cssText;
@@ -614,14 +687,18 @@ class QnATab {
 
             // Update the helpful count in the UI
             if (data.question && data.question.helpful_count !== undefined) {
-                const countSpan = buttonElement.querySelector('span:last-child');
-                console.log('🔍 Count span element:', countSpan);
-                if (countSpan) {
+                // Get all spans in the button and update the second one (the count)
+                const spans = buttonElement.querySelectorAll('span');
+                console.log('🔍 All spans in button:', spans, 'length:', spans.length);
+
+                if (spans.length >= 2) {
+                    // The second span (index 1) is the count
+                    const countSpan = spans[1];
                     const oldCount = countSpan.textContent;
                     countSpan.textContent = data.question.helpful_count;
                     console.log('📝 Updated UI count from', oldCount, 'to', data.question.helpful_count);
                 } else {
-                    console.warn('⚠️ Count span not found!');
+                    console.warn('⚠️ Expected 2 spans in button but found:', spans.length);
                 }
             }
 
@@ -630,9 +707,25 @@ class QnATab {
             console.log('✅ Helpful button update complete');
         } catch (error) {
             console.error('❌ Error marking question as helpful:', error);
-            alert('Failed to mark question as helpful. Please try again.');
-            // Restore button state on error
-            buttonElement.style.cssText = originalStyle;
+
+            // Check if it's a duplicate vote error (409 Conflict)
+            if (error.status === 409) {
+                console.warn('⚠️ User has already marked this question as helpful');
+                // Disable the button permanently for this question
+                buttonElement.disabled = true;
+                buttonElement.style.opacity = '0.5';
+                buttonElement.style.cursor = 'not-allowed';
+                buttonElement.title = 'You have already marked this as helpful';
+                alert('You have already marked this question as helpful');
+            } else {
+                alert('Failed to mark question as helpful. Please try again.');
+                // Restore button state on error for other errors
+                buttonElement.style.cssText = originalStyle;
+            }
+        } finally {
+            // Remove from pending requests
+            this.pendingHelpfulRequests.delete(questionId);
+            console.log('🔄 Removed question', questionId, 'from pending requests');
         }
     }
 

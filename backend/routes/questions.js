@@ -110,6 +110,26 @@ router.post("/:id/helpful", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Question not found" });
     }
 
+    // Check if user has already voted on this question
+    const [existingVote] = await conn.query(
+      "SELECT id FROM helpful_votes WHERE user_id = ? AND question_id = ? LIMIT 1",
+      [userId, questionId]
+    );
+
+    if (existingVote.length > 0) {
+      return res.status(409).json({
+        error: "You have already marked this question as helpful",
+        alreadyVoted: true,
+        question: questions[0]
+      });
+    }
+
+    // Record the vote
+    await conn.query(
+      "INSERT INTO helpful_votes (user_id, question_id) VALUES (?, ?)",
+      [userId, questionId]
+    );
+
     // Increment helpful count (prevent negative counts with GREATEST)
     await conn.query(
       "UPDATE questions SET helpful_count = GREATEST(0, helpful_count + 1) WHERE id = ?",
@@ -170,6 +190,26 @@ router.post("/:questionId/answers/:answerId/helpful", requireAuth, async (req, r
     if (!answers.length) {
       return res.status(404).json({ error: "Answer not found or does not belong to this question" });
     }
+
+    // Check if user has already voted on this answer
+    const [existingVote] = await conn.query(
+      "SELECT id FROM helpful_votes WHERE user_id = ? AND answer_id = ? LIMIT 1",
+      [userId, answerId]
+    );
+
+    if (existingVote.length > 0) {
+      return res.status(409).json({
+        error: "You have already marked this answer as helpful",
+        alreadyVoted: true,
+        answer: answers[0]
+      });
+    }
+
+    // Record the vote
+    await conn.query(
+      "INSERT INTO helpful_votes (user_id, answer_id) VALUES (?, ?)",
+      [userId, answerId]
+    );
 
     // Increment helpful count (prevent negative counts with GREATEST)
     await conn.query(
@@ -417,6 +457,45 @@ router.get("/", async (req, res) => {
     });
   } catch (err) {
     console.error("[QUESTIONS] Error fetching questions:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// GET /api/questions/user-votes - get current user's helpful votes
+router.get("/user-votes", requireAuth, async (req, res) => {
+  try {
+    const userId = Number(req.session.userId);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    const conn = db.promise();
+
+    // Get all question and answer IDs that the user has voted on
+    const [votes] = await conn.query(
+      `SELECT
+        question_id,
+        answer_id
+      FROM helpful_votes
+      WHERE user_id = ?`,
+      [userId]
+    );
+
+    // Organize votes into separate arrays for easier lookup
+    const votedQuestionIds = votes
+      .filter(v => v.question_id !== null)
+      .map(v => v.question_id);
+
+    const votedAnswerIds = votes
+      .filter(v => v.answer_id !== null)
+      .map(v => v.answer_id);
+
+    res.status(200).json({
+      votedQuestionIds,
+      votedAnswerIds
+    });
+  } catch (err) {
+    console.error("[QUESTIONS] Error fetching user votes:", err);
     res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });

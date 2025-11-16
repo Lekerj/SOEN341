@@ -18,7 +18,7 @@ export async function apiFetch(path, options = {}) {
   if (!response.ok) {
     const errorBody = await response.text();
     let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-    
+
     try {
       const errorJson = JSON.parse(errorBody);
       if (errorJson.error) {
@@ -30,8 +30,10 @@ export async function apiFetch(path, options = {}) {
         errorMessage = errorBody;
       }
     }
-    
-    throw new Error(errorMessage);
+
+    const error = new Error(errorMessage);
+    error.status = response.status; // Attach status code to error object
+    throw error;
   }
   
   return response;
