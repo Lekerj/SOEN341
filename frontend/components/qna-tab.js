@@ -51,7 +51,7 @@ class QnATab {
         try {
             // Build query parameters - the backend API handles sorting internally
             const params = new URLSearchParams();
-            
+
             // Add event and organizer filters if available
             if (this.eventId) {
                 params.set('event_id', this.eventId);
@@ -61,12 +61,16 @@ class QnATab {
                 params.set('organizer_id', this.organizerId);
                 console.log('🏷️ Filtering by organizer_id:', this.organizerId);
             }
-            
-            // Add any filters for unanswered questions
+
+            // Add sort parameter to API
+            params.set('sort', this.currentSort);
+            console.log('📊 Sorting by:', this.currentSort);
+
+            // Add any filters for unanswered questions (no longer needed with server-side sort)
             if (this.currentSort === 'unanswered') {
                 params.set('is_answered', 'false');
             }
-            
+
             // Include answers in the response
             params.set('include_answers', 'true');
 
@@ -82,13 +86,9 @@ class QnATab {
             console.log('📊 Questions array length:', data.questions ? data.questions.length : 'no questions property');
 
             this.questions = Array.isArray(data) ? data : data.questions || [];
-            
+
             console.log('📊 Loaded', this.questions.length, 'questions from API');
-            
-            // Sort questions based on current sort selection
-            this.sortQuestions();
-            
-            console.log('🔄 Questions after sorting:', this.questions.length);
+            // Sorting is now handled server-side, no need for client-side sorting
             
             this.renderQuestions();
             this.updateQuestionCount();

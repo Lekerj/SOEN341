@@ -268,6 +268,7 @@ router.get("/", async (req, res) => {
       user_id,
       is_answered,
       include_answers = "false",
+      sort = "recent",
       limit = 20,
       offset = 0
     } = req.query;
@@ -341,7 +342,17 @@ router.get("/", async (req, res) => {
     safeLimit = Math.max(1, Math.min(safeLimit, 100));
     safeOffset = Math.max(0, safeOffset);
 
-    query += " ORDER BY q.created_at DESC LIMIT ? OFFSET ?";
+    // Build ORDER BY clause based on sort parameter
+    let orderBy = "q.created_at DESC"; // default to recent
+    const sortParam = String(sort).toLowerCase();
+    if (sortParam === "helpful") {
+      orderBy = "q.helpful_count DESC, q.created_at DESC"; // Sort by helpful, then recent
+    } else if (sortParam === "unanswered") {
+      orderBy = "q.is_answered ASC, q.created_at DESC"; // Unanswered first, then by recent
+    }
+    // else default to "recent" which is q.created_at DESC
+
+    query += ` ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
     params.push(safeLimit, safeOffset);
 
     const [questionRows] = await conn.query(query, params);

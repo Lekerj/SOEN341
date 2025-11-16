@@ -272,6 +272,174 @@
     gap: 0;
 }
 
+/* Question Card Display Styles */
+.question-card {
+    background: white;
+    border-radius: 12px 12px 0 0;
+    border: 1px solid #e5e7eb;
+    border-bottom: 2px solid #e5e7eb;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    margin-bottom: 0;
+}
+
+.question-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.question-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+    flex: 1;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.question-title:hover {
+    color: #6b2c91;
+}
+
+.question-status {
+    display: inline-flex;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.question-status.status-answered {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #0c4a6e;
+    border: 1px solid #7dd3fc;
+}
+
+.question-status.status-unanswered {
+    background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+    color: #7c2d12;
+    border: 1px solid #fb923c;
+}
+
+.question-content {
+    color: #4b5563;
+    line-height: 1.6;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.question-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+}
+
+.question-stats {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6b7280;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.stat-item span {
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Question Helpful Button */
+.question-helpful-btn {
+    cursor: pointer;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    background: transparent;
+    border: 1px solid rgba(226, 232, 240, 0);
+}
+
+.question-helpful-btn:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    color: #374151;
+}
+
+.question-helpful-btn:active {
+    transform: scale(0.95);
+}
+
+.question-date {
+    color: #9ca3af;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.question-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.answer-btn,
+.toggle-answers-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #6b2c91 0%, #8b5a9f 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.answer-btn:hover,
+.toggle-answers-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(107, 44, 145, 0.3);
+    background: linear-gradient(135deg, #553c75 0%, #6b4c7d 100%);
+}
+
+.toggle-answers-btn {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    color: #4a5568;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.toggle-answers-btn:hover {
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.toggle-icon {
+    display: inline-flex;
+    transition: transform 0.3s ease;
+}
+
 /* Answer Cards Container */
 .answers-container {
     background: #fafafa;
