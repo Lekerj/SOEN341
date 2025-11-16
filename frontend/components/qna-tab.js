@@ -186,12 +186,16 @@ class QnATab {
     }
 
     /**
-     * Create a question card element
+     * Create a question card element with embedded answers
      */
     createQuestionCard(question) {
+        const container = document.createElement('div');
+        container.className = 'question-card-container';
+
+        // Create main question card
         const card = document.createElement('div');
         card.className = 'question-card';
-        
+
         // Determine question status - use is_answered field from API
         const isAnswered = question.is_answered === 1 || question.is_answered === true;
         const statusClass = isAnswered ? 'status-answered' : 'status-unanswered';
@@ -209,11 +213,11 @@ class QnATab {
                 <h3 class="question-title">${this.escapeHtml(question.title)}</h3>
                 <span class="question-status ${statusClass}">${statusText}</span>
             </div>
-            
+
             <div class="question-content">
                 ${this.escapeHtml(this.truncateText(question.content, 150))}
             </div>
-            
+
             <div class="question-meta">
                 <div class="question-stats">
                     <div class="stat-item">
@@ -235,13 +239,145 @@ class QnATab {
             </div>
         `;
 
-        // Add click handler to navigate to question details (future implementation)
-        card.addEventListener('click', () => {
-            // TODO: Navigate to question detail page
-            console.log('Navigate to question:', question.id);
+        container.appendChild(card);
+
+        // Add answers display if answers exist
+        if (answerCount > 0) {
+            const answersDisplay = this.createAnswersDisplay(question.answers);
+            container.appendChild(answersDisplay);
+        }
+
+        // Add click handler to toggle answer visibility
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.question-title') && answerCount > 0) {
+                this.toggleAnswersVisibility(container);
+            }
         });
 
+        return container;
+    }
+
+    /**
+     * Create answers display container with styled answer cards
+     */
+    createAnswersDisplay(answers) {
+        const container = document.createElement('div');
+        container.className = 'answers-container';
+
+        const header = document.createElement('div');
+        header.className = 'answers-header';
+        header.textContent = `${answers.length} Answer${answers.length !== 1 ? 's' : ''}`;
+
+        container.appendChild(header);
+
+        if (answers.length === 0) {
+            const noAnswers = document.createElement('div');
+            noAnswers.className = 'no-answers-state';
+            noAnswers.innerHTML = '<p>No answers yet. Be the first to answer!</p>';
+            container.appendChild(noAnswers);
+            return container;
+        }
+
+        const answersList = document.createElement('div');
+        answersList.className = 'answers-list';
+
+        answers.forEach(answer => {
+            const answerCard = this.createAnswerCard(answer);
+            answersList.appendChild(answerCard);
+        });
+
+        container.appendChild(answersList);
+        return container;
+    }
+
+    /**
+     * Create individual answer card with styling for official responses
+     */
+    createAnswerCard(answer) {
+        const card = document.createElement('div');
+        card.className = 'answer-card';
+
+        // Apply special styling for official organizer responses
+        if (answer.is_official_organizer_response) {
+            card.classList.add('official-response');
+        }
+
+        // Format answer timestamp
+        const answerDate = new Date(answer.created_at);
+        const timeAgo = this.formatTimeAgo(answerDate);
+
+        // Determine badge type
+        const badgeHtml = answer.is_official_organizer_response
+            ? '<span class="official-badge">Official Response</span>'
+            : '<span class="community-badge">Community</span>';
+
+        const authorName = this.escapeHtml(answer.author_name || 'Anonymous');
+
+        card.innerHTML = `
+            <div class="answer-header">
+                <div class="answer-author-info">
+                    <div class="answer-author-name">${authorName}</div>
+                    <div class="answer-author-badge">
+                        ${badgeHtml}
+                    </div>
+                </div>
+            </div>
+
+            <div class="answer-content">
+                ${this.escapeHtml(answer.content)}
+            </div>
+
+            <div class="answer-footer">
+                <div class="answer-timestamp">${timeAgo}</div>
+                <button class="answer-helpful-button" data-answer-id="${answer.id}">
+                    <span>👍</span>
+                    <span>Helpful (${answer.helpful_count || 0})</span>
+                </button>
+            </div>
+        `;
+
+        // Add helpful button event listener
+        const helpfulBtn = card.querySelector('.answer-helpful-button');
+        if (helpfulBtn) {
+            helpfulBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleAnswerHelpful(answer.id, helpfulBtn);
+            });
+        }
+
         return card;
+    }
+
+    /**
+     * Toggle answers visibility when question is clicked
+     */
+    toggleAnswersVisibility(container) {
+        const answersContainer = container.querySelector('.answers-container');
+        if (answersContainer) {
+            answersContainer.style.display =
+                answersContainer.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+
+    /**
+     * Handle helpful button click on answers
+     */
+    async handleAnswerHelpful(answerId, buttonElement) {
+        // TODO: Implement helpful count update via API
+        // For now, just show feedback
+        console.log('Marked answer', answerId, 'as helpful');
+        buttonElement.disabled = true;
+        buttonElement.style.opacity = '0.6';
+
+        // Show temporary feedback
+        const originalText = buttonElement.textContent;
+        buttonElement.textContent = '✓ Thanks!';
+
+        setTimeout(() => {
+            buttonElement.textContent = originalText;
+            buttonElement.disabled = false;
+            buttonElement.style.opacity = '1';
+        }, 2000);
     }
 
     /**

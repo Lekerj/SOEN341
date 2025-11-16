@@ -255,7 +255,9 @@ router.get("/", async (req, res) => {
       const questionIds = questionRows.map((q) => q.id);
       const placeholders = questionIds.map(() => "?").join(", ");
       const [answerRows] = await conn.query(
-        `SELECT * FROM answers WHERE question_id IN (${placeholders}) ORDER BY created_at ASC`,
+        `SELECT a.*, u.name AS author_name FROM answers a
+         LEFT JOIN users u ON a.user_id = u.id
+         WHERE a.question_id IN (${placeholders}) ORDER BY a.created_at ASC`,
         questionIds
       );
       const grouped = {};

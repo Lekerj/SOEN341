@@ -14,6 +14,10 @@ class AnswerForm {
         this.errorContainer = null;
         this.successContainer = null;
         this.isSubmitting = false;
+        this.container = null;
+        this.questionContextContainer = null;
+        this.questionContextTitle = null;
+        this.selectedQuestion = null;
         
         // Context data
         this.questionId = null;
@@ -42,12 +46,18 @@ class AnswerForm {
             console.warn('Answer Form: Container element not found');
             return;
         }
+        this.container = container;
 
         container.innerHTML = `
             <div class="answer-form" style="display: none;">
                 <div class="form-header">
                     <h4>Submit Answer</h4>
                     <p>Provide an official organizer response</p>
+                </div>
+
+                <div id="answer-question-context" style="display: none; padding: 0.75rem 1rem; border-radius: 8px; background: #f3f4f6; margin-bottom: 1rem;">
+                    <strong style="display:block; font-size: 0.9rem; color: #374151;">Answering:</strong>
+                    <span id="answer-question-title" style="color: #111827; font-weight: 600;"></span>
                 </div>
                 
                 <div id="answer-success" class="success-message" style="display: none;">
@@ -98,6 +108,11 @@ class AnswerForm {
         this.cancelButton = document.getElementById('cancel-answer');
         this.charCounter = container.querySelector('.answer-char-counter');
         this.formWrapper = container.querySelector('.answer-form');
+        this.questionContextContainer = document.getElementById('answer-question-context');
+        this.questionContextTitle = document.getElementById('answer-question-title');
+        if (this.container) {
+            this.container.style.display = 'none';
+        }
     }
 
     /**
@@ -239,7 +254,7 @@ class AnswerForm {
      * Check visibility based on authorization
      */
     checkVisibility() {
-        if (this.isAuthorizedOrganizer()) {
+        if (this.isAuthorizedOrganizer() && this.questionId) {
             this.show();
         } else {
             this.hide();
@@ -330,10 +345,69 @@ class AnswerForm {
      * Set question and authorization context
      */
     setContext(questionId, currentUserId, requiredOrganizerId) {
-        this.questionId = questionId;
         this.currentUserId = currentUserId;
         this.requiredOrganizerId = requiredOrganizerId;
+        this.setQuestionId(questionId);
         this.checkVisibility();
+    }
+
+    /**
+     * Set the question being answered
+     */
+    setQuestion(question) {
+        if (!question || !question.id) {
+            this.setQuestionId(null);
+            this.selectedQuestion = null;
+            this.updateQuestionContext(null);
+            return;
+        }
+
+        this.selectedQuestion = question;
+        this.setQuestionId(question.id);
+        this.updateQuestionContext(question);
+        if (this.isAuthorizedOrganizer()) {
+            this.show();
+        }
+    }
+
+    /**
+     * Clear current question context
+     */
+    clearQuestion() {
+        this.setQuestionId(null);
+        this.selectedQuestion = null;
+        this.updateQuestionContext(null);
+        this.hide();
+    }
+
+    /**
+     * Update question context UI
+     */
+    updateQuestionContext(question) {
+        if (!this.questionContextContainer) return;
+
+        if (question && (question.title || question.id)) {
+            this.questionContextContainer.style.display = 'block';
+            if (this.questionContextTitle) {
+                this.questionContextTitle.textContent = question.title || `Question #${question.id}`;
+            }
+        } else {
+            this.questionContextContainer.style.display = 'none';
+            if (this.questionContextTitle) {
+                this.questionContextTitle.textContent = '';
+            }
+        }
+    }
+
+    /**
+     * Helper to set question ID
+     */
+    setQuestionId(questionId) {
+        this.questionId = questionId;
+        if (!questionId) {
+            this.selectedQuestion = null;
+            this.updateQuestionContext(null);
+        }
     }
 
     /**
@@ -348,6 +422,13 @@ class AnswerForm {
      */
     show() {
         if (this.formWrapper && this.isAuthorizedOrganizer()) {
+            if (!this.questionId) {
+                console.warn('Answer form: question not selected');
+                return;
+            }
+            if (this.container) {
+                this.container.style.display = 'block';
+            }
             this.formWrapper.style.display = 'block';
         }
     }
@@ -359,7 +440,11 @@ class AnswerForm {
         if (this.formWrapper) {
             this.formWrapper.style.display = 'none';
         }
+        if (this.container) {
+            this.container.style.display = 'none';
+        }
         this.resetForm();
+        this.setQuestionId(null);
     }
 
     /**
@@ -368,6 +453,11 @@ class AnswerForm {
     toggle() {
         if (!this.isAuthorizedOrganizer()) {
             console.warn('Answer form: User not authorized to view this form');
+            return;
+        }
+
+        if (!this.questionId) {
+            alert('Select a question to answer from the list below.');
             return;
         }
         
