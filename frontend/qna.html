@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q&A - ConEvents</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="components/forms.css">
+</head>
+
+<body>
+    <style>
+        /* Force navbar to use exact same styles as index.html */
+        .navbar {
+            background: rgba(255, 255, 255, 0.98) !important;
+            backdrop-filter: blur(10px) !important;
+            box-shadow: var(--shadow-md) !important;
+            padding: var(--spacing-md) 0 !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 1000 !important;
+            transition: all var(--transition-base) !important;
+            border-bottom: 2px solid transparent !important;
+        }
+        
+        .navbar-container {
+            max-width: 1200px !important;
+            margin: 0 auto !important;
+            padding: 0 var(--spacing-lg) !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+        
+        .navbar-menu #authLinks .btn {
+            padding: 12px 32px !important;
+            border-radius: var(--radius-lg) !important;
+        }
+        
+        .navbar-menu .btn-sm {
+            padding: 10px 22px !important;
+            font-size: var(--font-size-sm) !important;
+        }
+
+        /* Force logout button to match index.html exactly */
+        .navbar-menu #userLinks .btn-secondary {
+            background: var(--white) !important;
+            color: var(--primary-maroon) !important;
+            border: 2px solid var(--primary-maroon) !important;
+            box-shadow: var(--shadow-sm) !important;
+            transition: all var(--transition-base) !important;
+            padding: 10px 22px !important;
+            font-size: var(--font-size-sm) !important;
+            display: inline-block !important;
+            border-radius: var(--radius-md) !important;
+            font-weight: 600 !important;
+            text-decoration: none !important;
+            text-align: center !important;
+            cursor: pointer !important;
+        }
+
+        .navbar-menu #userLinks .btn-secondary:hover {
+            background: var(--primary-maroon) !important;
+            color: var(--white) !important;
+            border-color: var(--primary-maroon) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: var(--shadow-md) !important;
+        }
+
+        .navbar-menu #userLinks {
+            display: flex !important;
+            gap: 1rem !important;
+            align-items: center !important;
+        }
+
+        .navbar-menu #userLinks #welcomeMessage {
+            margin-right: 0 !important;
+            color: var(--dark-gray) !important;
+            font-weight: 500 !important;
+            font-size: 1rem !important;
+            line-height: 1.5 !important;
+            padding: var(--spacing-xs) 0 !important;
+            white-space: nowrap !important;
+        }
+
+        /* Force userLinks to be hidden by default */
+        .navbar-menu #userLinks {
+            display: none !important;
+        }
+
+        /* Only show userLinks when user is logged in */
+        .navbar-menu #userLinks.logged-in {
+            display: flex !important;
+            gap: 1rem !important;
+            align-items: center !important;
+        }
+
+        .qna-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .qna-header {
+            background: linear-gradient(135deg, #6b2c91 0%, #912338 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .qna-header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+        }
+
+        .qna-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .qna-controls {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .event-selector,
+        .sort-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            min-width: 240px;
+            flex: 1 1 240px;
+        }
+
+        .event-selector label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .event-select {
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            min-width: 240px;
+            font-size: 0.9rem;
+            color: #111827;
+            background: #fff;
+        }
+
+        .event-select:focus {
+            outline: none;
+            border-color: #6b2c91;
+            box-shadow: 0 0 0 3px rgba(107, 44, 145, 0.1);
+        }
+
+        .sort-controls label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .sort-select {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            color: #374151;
+            font-size: 0.9rem;
+            min-width: 150px;
+        }
+
+        .sort-select:focus {
+            outline: none;
+            border-color: #6b2c91;
+            box-shadow: 0 0 0 3px rgba(107, 44, 145, 0.1);
+        }
+
+        .question-count {
+            color: #6b7280;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-left: auto;
+            align-self: flex-end;
+        }
+
+        .question-actions {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .question-actions .answer-btn {
+            border: none;
+            background: linear-gradient(135deg, #6b2c91 0%, #912338 100%);
+            color: #fff;
+            padding: 0.5rem 1.25rem;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(145, 35, 56, 0.25);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .question-actions .answer-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(145, 35, 56, 0.3);
+        }
+
+        .question-actions .toggle-answers-btn {
+            border: 2px solid #d1d5db;
+            background: white;
+            color: #4b5563;
+            padding: 0.5rem 1.25rem;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .question-actions .toggle-answers-btn:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+            color: #1f2937;
+        }
+
+        .question-actions .toggle-answers-btn:active {
+            transform: scale(0.98);
+        }
+
+        .toggle-icon {
+            display: inline-block;
+            font-size: 0.75rem;
+            transition: transform 0.2s ease;
+        }
+
+        .ask-question-placeholder {
+            background: #f9fafb;
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #6b7280;
+        }
+
+        .ask-question-placeholder h3 {
+            margin: 0 0 0.5rem 0;
+            color: #374151;
+        }
+
+        .ask-question-placeholder p {
+            margin: 0;
+        }
+
+        .questions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .question-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .question-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .question-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0;
+            flex: 1;
+            line-height: 1.4;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .question-title:hover {
+            color: #6b2c91;
+        }
+
+        .question-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 1rem;
+        }
+
+        .status-answered {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-unanswered {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .question-content {
+            color: #4b5563;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .question-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #6b7280;
+            font-size: 0.85rem;
+        }
+
+        .question-stats {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        .error-state {
+            text-align: center;
+            padding: 2rem;
+            color: #dc2626;
+            background: #fef2f2;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+
+        .empty-state h3 {
+            margin: 0 0 0.5rem 0;
+            color: #374151;
+        }
+
+        /* Form Toggle Styles */
+        .forms-toggle {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            justify-content: center;
+        }
+
+        .toggle-btn {
+            padding: 0.75rem 2rem;
+            border: none;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #4a5568;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .toggle-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .toggle-btn:hover::before {
+            left: 100%;
+        }
+
+        .toggle-btn.active {
+            background: linear-gradient(135deg, #6b2c91 0%, #8b5a9f 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(107, 44, 145, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .toggle-btn:hover:not(.active) {
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .toggle-btn.active:hover {
+            background: linear-gradient(135deg, #553c75 0%, #6b4c7d 100%);
+        }
+
+        @media (max-width: 768px) {
+            .qna-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .event-selector,
+            .sort-controls {
+                width: 100%;
+            }
+
+            .question-actions {
+                justify-content: flex-start;
+            }
+
+            .question-count {
+                align-self: flex-start;
+                margin-left: 0;
+            }
+
+            .question-header {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .question-status {
+                margin-left: 0;
+                align-self: flex-start;
+            }
+
+            .question-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: flex-start;
+            }
+
+            .forms-toggle {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-logo">
+                🎫 ConEvents
+            </a>
+            <ul class="navbar-menu">
+                <li id="homeLink"><a href="index.html">Home</a></li>
+                <li id="browseLink"><a href="browse.html">Browse</a></li>
+                <li id="qnaLink"><a href="qna.html">Q&A</a></li>
+                <li id="aboutLink"><a href="about.html">About</a></li>
+                <li id="adminMenu" class="dropdown" style="display:none;">
+                    <a href="#" class="dropdown-toggle">Admin</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="admin-dashboard.html">Dashboard</a></li>
+                        <li><a href="admin-organization-management.html">Organizations</a></li>
+                        <li><a href="admin-moderation.html">Event Moderation</a></li>
+                    </ul>
+                </li>
+                <li id="organizerMenu" class="dropdown" style="display:none;">
+                    <a href="#" class="dropdown-toggle">Organizer</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="organizer-dashboard.html">My Dashboard</a></li>
+                        <li><a href="organizer-create-event.html">Create Event</a></li>
+                        <li><a href="organizer-edit-event.html?eventId">Edit Event</a></li>
+                        <li><a href="organizer-analytics.html?eventId">Event Analytics</a></li>
+                        <li id="qrScannerMenu"><a href="organizer-scanner.html">QR Scanner</a></li>
+                    </ul>
+                </li>
+                <li id="profileLink"><a href="profile.html">Profile</a></li>
+                <li id="authLinks">
+                    <a href="login.html" class="btn btn-primary btn-sm">Login</a>
+                    <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+                </li>
+                <li id="userLinks" style="display: none !important;">
+                    <span id="welcomeMessage" class="text-muted"></span>
+                    <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        try {
+          const user = JSON.parse(localStorage.getItem('user') || 'null');
+          const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
+          const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+
+          const adminMenu = document.getElementById('adminMenu');
+          const organizerMenu = document.getElementById('organizerMenu');
+          const browseLink = document.getElementById('browseLink');
+          const aboutLink = document.getElementById('aboutLink');
+          const profileLink = document.getElementById('profileLink');
+          const qrScannerMenu = document.getElementById('qrScannerMenu');
+
+          // Show/hide admin menu
+          if (adminMenu) adminMenu.style.display = isAdmin ? '' : 'none';
+
+          // Show/hide organizer menu
+          if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+
+          // Hide browse/about/profile for admins, show only admin menu
+          if (isAdmin) {
+            if (browseLink) browseLink.style.display = 'none';
+            if (aboutLink) aboutLink.style.display = 'none';
+            if (profileLink) profileLink.style.display = 'none';
+            if (qrScannerMenu) qrScannerMenu.style.display = 'none';
+          }
+        } catch (e) {}
+      });
+    </script>
+
+    <div class="main-content">
+        <div class="qna-container">
+            <!-- Header Section -->
+            <div class="qna-header">
+                <h1>Questions & Answers</h1>
+                <p>Ask questions and get answers from the ConEvents community</p>
+            </div>
+
+            <!-- Ask Question Form Section -->
+            <div class="qna-forms-section">
+                <!-- Form Toggle Buttons -->
+                <div class="forms-toggle">
+                    <button id="toggle-ask-question" class="toggle-btn">
+                        Ask New Question
+                    </button>
+                </div>
+                
+                <!-- Ask Question Form Container -->
+                <div id="ask-question-form-container" style="display: none;"></div>
+                
+                <!-- Answer Form Container -->
+                <div id="answer-form-container"></div>
+            </div>
+
+            <!-- Controls Section -->
+            <div class="qna-controls">
+                <div class="event-selector" id="eventSelectorWrapper">
+                    <label for="eventSelect">Event:</label>
+                    <select id="eventSelect" class="event-select">
+                        <option value="">Loading events...</option>
+                    </select>
+                </div>
+                <div class="sort-controls">
+                    <label for="sortSelect">Sort by:</label>
+                    <select id="sortSelect" class="sort-select">
+                        <option value="recent">Most Recent</option>
+                        <option value="helpful">Most Helpful</option>
+                        <option value="unanswered">Unanswered First</option>
+                    </select>
+                </div>
+                <div class="question-count" id="questionCount">
+                    Loading questions...
+                </div>
+            </div>
+
+            <!-- Questions List -->
+            <div id="questionsContainer">
+                <div class="loading-state" id="loadingState">
+                    <p>Loading questions...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="about.html">About Us</a>
+            <a href="browse.html">Events</a>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms.html">Terms of Service</a>
+            <a href="contact.html">Contact</a>
+        </div>
+        <p>&copy; 2025 ConEvents - Concordia University. All rights reserved.</p>
+    </footer>
+
+    <script type="module" src="components/qna-tab.js"></script>
+    <script type="module">
+        // Import form components
+        import { AskQuestionForm } from './components/ask-question-form.js';
+        import { AnswerForm } from './components/answer-form.js';
+        import { QnATab } from './components/qna-tab.js';
+        import { apiFetch } from './utils/api.js';
+
+        // Initialize form components
+        let askQuestionForm;
+        let answerForm;
+        let currentUserId = null;
+        let currentEventId = null;
+        let currentOrganizerId = null;
+        let currentUserRole = null;
+        let currentUserData = null;
+        let eventSelectElement = null;
+        let availableEvents = [];
+        const eventLookup = new Map();
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Q&A Page: DOM loaded, starting initialization...');
+            eventSelectElement = document.getElementById('eventSelect');
+            
+            // Get current user session first
+            await checkUserSession();
+            console.log('👤 Current user ID:', currentUserId);
+            
+            // Handle organizer menu visibility after checking session
+            handleOrganizerMenu();
+            
+            // Load events for selector and initialize components
+            const initialContext = await populateEventSelector();
+            const formsReady = await initializeForms(initialContext);
+            
+            if (formsReady) {
+                // Setup form toggle handlers
+                setupFormToggles();
+                console.log('✅ Q&A Page: Initialization complete');
+            } else {
+                console.warn('⚠️ Q&A Page: Initialization skipped due to missing event context');
+            }
+        });
+
+        function handleOrganizerMenu() {
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || 'null');
+                console.log('🔍 HandleOrganizerMenu - User data:', user);
+                
+                // Handle role-based menu visibility
+                const isAdmin = user && String(user.role || '').toLowerCase() === 'admin';
+                const isOrganizer = user && String(user.role || '').toLowerCase() === 'organizer';
+                const isLoggedIn = user && user.id;
+                
+                console.log('🔍 User status:', { isLoggedIn, isAdmin, isOrganizer });
+                
+                const adminMenu = document.getElementById('adminMenu');
+                const organizerMenu = document.getElementById('organizerMenu');
+                const authLinks = document.getElementById('authLinks');
+                const userLinks = document.getElementById('userLinks');
+                const welcomeMessage = document.getElementById('welcomeMessage');
+                
+                // Show/hide role-based menus
+                if (adminMenu) adminMenu.style.display = isAdmin ? '' : 'none';
+                if (organizerMenu) organizerMenu.style.display = isOrganizer ? '' : 'none';
+                
+                if (isLoggedIn) {
+                    // User is logged in - show logout button, hide login/signup
+                    console.log('👤 User is logged in, showing logout button');
+                    if (authLinks) authLinks.style.display = 'none';
+                    if (userLinks) {
+                        userLinks.classList.add('logged-in');
+                        userLinks.style.display = 'flex';
+                        userLinks.style.gap = '1rem';
+                        userLinks.style.alignItems = 'center';
+                    }
+                    if (welcomeMessage) welcomeMessage.textContent = `Welcome, ${user.name}!`;
+                } else {
+                    // User is logged out - show login/signup, hide logout button
+                    console.log('🚪 User is logged out, hiding logout button');
+                    if (authLinks) authLinks.style.display = 'flex';
+                    if (userLinks) {
+                        userLinks.classList.remove('logged-in');
+                        userLinks.style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                console.error('❌ Error in handleOrganizerMenu:', e);
+                // If error reading user data, assume logged out
+                const authLinks = document.getElementById('authLinks');
+                const userLinks = document.getElementById('userLinks');
+                const adminMenu = document.getElementById('adminMenu');
+                const organizerMenu = document.getElementById('organizerMenu');
+                
+                console.log('🚪 Error occurred, assuming logged out');
+                if (authLinks) authLinks.style.display = 'flex';  
+                if (userLinks) {
+                    userLinks.classList.remove('logged-in');
+                    userLinks.style.display = 'none';
+                }
+                if (adminMenu) adminMenu.style.display = 'none';
+                if (organizerMenu) organizerMenu.style.display = 'none';
+            }
+        }
+
+        async function checkUserSession() {
+            // Use existing user data from localStorage instead of making API calls
+            try {
+                const userData = localStorage.getItem('user');
+                if (userData) {
+                    const user = JSON.parse(userData);
+                    currentUserData = user;
+                    currentUserId = user.id;
+                    currentUserRole = String(user.role || '').toLowerCase();
+                } else {
+                    currentUserData = null;
+                    currentUserId = null;
+                    currentUserRole = null;
+                }
+            } catch (error) {
+                console.error('Error reading user session:', error);
+                currentUserData = null;
+                currentUserId = null;
+                currentUserRole = null;
+            }
+        }
+
+        async function initializeForms(preloadedContext = null) {
+            let context = preloadedContext;
+            
+            try {
+                if (!context) {
+                    context = await resolveEventContext();
+                }
+            } catch (error) {
+                console.error('❌ Unable to resolve event context:', error);
+                showContextError('Unable to load event details. Please refresh the page or open Q&A from a specific event.');
+                return false;
+            }
+
+            if (!context) {
+                showContextError('We need to know which event you are viewing. Please open the Q&A tab from an event card or add ?eventId=<id> to the URL.');
+                return false;
+            }
+
+            currentEventId = context.eventId;
+            currentOrganizerId = context.organizerId;
+
+            // Initialize Ask Question Form
+            askQuestionForm = new AskQuestionForm();
+            askQuestionForm.setEventContext(currentEventId, currentOrganizerId);
+            askQuestionForm.setOnSuccess(() => {
+                if (window.qnaTab) {
+                    window.qnaTab.refresh();
+                }
+                toggleAskQuestionForm(false);
+            });
+
+            // Initialize Answer Form
+            answerForm = new AnswerForm();
+            window.answerForm = answerForm;  // Make globally accessible
+            answerForm.setContext(null, currentUserId, currentOrganizerId);
+            answerForm.setOnSuccess(() => {
+                if (window.qnaTab) {
+                    window.qnaTab.refresh();
+                }
+                answerForm.clearQuestion();
+            });
+
+            // Initialize Q&A Tab with proper context
+            console.log('🎯 Initializing Q&A Tab with IDs:', { eventId: currentEventId, organizerId: currentOrganizerId });
+            window.qnaTab = new QnATab(currentEventId, currentOrganizerId, {
+                currentUserId,
+                answerForm
+            });
+
+            return true;
+        }
+
+        async function populateEventSelector() {
+            if (!eventSelectElement) return null;
+
+            eventLookup.clear();
+            eventSelectElement.disabled = true;
+            eventSelectElement.innerHTML = '<option value="">Loading events...</option>';
+
+            try {
+                const response = await apiFetch('/api/events');
+                const data = await response.json();
+                const events = Array.isArray(data.events) ? data.events : [];
+                availableEvents = filterEventsForCurrentUser(events);
+
+                if (!availableEvents.length) {
+                    eventSelectElement.innerHTML = '<option value="">No events available</option>';
+                    showContextError('No events are available for Q&A yet.');
+                    return null;
+                }
+
+                renderEventOptions(availableEvents);
+                eventSelectElement.disabled = false;
+                const initialContext = determineInitialEventContext(availableEvents);
+                if (initialContext) {
+                    eventSelectElement.value = String(initialContext.eventId);
+                } else {
+                    eventSelectElement.value = '';
+                    showContextError('No events with assigned organizers are available for Q&A yet.');
+                    return null;
+                }
+
+                eventSelectElement.addEventListener('change', handleEventSelectionChange);
+                return initialContext;
+            } catch (error) {
+                console.error('Error loading events for selector:', error);
+                eventSelectElement.innerHTML = '<option value="">Failed to load events</option>';
+                showContextError('Unable to load event list. Please try again later.');
+                return null;
+            }
+        }
+
+        function filterEventsForCurrentUser(events) {
+            if (!Array.isArray(events)) return [];
+            if (currentUserRole === 'organizer' && currentUserId) {
+                return events.filter(evt => Number(evt.organizer_id) === Number(currentUserId));
+            }
+            return events;
+        }
+
+        function renderEventOptions(events) {
+            if (!eventSelectElement) return;
+
+            eventSelectElement.innerHTML = '';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Select an event';
+            placeholder.disabled = true;
+            placeholder.selected = true;
+            eventSelectElement.appendChild(placeholder);
+
+            let hasSelectableEvent = false;
+
+            events.forEach(evt => {
+                const option = document.createElement('option');
+                const hasOrganizer = hasOrganizerAssigned(evt);
+                option.value = String(evt.id);
+                option.textContent = formatEventOptionLabel(evt, hasOrganizer);
+                option.disabled = !hasOrganizer;
+                if (hasOrganizer && !hasSelectableEvent) {
+                    hasSelectableEvent = true;
+                }
+                eventSelectElement.appendChild(option);
+                eventLookup.set(String(evt.id), evt);
+            });
+
+            if (!hasSelectableEvent) {
+                placeholder.textContent = 'No events with organizers available';
+            }
+        }
+
+        function hasOrganizerAssigned(evt) {
+            return evt && Number(evt.organizer_id);
+        }
+
+        function formatEventOptionLabel(evt, hasOrganizer = true) {
+            const title = evt.title || `Event #${evt.id}`;
+            const datePart = evt.event_date ? ` (${evt.event_date})` : '';
+            const suffix = hasOrganizer ? '' : ' (Organizer pending)';
+            return `${title}${datePart}${suffix}`;
+        }
+
+        function determineInitialEventContext(events) {
+            if (!events.length) return null;
+
+            const urlEventId = getEventIdFromUrl();
+            if (urlEventId) {
+                const match = events.find(evt => String(evt.id) === String(urlEventId));
+                if (match) {
+                    const ctx = mapEventToContext(match);
+                    if (ctx) {
+                        return ctx;
+                    }
+                }
+            }
+
+            for (const evt of events) {
+                const ctx = mapEventToContext(evt);
+                if (ctx) {
+                    return ctx;
+                }
+            }
+
+            return null;
+        }
+
+        function handleEventSelectionChange() {
+            const context = getSelectedEventContext();
+            if (!context) {
+                showContextError('Selected event is missing organizer information. Please choose a different event.');
+                return;
+            }
+
+            currentEventId = context.eventId;
+            currentOrganizerId = context.organizerId;
+
+            if (askQuestionForm) {
+                askQuestionForm.setEventContext(currentEventId, currentOrganizerId);
+                askQuestionForm.resetForm();
+            }
+
+            if (answerForm) {
+                answerForm.setContext(null, currentUserId, currentOrganizerId);
+                answerForm.clearQuestion();
+            }
+
+            if (window.qnaTab && typeof window.qnaTab.setContext === 'function') {
+                window.qnaTab.setContext(currentEventId, currentOrganizerId);
+            }
+
+            if (askQuestionForm) {
+                toggleAskQuestionForm(false);
+            }
+        }
+
+        function getSelectedEventContext() {
+            if (!eventSelectElement) return null;
+            const selectedId = eventSelectElement.value;
+            if (!selectedId) return null;
+            const eventData = eventLookup.get(String(selectedId));
+            return mapEventToContext(eventData);
+        }
+
+        function mapEventToContext(eventData) {
+            if (!eventData) return null;
+            const eventId = Number(eventData.id);
+            const organizerId = Number(eventData.organizer_id);
+            if (!Number.isFinite(eventId) || !Number.isFinite(organizerId)) {
+                return null;
+            }
+            return {
+                eventId,
+                organizerId
+            };
+        }
+
+        function setupFormToggles() {
+            const askToggle = document.getElementById('toggle-ask-question');
+
+            if (askToggle) {
+                askToggle.addEventListener('click', () => {
+                    toggleAskQuestionForm();
+                });
+            }
+        }
+
+        function toggleAskQuestionForm(show = null) {
+            const container = document.getElementById('ask-question-form-container');
+            const toggle = document.getElementById('toggle-ask-question');
+            
+            if (container && toggle) {
+                const isCurrentlyVisible = container.style.display !== 'none';
+                const shouldShow = show !== null ? show : !isCurrentlyVisible;
+                
+                // Check if user is logged in when trying to show the form
+                if (shouldShow) {
+                    // Double-check authentication by looking at localStorage
+                    let isLoggedIn = false;
+                    try {
+                        const userData = localStorage.getItem('user');
+                        isLoggedIn = userData && JSON.parse(userData).id;
+                    } catch (e) {
+                        isLoggedIn = false;
+                    }
+                    
+                    // Also check currentUserId as backup
+                    isLoggedIn = isLoggedIn || currentUserId;
+                    
+                    if (!isLoggedIn) {
+                        // Show error message and redirect to login page
+                        console.log('User not logged in, redirecting to login page');
+                        alert('You must be logged in your account to post a question');
+                        window.location.href = 'login.html';
+                        return;
+                    } else {
+                        console.log('User is logged in, showing form');
+                    }
+                }
+                
+                container.style.display = shouldShow ? 'block' : 'none';
+                toggle.textContent = shouldShow ? 'Cancel' : 'Ask New Question';
+                toggle.classList.toggle('active', shouldShow);
+                
+                if (shouldShow) {
+                    askQuestionForm.setVisible(true);
+                } else {
+                    askQuestionForm.resetForm();
+                }
+            }
+        }
+
+        function getEventIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('eventId');
+        }
+
+        function getOrganizerIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('organizerId');
+        }
+
+        async function resolveEventContext() {
+            const dropdownContext = getSelectedEventContext();
+            if (dropdownContext) {
+                return dropdownContext;
+            }
+
+            const urlEventId = getEventIdFromUrl();
+            const urlOrganizerId = getOrganizerIdFromUrl();
+
+            if (urlEventId && urlOrganizerId) {
+                return {
+                    eventId: Number(urlEventId),
+                    organizerId: Number(urlOrganizerId)
+                };
+            }
+
+            if (urlEventId) {
+                const eventDetails = await fetchEventDetails(urlEventId);
+                if (eventDetails) {
+                    const derivedOrganizerId = Number(eventDetails.organizer_id ?? eventDetails.organizerId);
+                    if (derivedOrganizerId) {
+                        return {
+                            eventId: Number(urlEventId),
+                            organizerId: derivedOrganizerId
+                        };
+                    }
+                }
+            }
+
+            if (availableEvents.length) {
+                const fallback = mapEventToContext(availableEvents[0]);
+                if (fallback) {
+                    return fallback;
+                }
+            }
+
+            return null;
+        }
+
+        async function fetchEventDetails(eventId) {
+            console.log('📡 Fetching event details for Q&A context:', eventId);
+            const response = await apiFetch(`/api/events/${eventId}`);
+            const payload = await response.json();
+            if (payload && payload.event) {
+                return payload.event;
+            }
+            return payload;
+        }
+
+        function showContextError(message) {
+            const questionsContainer = document.getElementById('questionsContainer');
+            if (questionsContainer) {
+                questionsContainer.innerHTML = `
+                    <div class="error-state">
+                        <h3>Event Required</h3>
+                        <p>${message}</p>
+                    </div>
+                `;
+            }
+
+            const askFormContainer = document.getElementById('ask-question-form-container');
+            if (askFormContainer) {
+                askFormContainer.innerHTML = `
+                    <div class="error-state">
+                        <h3>Unable to show form</h3>
+                        <p>${message}</p>
+                    </div>
+                `;
+            }
+
+            const askToggle = document.getElementById('toggle-ask-question');
+            if (askToggle) {
+                askToggle.disabled = true;
+                askToggle.classList.add('disabled');
+            }
+
+            if (eventSelectElement) {
+                eventSelectElement.disabled = true;
+            }
+
+        }
+
+        // Make forms globally accessible for debugging
+        window.askQuestionForm = null;
+        window.answerForm = null;
+        
+        // Export initialization function
+        window.initializeQnaForms = () => {
+            window.askQuestionForm = askQuestionForm;
+            window.answerForm = answerForm;
+        };
+        window.handleOrganizerMenu = handleOrganizerMenu;
+    </script>
+    <script>
+
+        // API Base URL helper function
+        function getApiBase() {
+            const host = window.location.hostname && window.location.hostname !== ''
+                ? window.location.hostname
+                : 'localhost';
+            const port = 3000;
+            return `http://${host}:${port}`;
+        }
+
+        // Logout function
+        async function logout() {
+            const confirmLogout = confirm('Are you sure you want to log out?');
+            if (!confirmLogout) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${getApiBase()}/api/auth/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    localStorage.removeItem('user');
+                    // Update navbar immediately before reload
+                    if (typeof window.handleOrganizerMenu === 'function') {
+                        window.handleOrganizerMenu();
+                    }
+                    window.location.reload();
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('An error occurred during logout.');
+            }
+        }
+    </script>
+</body>
+</html>
