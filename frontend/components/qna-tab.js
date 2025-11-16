@@ -103,6 +103,24 @@ class QnATab {
     }
 
     /**
+     * Update event and organizer context and reload questions
+     */
+    setContext(eventId, organizerId) {
+        this.eventId = eventId;
+        this.organizerId = organizerId;
+        console.log('🔄 Q&A Tab context updated:', { eventId: this.eventId, organizerId: this.organizerId });
+        this.loadQuestions();
+    }
+
+    /**
+     * Refresh questions (reload from API)
+     */
+    refresh() {
+        console.log('🔄 Refreshing questions...');
+        this.loadQuestions();
+    }
+
+    /**
      * Sort questions based on current selection
      */
     sortQuestions() {
@@ -237,22 +255,80 @@ class QnATab {
                     ${timeAgo}
                 </div>
             </div>
+
+            <div class="question-actions">
+                <button class="answer-btn" data-question-id="${question.id}" data-question-title="${this.escapeHtml(question.title)}">
+                    Submit Answer
+                </button>
+                ${answerCount > 0 ? `<button class="toggle-answers-btn" title="Show/hide answers">
+                    <span class="toggle-icon">▼</span> ${answerCount} Answer${answerCount !== 1 ? 's' : ''}
+                </button>` : ''}
+            </div>
         `;
 
         container.appendChild(card);
 
-        // Add answers display if answers exist
+        // Add answers display if answers exist (hidden by default)
         if (answerCount > 0) {
             const answersDisplay = this.createAnswersDisplay(question.answers);
+            answersDisplay.style.display = 'none'; // Hide by default
             container.appendChild(answersDisplay);
+
+            // Add toggle button click handler
+            const toggleBtn = card.querySelector('.toggle-answers-btn');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const icon = toggleBtn.querySelector('.toggle-icon');
+                    this.toggleAnswersVisibility(container);
+                    icon.textContent = answersDisplay.style.display === 'none' ? '▼' : '▶';
+                });
+            }
         }
 
-        // Add click handler to toggle answer visibility
+        // Add click handler to toggle answer visibility on question title
         card.addEventListener('click', (e) => {
             if (e.target.closest('.question-title') && answerCount > 0) {
-                this.toggleAnswersVisibility(container);
+                const toggleBtn = card.querySelector('.toggle-answers-btn');
+                if (toggleBtn) toggleBtn.click();
             }
         });
+
+        // Add answer button click handler
+        const answerBtn = card.querySelector('.answer-btn');
+        if (answerBtn) {
+            answerBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const questionId = parseInt(answerBtn.getAttribute('data-question-id'));
+                const questionTitle = answerBtn.getAttribute('data-question-title');
+                console.log('📝 Answer button clicked for question:', questionId, questionTitle);
+
+                // Check if user is logged in
+                const userData = localStorage.getItem('user');
+                if (!userData) {
+                    console.warn('⚠️ User not logged in, redirecting to login');
+                    alert('You must be logged in to answer questions.');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // Set the question context in the answer form
+                if (window.answerForm) {
+                    window.answerForm.setQuestion({
+                        id: questionId,
+                        title: questionTitle
+                    });
+                    // Scroll to answer form
+                    const answerFormContainer = document.getElementById('answer-form-container');
+                    if (answerFormContainer) {
+                        answerFormContainer.scrollIntoView({ behavior: 'smooth' });
+                    }
+                } else {
+                    console.error('❌ Answer form not initialized');
+                    alert('Answer form is not available. Please refresh the page.');
+                }
+            });
+        }
 
         return container;
     }
@@ -306,12 +382,39 @@ class QnATab {
         const answerDate = new Date(answer.created_at);
         const timeAgo = this.formatTimeAgo(answerDate);
 
-        // Determine badge type
-        const badgeHtml = answer.is_official_organizer_response
+        // Determine badge type and require name for organizers
+        const isOfficial = answer.is_official_organizer_response;
+        const isAnonymous = answer.is_anonymous;
+
+        // Debug: Log answer data for troubleshooting
+        console.log('Answer display data:', {
+            id: answer.id,
+            user_id: answer.user_id,
+            author_name: answer.author_name,
+            is_anonymous: isAnonymous,
+            is_official: isOfficial,
+            content: answer.content?.substring(0, 50)
+        });
+
+        const badgeHtml = isOfficial
             ? '<span class="official-badge">Official Response</span>'
             : '<span class="community-badge">Community</span>';
 
-        const authorName = this.escapeHtml(answer.author_name || 'Anonymous');
+        // Determine author name display based on anonymous flag and official status
+        let authorName;
+        if (isAnonymous === true) {
+            // User explicitly chose to be anonymous
+            authorName = 'Anonymous';
+        } else if (isOfficial) {
+            // Official organizer response - always show name
+            authorName = this.escapeHtml(answer.author_name || 'Event Organizer');
+        } else if (answer.author_name) {
+            // Regular user, not anonymous, and has a name - show it
+            authorName = this.escapeHtml(answer.author_name);
+        } else {
+            // Regular user, not anonymous, but no name in database - fallback
+            authorName = 'Anonymous';
+        }
 
         card.innerHTML = `
             <div class="answer-header">

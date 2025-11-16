@@ -98,7 +98,7 @@ router.post("/:id/answers", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Question id must be a positive integer" });
     }
 
-    const { content } = req.body;
+    const { content, is_anonymous } = req.body;
     if (typeof content !== "string" || content.trim().length === 0 || content.length > 5000) {
       return res
         .status(400)
@@ -117,10 +117,12 @@ router.post("/:id/answers", requireAuth, async (req, res) => {
     }
     const question = questions[0];
     const isOfficial = Number(question.organizer_id) === Number(userId);
+    // Organizers can never post anonymously
+    const isAnonymous = isOfficial ? false : (is_anonymous === true);
 
     const [result] = await conn.query(
-      "INSERT INTO answers (question_id, user_id, content, is_official_organizer_response) VALUES (?, ?, ?, ?)",
-      [questionId, userId, content.trim(), isOfficial ? true : false]
+      "INSERT INTO answers (question_id, user_id, content, is_official_organizer_response, is_anonymous) VALUES (?, ?, ?, ?, ?)",
+      [questionId, userId, content.trim(), isOfficial ? true : false, isAnonymous ? true : false]
     );
 
     // Mark question as answered
@@ -130,7 +132,7 @@ router.post("/:id/answers", requireAuth, async (req, res) => {
     );
 
     const [answerRows] = await conn.query(
-      "SELECT * FROM answers WHERE id = ?",
+      "SELECT a.*, u.name AS author_name FROM answers a LEFT JOIN users u ON a.user_id = u.id WHERE a.id = ?",
       [result.insertId]
     );
 

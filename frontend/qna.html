@@ -197,6 +197,7 @@
             margin-top: 1rem;
             display: flex;
             justify-content: flex-end;
+            gap: 0.75rem;
         }
 
         .question-actions .answer-btn {
@@ -214,6 +215,37 @@
         .question-actions .answer-btn:hover {
             transform: translateY(-1px);
             box-shadow: 0 6px 14px rgba(145, 35, 56, 0.3);
+        }
+
+        .question-actions .toggle-answers-btn {
+            border: 2px solid #d1d5db;
+            background: white;
+            color: #4b5563;
+            padding: 0.5rem 1.25rem;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .question-actions .toggle-answers-btn:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+            color: #1f2937;
+        }
+
+        .question-actions .toggle-answers-btn:active {
+            transform: scale(0.98);
+        }
+
+        .toggle-icon {
+            display: inline-block;
+            font-size: 0.75rem;
+            transition: transform 0.2s ease;
         }
 
         .ask-question-placeholder {
@@ -745,6 +777,7 @@
 
             // Initialize Answer Form
             answerForm = new AnswerForm();
+            window.answerForm = answerForm;  // Make globally accessible
             answerForm.setContext(null, currentUserId, currentOrganizerId);
             answerForm.setOnSuccess(() => {
                 if (window.qnaTab) {

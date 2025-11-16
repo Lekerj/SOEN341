@@ -52,7 +52,6 @@ class AnswerForm {
             <div class="answer-form" style="display: none;">
                 <div class="form-header">
                     <h4>Submit Answer</h4>
-                    <p>Provide an official organizer response</p>
                 </div>
 
                 <div id="answer-question-context" style="display: none; padding: 0.75rem 1rem; border-radius: 8px; background: #f3f4f6; margin-bottom: 1rem;">
@@ -73,9 +72,9 @@ class AnswerForm {
                 <form id="answer-form" class="answer-submission-form">
                     <div class="form-group">
                         <label for="answer-content">Your Answer *</label>
-                        <textarea 
-                            id="answer-content" 
-                            name="content" 
+                        <textarea
+                            id="answer-content"
+                            name="content"
                             rows="4"
                             maxlength="5000"
                             placeholder="Provide a helpful and detailed answer..."
@@ -84,6 +83,18 @@ class AnswerForm {
                         <div class="field-hint">
                             <span class="answer-char-counter">0/5000 characters</span>
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="answer-anonymous" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 400;">
+                            <input
+                                type="checkbox"
+                                id="answer-anonymous"
+                                name="anonymous"
+                                style="width: 16px; height: 16px; cursor: pointer;"
+                            />
+                            <span>Post this answer anonymously</span>
+                        </label>
                     </div>
 
                     <div class="form-actions">
@@ -159,21 +170,23 @@ class AnswerForm {
      */
     async handleSubmit(event) {
         event.preventDefault();
-        
+
         if (this.isSubmitting) return;
-        
+
         const formData = new FormData(this.form);
         const content = formData.get('content').trim();
-        
+        const isAnonymous = formData.get('anonymous') === 'on'; // Checkbox returns 'on' when checked
+
         // Client-side validation
         if (!this.validateForm(content)) return;
-        
+
         try {
             this.setSubmittingState(true);
             this.clearMessages();
-            
+
             const payload = {
-                content: content
+                content: content,
+                is_anonymous: isAnonymous
             };
 
             const response = await apiFetch(`/api/questions/${this.questionId}/answers`, {
@@ -232,12 +245,6 @@ class AnswerForm {
             return false;
         }
 
-        // Check organizer authorization
-        if (!this.isAuthorizedOrganizer()) {
-            this.showError('Only the event organizer can submit official answers');
-            return false;
-        }
-        
         return true;
     }
 
@@ -252,9 +259,11 @@ class AnswerForm {
 
     /**
      * Check visibility based on authorization
+     * ANY authenticated user can answer, but form styling indicates if they're the organizer
      */
     checkVisibility() {
-        if (this.isAuthorizedOrganizer() && this.questionId) {
+        // Show form to any authenticated user with a question selected
+        if (this.currentUserId && this.questionId) {
             this.show();
         } else {
             this.hide();
@@ -365,7 +374,8 @@ class AnswerForm {
         this.selectedQuestion = question;
         this.setQuestionId(question.id);
         this.updateQuestionContext(question);
-        if (this.isAuthorizedOrganizer()) {
+        // Show form to any authenticated user
+        if (this.currentUserId) {
             this.show();
         }
     }
@@ -418,10 +428,11 @@ class AnswerForm {
     }
 
     /**
-     * Show the form (if authorized)
+     * Show the form (for any authenticated user)
      */
     show() {
-        if (this.formWrapper && this.isAuthorizedOrganizer()) {
+        // Show form to any authenticated user with a question selected
+        if (this.formWrapper && this.currentUserId) {
             if (!this.questionId) {
                 console.warn('Answer form: question not selected');
                 return;
