@@ -559,6 +559,13 @@ class QnATab {
             const data = await response.json();
             console.log('✅ Question marked as helpful:', data);
 
+            // Update the question in the local questions array
+            const question = this.questions.find(q => q.id === questionId);
+            if (question && data.question && data.question.helpful_count !== undefined) {
+                question.helpful_count = data.question.helpful_count;
+                console.log('📊 Updated question helpful count:', question.helpful_count);
+            }
+
             // Update the helpful count in the UI
             if (data.question && data.question.helpful_count !== undefined) {
                 const countSpan = buttonElement.querySelector('span:last-child');
