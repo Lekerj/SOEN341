@@ -335,12 +335,16 @@ class QnATab {
         console.log('🔍 Looking for question helpful button for question', question.id, 'found:', !!questionHelpfulBtn);
         if (questionHelpfulBtn) {
             console.log('✅ Attaching click handler to helpful button for question', question.id);
-            questionHelpfulBtn.addEventListener('click', (e) => {
+            const handler = async (e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                const questionId = parseInt(questionHelpfulBtn.getAttribute('data-question-id'));
-                console.log('👍 Helpful button clicked for question:', questionId);
-                this.handleQuestionHelpful(questionId, questionHelpfulBtn);
-            });
+                const qId = parseInt(questionHelpfulBtn.getAttribute('data-question-id'));
+                console.log('👍 CLICK! Helpful button clicked for question:', qId);
+                console.log('🔄 Calling handleQuestionHelpful with:', qId, questionHelpfulBtn);
+                await this.handleQuestionHelpful(qId, questionHelpfulBtn);
+            };
+            questionHelpfulBtn.addEventListener('click', handler);
+            console.log('✅ Event listener attached');
         } else {
             console.warn('⚠️ Question helpful button not found for question', question.id);
         }
