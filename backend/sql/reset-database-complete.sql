@@ -38,7 +38,23 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- STEP 4: CREATE ALL TABLES (in correct dependency order)
 -- ============================================================================
 
--- 1. Create users table (no dependencies)
+
+-- 1. Create organizations table (no dependencies)
+CREATE TABLE organizations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    category ENUM('sports', 'academic', 'social', 'club') NOT NULL DEFAULT 'social',
+    is_default BOOLEAN DEFAULT FALSE,
+    logo_url VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_category (category),
+    INDEX idx_is_default (is_default)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2. Create users table (Users depend on organizations)
 CREATE TABLE users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
@@ -58,21 +74,6 @@ CREATE TABLE users (
   INDEX idx_organizer_auth_status (organizer_auth_status),
   INDEX idx_average_rating (average_rating),
   FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- 2. Create organizations table (no dependencies)
-CREATE TABLE organizations (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    description TEXT,
-    category ENUM('sports', 'academic', 'social', 'club') NOT NULL DEFAULT 'social',
-    is_default BOOLEAN DEFAULT FALSE,
-    logo_url VARCHAR(500),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    INDEX idx_category (category),
-    INDEX idx_is_default (is_default)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 3. Create organization_members table
@@ -269,9 +270,9 @@ CREATE TABLE helpful_votes (
 INSERT INTO organizations (id, name, description, category, is_default)
 VALUES (1, 'ConEvents', 'Default system organization', 'social', TRUE);
 
--- Insert sample admin user (password: admin123 - hashed)
+-- Insert sample admin user (password: Admin123!)
 INSERT INTO users (id, name, email, password_hash, role, organizer_auth_status, created_at)
-VALUES (1, 'Admin', 'admin@conevents.com', '$2b$10$0.5S1/KTF3ZqVN4X8L3eaOVhLH9yqsXH3zMj5WKs1fXJ5V0VHh5uW', 'admin', 'approved', NOW());
+VALUES (1, 'Admin', 'admin@concordia.com', '$2b$10$pUYZAwd7nbWGZ0Fcup7ImO0U/R4kOWmCygsz7CxtvQ2kqPNCXIG8G', 'admin', 'approved', NOW());
 
 -- Add admin to default organization
 INSERT INTO organization_members (user_id, organization_id, role, status)
