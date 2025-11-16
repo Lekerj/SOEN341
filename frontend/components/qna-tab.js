@@ -201,6 +201,43 @@ class QnATab {
         });
 
         this.questionsContainer.appendChild(questionsList);
+
+        // Attach event delegation for helpful buttons
+        this.attachQuestionHelpfulListeners();
+    }
+
+    /**
+     * Attach event delegation for question helpful buttons
+     */
+    attachQuestionHelpfulListeners() {
+        console.log('🔌 Attaching event delegation for question helpful buttons');
+
+        // Remove any old listeners first
+        if (this.questionsContainer.helpfulListener) {
+            this.questionsContainer.removeEventListener('click', this.questionsContainer.helpfulListener);
+        }
+
+        // Create the event handler
+        const handler = (e) => {
+            const btn = e.target.closest('.question-helpful-btn');
+            if (!btn) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const questionId = parseInt(btn.getAttribute('data-question-id'));
+            console.log('👍 CLICK! Helpful button clicked for question:', questionId);
+            console.log('🔄 Calling handleQuestionHelpful');
+
+            this.handleQuestionHelpful(questionId, btn);
+        };
+
+        // Store the handler reference so we can remove it later
+        this.questionsContainer.helpfulListener = handler;
+
+        // Attach the listener to the container
+        this.questionsContainer.addEventListener('click', handler);
+        console.log('✅ Event delegation attached to container');
     }
 
     /**
@@ -330,24 +367,8 @@ class QnATab {
             });
         }
 
-        // Add question helpful button click handler
-        const questionHelpfulBtn = card.querySelector('.question-helpful-btn');
-        console.log('🔍 Looking for question helpful button for question', question.id, 'found:', !!questionHelpfulBtn);
-        if (questionHelpfulBtn) {
-            console.log('✅ Attaching click handler to helpful button for question', question.id);
-            const handler = async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const qId = parseInt(questionHelpfulBtn.getAttribute('data-question-id'));
-                console.log('👍 CLICK! Helpful button clicked for question:', qId);
-                console.log('🔄 Calling handleQuestionHelpful with:', qId, questionHelpfulBtn);
-                await this.handleQuestionHelpful(qId, questionHelpfulBtn);
-            };
-            questionHelpfulBtn.addEventListener('click', handler);
-            console.log('✅ Event listener attached');
-        } else {
-            console.warn('⚠️ Question helpful button not found for question', question.id);
-        }
+        // Note: Question helpful button click handling is now done via event delegation
+        // in attachQuestionHelpfulListeners() method
 
         return container;
     }
