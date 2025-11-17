@@ -1272,11 +1272,13 @@
             // Create Q&A section first before mounting Reviews container
             const cacheBuster = `?t=${Date.now()}`;
             const { QnATab } = await import('./components/qna-tab.js' + cacheBuster);
+            const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
 
             // Build Q&A HTML with event-specific IDs
             const qaHTML = `
               <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #eee;">
                 <h3 style="margin-bottom: 1rem;">Questions & Answers</h3>
+                <div id="answer-form-container-${event.id}"></div>
                 <div class="qna-controls" style="margin-bottom: 1.5rem;">
                   <div class="sort-controls">
                     <label for="sortSelect-${event.id}" style="margin-right: 0.5rem;">Sort by:</label>
@@ -1301,9 +1303,27 @@
             // Append Q&A HTML to details panel
             reviewsContainer.innerHTML = qaHTML;
 
-            // Wait for DOM to be ready, then initialize QnATab
-            setTimeout(() => {
+            // Wait for DOM to be ready, then initialize QnATab and AnswerForm
+            setTimeout(async () => {
               try {
+                // Import AnswerForm
+                const { AnswerForm } = await import('./components/answer-form.js' + cacheBuster);
+
+                // Initialize Answer Form
+                const answerForm = new AnswerForm();
+                window.answerForm = answerForm;  // Make globally accessible
+                const userId = currentUser ? currentUser.id : null;
+
+                answerForm.setContext(null, userId, event.organizer_id);
+                answerForm.setOnSuccess(() => {
+                  console.log('Answer submitted successfully, refreshing Q&A...');
+                  // The QnATab will refresh itself via window reference
+                  if (window.currentEventQnA) {
+                    window.currentEventQnA.refresh();
+                  }
+                  answerForm.clearQuestion();
+                });
+
                 class EventQnATab extends QnATab {
                   initializeElements() {
                     this.sortSelect = document.getElementById(`sortSelect-${this.eventId}`);
@@ -1312,7 +1332,7 @@
                     this.loadingState = document.getElementById(`loadingState-${this.eventId}`);
                   }
                 }
-                new EventQnATab(event.id, event.organizer_id);
+                window.currentEventQnA = new EventQnATab(event.id, event.organizer_id);
               } catch (err) {
                 console.error('Failed to initialize QnATab:', err);
                 document.getElementById(`loadingState-${event.id}`).innerHTML = '<p style="color: #d32f2f;">Failed to load Q&A.</p>';
@@ -1320,7 +1340,6 @@
             }, 100);
 
             // Now mount Reviews component in its own section
-            const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
 
             // Create a simple wrapper for just the reviews tab
             const reviewsWrapper = document.createElement('div');
