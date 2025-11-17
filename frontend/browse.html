@@ -1309,8 +1309,8 @@
                 // Import AnswerForm
                 const { AnswerForm } = await import('./components/answer-form.js' + cacheBuster);
 
-                // Initialize Answer Form
-                const answerForm = new AnswerForm();
+                // Initialize Answer Form with event-specific container ID
+                const answerForm = new AnswerForm(`answer-form-container-${event.id}`);
                 window.answerForm = answerForm;  // Make globally accessible
                 const userId = currentUser ? currentUser.id : null;
 
