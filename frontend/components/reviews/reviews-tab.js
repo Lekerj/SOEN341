@@ -16,9 +16,10 @@ const SUMMARY_ENDPOINT = (organizerId) =>
   )}`;
 
 const SORT_MAP = {
-  newest: { sort: "created_at", order: "DESC" },
-  highest: { sort: "rating", order: "DESC" },
-  lowest: { sort: "rating", order: "ASC" },
+  newest: { sort: "most_recent", order: "DESC" },
+  highest: { sort: "highest_rated", order: "DESC" },
+  lowest: { sort: "lowest_rated", order: "ASC" },
+  helpful: { sort: "most_helpful", order: "DESC" },
 };
 
 export class ReviewsTabView {
@@ -151,6 +152,7 @@ export class ReviewsTabView {
             <label for="reviewsSort">Sort</label>
             <select id="reviewsSort">
               <option value="newest">Newest first</option>
+              <option value="helpful">Most helpful</option>
               <option value="highest">Highest rating</option>
               <option value="lowest">Lowest rating</option>
             </select>
