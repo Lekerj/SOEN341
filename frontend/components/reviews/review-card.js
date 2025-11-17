@@ -9,6 +9,7 @@ export class ReviewCard {
     this.onEdit = typeof options.onEdit === "function" ? options.onEdit : null;
     this.onDelete = typeof options.onDelete === "function" ? options.onDelete : null;
     this.helpfulProcessing = Boolean(options.helpfulProcessing);
+    this.hasVoted = Boolean(options.hasVoted);  // Track if user has already voted
     this.element = this.render();
   }
 
@@ -109,9 +110,12 @@ export class ReviewCard {
     helpfulButton.type = "button";
     helpfulButton.className = "review-card__helpful-btn";
     helpfulButton.innerHTML = `<span>👍</span><span>Helpful</span>`;
-    helpfulButton.disabled = this.helpfulProcessing;
+    helpfulButton.disabled = this.helpfulProcessing || this.hasVoted;
+    helpfulButton.title = this.hasVoted ? "You have already marked this as helpful" : "Mark as helpful";
+    helpfulButton.style.opacity = this.hasVoted ? "0.5" : "1";
+    helpfulButton.style.cursor = this.hasVoted ? "not-allowed" : "pointer";
     helpfulButton.addEventListener("click", () => {
-      if (this.helpfulProcessing || !this.onHelpful) return;
+      if (this.helpfulProcessing || this.hasVoted || !this.onHelpful) return;
       this.onHelpful(this.review);
     });
 
