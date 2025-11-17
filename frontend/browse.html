@@ -1269,51 +1269,53 @@
         // Mount reviews component on first click
         if (isHidden && !reviewsComponentMounted) {
           try {
-            const { mountReviewsQaContainer } = await import('./components/reviews/main-container.js');
-            const { reviewsTabRenderer } = await import('./components/reviews/reviews-tab.js');
-            const { QnATab } = await import('./components/qna-tab.js');
+            const cacheBuster = `?t=${Date.now()}`;
+            const { mountReviewsQaContainer } = await import('./components/reviews/main-container.js' + cacheBuster);
+            const { reviewsTabRenderer } = await import('./components/reviews/reviews-tab.js' + cacheBuster);
+            const { QnATab } = await import('./components/qna-tab.js' + cacheBuster);
 
             const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
 
             // Create Q&A renderer function that builds the required DOM structure
             const qaRenderer = ({ container, eventId, organizerId, currentUser }) => {
               // Build the Q&A tab structure that QnATab expects
-              const qaContent = document.createElement('div');
-              qaContent.className = 'qna-tab-content';
-              qaContent.innerHTML = `
-                <div class="qna-controls" style="margin-bottom: 1.5rem;">
-                  <div class="sort-controls">
-                    <label for="sortSelect" style="margin-right: 0.5rem;">Sort by:</label>
-                    <select id="sortSelect" class="sort-select" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;">
-                      <option value="recent">Most Recent</option>
-                      <option value="helpful">Most Helpful</option>
-                      <option value="unanswered">Unanswered</option>
-                    </select>
+              container.innerHTML = `
+                <div class="qna-tab-content">
+                  <div class="qna-controls" style="margin-bottom: 1.5rem;">
+                    <div class="sort-controls">
+                      <label for="sortSelect" style="margin-right: 0.5rem;">Sort by:</label>
+                      <select id="sortSelect" class="sort-select" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="recent">Most Recent</option>
+                        <option value="helpful">Most Helpful</option>
+                        <option value="unanswered">Unanswered</option>
+                      </select>
+                    </div>
                   </div>
-                </div>
-                <div class="question-count" id="questionCount" style="margin-bottom: 1rem; font-weight: 600; color: var(--dark-gray);">
-                  Loading questions...
-                </div>
-                <div id="questionsContainer" style="min-height: 200px;">
-                  <div class="loading-state" id="loadingState" style="text-align: center; padding: 2rem; color: var(--medium-gray);">
-                    <p>Loading Q&A...</p>
+                  <div class="question-count" id="questionCount" style="margin-bottom: 1rem; font-weight: 600; color: var(--dark-gray);">
+                    Loading questions...
+                  </div>
+                  <div id="questionsContainer" style="min-height: 200px;">
+                    <div class="loading-state" id="loadingState" style="text-align: center; padding: 2rem; color: var(--medium-gray);">
+                      <p>Loading Q&A...</p>
+                    </div>
                   </div>
                 </div>
               `;
 
-              container.appendChild(qaContent);
-
-              // Initialize QnATab after DOM is ready
+              // Initialize QnATab after a tick to ensure DOM is fully rendered
               setTimeout(() => {
                 try {
                   new QnATab(eventId, organizerId);
                 } catch (err) {
                   console.error('Failed to initialize QnATab:', err);
-                  document.getElementById('loadingState').innerHTML = '<p style="color: #d32f2f;">Failed to load Q&A. Please refresh.</p>';
+                  const loadingState = document.getElementById('loadingState');
+                  if (loadingState) {
+                    loadingState.innerHTML = '<p style="color: #d32f2f;">Failed to load Q&A. Please refresh.</p>';
+                  }
                 }
-              }, 0);
+              }, 50);
 
-              return container;
+              return null;
             };
 
             mountReviewsQaContainer({

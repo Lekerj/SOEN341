@@ -112,6 +112,23 @@ export class ReviewsTabView {
     return summary;
   }
 
+  buildDistributionPlaceholders() {
+    // Create placeholder distribution bars for 5-star rating system
+    const rows = [];
+    for (let rating = 5; rating >= 1; rating--) {
+      rows.push(`
+        <div class="reviews-tab__distribution-row" data-rating-row="${rating}">
+          <div class="reviews-tab__rating-label">${rating} ★</div>
+          <div class="reviews-tab__progress-bar-container">
+            <div class="reviews-tab__progress-bar" style="width: 0%"></div>
+          </div>
+          <div class="reviews-tab__count" data-count="0">0</div>
+        </div>
+      `);
+    }
+    return rows.join("");
+  }
+
   buildBodyLayout() {
     const layout = document.createElement("div");
     layout.className = "reviews-tab__layout";
