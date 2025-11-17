@@ -1278,6 +1278,10 @@
             const qaHTML = `
               <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #eee;">
                 <h3 style="margin-bottom: 1rem;">Questions & Answers</h3>
+                <div style="margin-bottom: 1rem;">
+                  <button id="ask-question-btn-${event.id}" class="btn btn-primary" style="width: 100%; padding: 10px 16px; font-size: 0.9rem;">Ask a Question</button>
+                </div>
+                <div id="ask-question-form-container-${event.id}" style="display: none; margin-bottom: 1.5rem;"></div>
                 <div id="answer-form-container-${event.id}"></div>
                 <div class="qna-controls" style="margin-bottom: 1.5rem;">
                   <div class="sort-controls">
@@ -1303,16 +1307,42 @@
             // Append Q&A HTML to details panel
             reviewsContainer.innerHTML = qaHTML;
 
-            // Wait for DOM to be ready, then initialize QnATab and AnswerForm
+            // Wait for DOM to be ready, then initialize QnATab, AskQuestionForm, and AnswerForm
             setTimeout(async () => {
               try {
-                // Import AnswerForm
+                // Import components
+                const { AskQuestionForm } = await import('./components/ask-question-form.js' + cacheBuster);
                 const { AnswerForm } = await import('./components/answer-form.js' + cacheBuster);
+
+                const userId = currentUser ? currentUser.id : null;
+
+                // Initialize Ask Question Form
+                const askQuestionForm = new AskQuestionForm(`ask-question-form-container-${event.id}`);
+                window.askQuestionForm = askQuestionForm;
+                askQuestionForm.setEventContext(event.id, event.organizer_id);
+                askQuestionForm.setOnSuccess(() => {
+                  console.log('Question submitted successfully, refreshing Q&A...');
+                  if (window.currentEventQnA) {
+                    window.currentEventQnA.refresh();
+                  }
+                });
+
+                // Add button click handler
+                const askBtn = document.getElementById(`ask-question-btn-${event.id}`);
+                if (askBtn) {
+                  askBtn.addEventListener('click', () => {
+                    const formContainer = document.getElementById(`ask-question-form-container-${event.id}`);
+                    const isHidden = formContainer.style.display === 'none';
+                    formContainer.style.display = isHidden ? 'block' : 'none';
+                    if (isHidden) {
+                      formContainer.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  });
+                }
 
                 // Initialize Answer Form with event-specific container ID
                 const answerForm = new AnswerForm(`answer-form-container-${event.id}`);
                 window.answerForm = answerForm;  // Make globally accessible
-                const userId = currentUser ? currentUser.id : null;
 
                 answerForm.setContext(null, userId, event.organizer_id);
                 answerForm.setOnSuccess(() => {
