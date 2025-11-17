@@ -1758,7 +1758,7 @@ select.form-control {
 
 .reviews-tab__layout {
   display: grid;
-  grid-template-columns: minmax(260px, 360px) 1fr;
+  grid-template-columns: 1fr;
   gap: var(--spacing-lg);
 }
 
@@ -2097,10 +2097,6 @@ select.form-control {
 }
 
 @media (max-width: 900px) {
-  .reviews-tab__layout {
-    grid-template-columns: 1fr;
-  }
-
   .reviews-tab__summary {
     flex-direction: column;
   }
