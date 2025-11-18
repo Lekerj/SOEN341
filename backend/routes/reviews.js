@@ -142,6 +142,60 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/reviews/summary - Get rating summary for an organizer
+router.get("/summary", async (req, res) => {
+  try {
+    const organizerId = req.query.organizer_id;
+    if (!organizerId) {
+      return res.status(400).json({ error: "organizer_id query parameter is required" });
+    }
+
+    const conn = db.promise();
+
+    // Get average rating and total review count
+    const [summaryRows] = await conn.query(
+      `SELECT
+        ROUND(AVG(rating), 2) AS average_rating,
+        COUNT(*) AS total_reviews
+      FROM reviews
+      WHERE organizer_id = ?`,
+      [organizerId]
+    );
+
+    const summary = summaryRows && summaryRows.length ? summaryRows[0] : {};
+    const average_rating = summary.average_rating ? Number(summary.average_rating) : null;
+    const total_reviews = summary.total_reviews ? Number(summary.total_reviews) : 0;
+
+    // Get distribution of ratings
+    const [distributionRows] = await conn.query(
+      `SELECT rating, COUNT(*) AS count
+      FROM reviews
+      WHERE organizer_id = ?
+      GROUP BY rating`,
+      [organizerId]
+    );
+
+    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    if (distributionRows && Array.isArray(distributionRows)) {
+      distributionRows.forEach((row) => {
+        const rating = Number(row.rating);
+        if (rating >= 1 && rating <= 5) {
+          distribution[rating] = Number(row.count);
+        }
+      });
+    }
+
+    res.status(200).json({
+      average_rating,
+      total_reviews,
+      distribution
+    });
+  } catch (err) {
+    console.error("[REVIEWS] Error fetching summary:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
 // GET /api/reviews - Fetch reviews (with optional query params for filtering)
 router.get("/", async (req, res) => {
   try {

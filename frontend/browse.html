@@ -52,7 +52,25 @@
   gap: 15px;
 }
 
-  
+/* Ensure reviews summary is fully visible and styled properly in modal */
+#eventDetailsModal #modal-reviews .reviews-tab__summary {
+  overflow: visible !important;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#eventDetailsModal #modal-reviews .reviews-tab__score-card {
+  min-width: unset;
+  flex: unset;
+}
+
+#eventDetailsModal #modal-reviews .reviews-tab__distribution {
+  min-width: unset;
+  flex: unset;
+}
+
+
 
 
 /* Main modal layout */
@@ -87,6 +105,9 @@
 #eventDetailsModal .modal-header-block {
   flex: 0 0 auto;
   margin-bottom: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 10px;
 }
 
 /* Two-column area (reviews + Q&A) */
@@ -1550,6 +1571,7 @@
   body.innerHTML = `
   <div class="modal-header-block">
     <h2>${data.event.title}</h2>
+    <p><strong>Organizer:</strong> ${data.event.organizer_name || 'TBA'}</p>
     <p><strong>Date:</strong> ${data.event.event_date}</p>
     <p><strong>Time:</strong> ${data.event.event_time}</p>
     <p><strong>Location:</strong> ${data.event.location}</p>
