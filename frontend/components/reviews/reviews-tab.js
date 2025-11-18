@@ -525,13 +525,71 @@ export class ReviewsTabView {
     }
   }
 
-  handleEdit(review) {
-    console.info("Edit review clicked", review);
+  async handleEdit(review) {
+  const modal = document.getElementById("edit-review-modal");
+  const titleInput = document.getElementById("edit-review-title");
+  const contentInput = document.getElementById("edit-review-content");
+  const saveBtn = document.getElementById("save-edit-btn");
+  const cancelBtn = document.getElementById("cancel-edit-btn");
+
+  if (!modal) return alert("Edit modal missing from HTML!");
+
+  // Pre-fill values
+  titleInput.value = review.title;
+  contentInput.value = review.content;
+  modal.dataset.reviewId = review.id;
+
+  modal.classList.remove("hidden");
+
+  // Cancel button closes the modal
+  cancelBtn.onclick = () => {
+    modal.classList.add("hidden");
+  };
+
+  // Save changes
+  saveBtn.onclick = async () => {
+    const payload = {
+      title: titleInput.value.trim(),
+      content: contentInput.value.trim(),
+    };
+
+    const res = await fetch(`${getApiBase()}/api/reviews/${review.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Failed to update review");
+      return;
+    }
+
+    modal.classList.add("hidden");
+    this.loadReviews();
+    this.refreshSummaryData();
+  };
+}
+
+async handleDelete(review) {
+  const confirmed = confirm("Are you sure you want to delete this review?");
+  if (!confirmed) return;
+
+  const res = await fetch(`${getApiBase()}/api/reviews/${review.id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    alert(err.error || "Unable to delete review");
+    return;
   }
 
-  handleDelete(review) {
-    console.info("Delete review clicked", review);
-  }
+  alert("Review deleted!");
+  this.loadReviews();
+}
 
   showError(message) {
     this.container.innerHTML = `
