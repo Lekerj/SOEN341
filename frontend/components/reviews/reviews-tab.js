@@ -139,7 +139,7 @@ export class ReviewsTabView {
       <section class="reviews-tab__submission" data-form-placeholder>
         <header>
           <p class="reviews-tab__eyebrow">Share your voice</p>
-          <h3>Write a new review</h3>
+          <h3>Write a New Review</h3>
           <p>Star ratings, titles, and detailed stories help future attendees decide.</p>
         </header>
         <div data-form-root></div>
@@ -147,8 +147,8 @@ export class ReviewsTabView {
       <section class="reviews-tab__list" data-list-placeholder>
         <header class="reviews-tab__list-header">
           <div>
-            <p class="reviews-tab__eyebrow">Story #185 · Review Feed</p>
-            <h3>Recent attendee feedback</h3>
+            <p class="reviews-tab__eyebrow"></p>
+            <h3>Recent Attendee Feedback</h3>
           </div>
           <div class="reviews-tab__sort">
             <label for="reviewsSort">Sort</label>

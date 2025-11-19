@@ -61,7 +61,10 @@ class AskQuestionForm {
 
                 <form id="ask-question-form" class="question-form">
                     <div class="form-group">
-                        <label for="question-title">Question Title *</label>
+                        <label class="review-form__label" for="question-title">
+    Question Title<span>*</span>
+</label>
+
                         <input 
                             type="text" 
                             id="question-title" 
@@ -74,7 +77,7 @@ class AskQuestionForm {
                     </div>
 
                     <div class="form-group">
-                        <label for="question-content">Question Details *</label>
+                        <label class="review-form__label" for="question-content">Question Details<span>*</span></label>
                         <textarea 
                             id="question-content" 
                             name="content" 
