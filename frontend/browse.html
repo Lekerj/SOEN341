@@ -1624,6 +1624,15 @@
     // Ask form
     const askForm = new AskQuestionForm("modal-ask-form");
     askForm.setEventContext(event.id, event.organizer_id);
+    askForm.setOnSuccess(() => {
+      if (window.qnaTab && typeof window.qnaTab.refresh === "function") {
+        window.qnaTab.refresh();
+      }
+      const askWrapper = document.getElementById("modal-ask-form");
+      if (askWrapper) {
+        askWrapper.style.display = "none";
+      }
+    });
 
     document.getElementById("askQuestionBtnModal")
       .addEventListener("click", () => {
@@ -1634,6 +1643,17 @@
     // Answer form
     const answerForm = new AnswerForm("modal-answer-form");
     answerForm.setContext(null, currentUser?.id, event.organizer_id);
+    answerForm.setOnSuccess(() => {
+      if (window.qnaTab && typeof window.qnaTab.refresh === "function") {
+        window.qnaTab.refresh();
+      }
+      answerForm.clearQuestion();
+      const answerWrapper = document.getElementById("modal-answer-form");
+      if (answerWrapper) {
+        answerWrapper.style.display = "none";
+      }
+    });
+    window.answerForm = answerForm;
 
     // QnA Section
     class ModalQnA extends QnATab {
@@ -1645,7 +1665,8 @@
       }
     }
 
-    window.currentQnAModal = new ModalQnA(event.id, event.organizer_id);
+    window.qnaTab = new ModalQnA(event.id, event.organizer_id);
+    window.currentQnAModal = window.qnaTab;
 
   } catch (err) {
     console.error("Modal Q&A Load Failed:", err);
