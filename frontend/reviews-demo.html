@@ -113,6 +113,52 @@
       });
     });
   </script>
+  
+  <!-- Edit Review Modal -->
+<div id="edit-review-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Edit Review</h3>
+
+    <label>Title</label>
+    <input id="edit-review-title" class="modal-input" />
+
+    <label>Review</label>
+    <textarea id="edit-review-content" rows="4" class="modal-input"></textarea>
+
+    <div class="modal-actions">
+      <button id="save-edit-btn" class="btn btn-primary">Save changes</button>
+      <button id="cancel-edit-btn" class="btn btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* minimal modal styling */
+  #edit-review-modal.hidden { display: none; }
+  #edit-review-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5000;
+  }
+  #edit-review-modal .modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 400px;
+  }
+  #edit-review-modal .modal-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: .5rem;
+    justify-content: flex-end;
+  }
+</style>
+
 </body>
 
 </html>

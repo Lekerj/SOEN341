@@ -83,7 +83,7 @@ export class ReviewForm {
     this.root.innerHTML = `
       <form class="review-form" novalidate>
         <div class="review-form__group">
-          <label class="review-form__label">Your rating<span>*</span></label>
+          <label class="review-form__label">Your Rating<span>*</span></label>
           <div class="review-form__stars" data-stars>
             ${[1, 2, 3, 4, 5]
               .map(

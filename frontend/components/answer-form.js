@@ -7,7 +7,7 @@
 import { getApiBase, apiFetch } from '../utils/api.js';
 
 class AnswerForm {
-    constructor() {
+    constructor(containerId = 'answer-form-container') {
         this.form = null;
         this.contentInput = null;
         this.submitButton = null;
@@ -18,13 +18,14 @@ class AnswerForm {
         this.questionContextContainer = null;
         this.questionContextTitle = null;
         this.selectedQuestion = null;
-        
+        this.containerId = containerId;
+
         // Context data
         this.questionId = null;
         this.currentUserId = null;
         this.requiredOrganizerId = null;
         this.onSuccessCallback = null;
-        
+
         this.init();
     }
 
@@ -41,9 +42,9 @@ class AnswerForm {
      * Create the form HTML structure
      */
     createFormHTML() {
-        const container = document.getElementById('answer-form-container');
+        const container = document.getElementById(this.containerId);
         if (!container) {
-            console.warn('Answer Form: Container element not found');
+            console.warn(`Answer Form: Container element with ID '${this.containerId}' not found`);
             return;
         }
         this.container = container;

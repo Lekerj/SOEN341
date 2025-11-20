@@ -6,7 +6,7 @@
 import { getApiBase, apiFetch } from '../utils/api.js';
 
 class AskQuestionForm {
-    constructor() {
+    constructor(containerId = 'ask-question-form-container') {
         this.form = null;
         this.titleInput = null;
         this.contentInput = null;
@@ -14,12 +14,13 @@ class AskQuestionForm {
         this.errorContainer = null;
         this.successContainer = null;
         this.isSubmitting = false;
-        
+        this.containerId = containerId;
+
         // Default values - can be set externally
         this.eventId = null;
         this.organizerId = null;
         this.onSuccessCallback = null;
-        
+
         this.init();
     }
 
@@ -35,9 +36,9 @@ class AskQuestionForm {
      * Create the form HTML structure
      */
     createFormHTML() {
-        const container = document.getElementById('ask-question-form-container');
+        const container = document.getElementById(this.containerId);
         if (!container) {
-            console.warn('Ask Question Form: Container element not found');
+            console.warn(`Ask Question Form: Container element with ID '${this.containerId}' not found`);
             return;
         }
 
@@ -60,7 +61,10 @@ class AskQuestionForm {
 
                 <form id="ask-question-form" class="question-form">
                     <div class="form-group">
-                        <label for="question-title">Question Title *</label>
+                        <label class="review-form__label" for="question-title">
+    Question Title<span>*</span>
+</label>
+
                         <input 
                             type="text" 
                             id="question-title" 
@@ -73,7 +77,7 @@ class AskQuestionForm {
                     </div>
 
                     <div class="form-group">
-                        <label for="question-content">Question Details *</label>
+                        <label class="review-form__label" for="question-content">Question Details<span>*</span></label>
                         <textarea 
                             id="question-content" 
                             name="content" 

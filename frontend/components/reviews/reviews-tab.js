@@ -16,9 +16,10 @@ const SUMMARY_ENDPOINT = (organizerId) =>
   )}`;
 
 const SORT_MAP = {
-  newest: { sort: "created_at", order: "DESC" },
-  highest: { sort: "rating", order: "DESC" },
-  lowest: { sort: "rating", order: "ASC" },
+  newest: { sort: "most_recent", order: "DESC" },
+  highest: { sort: "highest_rated", order: "DESC" },
+  lowest: { sort: "lowest_rated", order: "ASC" },
+  helpful: { sort: "most_helpful", order: "DESC" },
 };
 
 export class ReviewsTabView {
@@ -37,6 +38,7 @@ export class ReviewsTabView {
       sortSelect: null,
     };
     this.helpfulProcessing = new Set();
+    this.userHelpfulVotes = new Set(); // Track which reviews user has voted as helpful
     this.state = {
       loading: true,
       error: null,
@@ -60,6 +62,7 @@ export class ReviewsTabView {
     }
     this.container.classList.add("reviews-tab");
     this.renderLayout();
+    this.loadUserVotes(); // Load user vote history first
     this.loadSummaryData();
     this.loadReviews();
   }
@@ -112,6 +115,23 @@ export class ReviewsTabView {
     return summary;
   }
 
+  buildDistributionPlaceholders() {
+    // Create placeholder distribution bars for 5-star rating system
+    const rows = [];
+    for (let rating = 5; rating >= 1; rating--) {
+      rows.push(`
+        <div class="reviews-tab__distribution-row" data-rating-row="${rating}">
+          <div class="reviews-tab__rating-label">${rating} ★</div>
+          <div class="reviews-tab__progress-bar-container">
+            <div class="reviews-tab__progress-bar" style="width: 0%"></div>
+          </div>
+          <div class="reviews-tab__count" data-count="0">0</div>
+        </div>
+      `);
+    }
+    return rows.join("");
+  }
+
   buildBodyLayout() {
     const layout = document.createElement("div");
     layout.className = "reviews-tab__layout";
@@ -119,7 +139,7 @@ export class ReviewsTabView {
       <section class="reviews-tab__submission" data-form-placeholder>
         <header>
           <p class="reviews-tab__eyebrow">Share your voice</p>
-          <h3>Write a new review</h3>
+          <h3>Write a New Review</h3>
           <p>Star ratings, titles, and detailed stories help future attendees decide.</p>
         </header>
         <div data-form-root></div>
@@ -127,13 +147,14 @@ export class ReviewsTabView {
       <section class="reviews-tab__list" data-list-placeholder>
         <header class="reviews-tab__list-header">
           <div>
-            <p class="reviews-tab__eyebrow">Story #185 · Review Feed</p>
-            <h3>Recent attendee feedback</h3>
+            <p class="reviews-tab__eyebrow"></p>
+            <h3>Recent Attendee Feedback</h3>
           </div>
           <div class="reviews-tab__sort">
             <label for="reviewsSort">Sort</label>
             <select id="reviewsSort">
               <option value="newest">Newest first</option>
+              <option value="helpful">Most helpful</option>
               <option value="highest">Highest rating</option>
               <option value="lowest">Lowest rating</option>
             </select>
@@ -174,6 +195,34 @@ export class ReviewsTabView {
       this.state.sortKey = event.target.value;
       this.loadReviews();
     });
+  }
+
+  async loadUserVotes() {
+    // Load the current user's review helpful votes from localStorage
+    // This is a client-side solution to prevent duplicate votes in a session
+    try {
+      const key = `reviews_helpful_votes_${this.currentUser?.id || 'guest'}`;
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        this.userHelpfulVotes = new Set(JSON.parse(stored));
+        console.log('[ReviewsTab] Loaded user helpful votes:', Array.from(this.userHelpfulVotes));
+      }
+    } catch (error) {
+      console.warn('[ReviewsTab] Could not load helpful vote history:', error);
+      // It's okay if we can't load votes - just continue without pre-disabling
+    }
+  }
+
+  saveUserVote(reviewId) {
+    // Save vote to localStorage so user can't vote multiple times in a session
+    try {
+      const key = `reviews_helpful_votes_${this.currentUser?.id || 'guest'}`;
+      this.userHelpfulVotes.add(reviewId);
+      localStorage.setItem(key, JSON.stringify(Array.from(this.userHelpfulVotes)));
+      console.log('[ReviewsTab] Saved helpful vote for review:', reviewId);
+    } catch (error) {
+      console.warn('[ReviewsTab] Could not save helpful vote:', error);
+    }
   }
 
   async loadSummaryData() {
@@ -421,10 +470,12 @@ export class ReviewsTabView {
     this.elements.listEmpty.hidden = true;
     this.elements.listRoot.innerHTML = "";
     this.state.reviews.forEach((review) => {
+      const hasVoted = this.userHelpfulVotes.has(review.id);
       const card = new ReviewCard({
         review,
         currentUser: this.currentUser,
         helpfulProcessing: this.helpfulProcessing.has(review.id),
+        hasVoted,  // Pass whether user has already voted
         onHelpful: () => this.handleHelpfulClick(review),
         onEdit: () => this.handleEdit(review),
         onDelete: () => this.handleDelete(review),
@@ -435,6 +486,11 @@ export class ReviewsTabView {
 
   async handleHelpfulClick(review) {
     if (!review?.id || this.helpfulProcessing.has(review.id)) return;
+    // Check if user has already voted
+    if (this.userHelpfulVotes.has(review.id)) {
+      console.log('[ReviewsTab] User has already voted helpful on this review');
+      return;
+    }
     this.helpfulProcessing.add(review.id);
     this.renderReviewsList();
     try {
@@ -458,6 +514,8 @@ export class ReviewsTabView {
           ? { ...item, helpful_count: Number.isFinite(nextCount) ? nextCount : item.helpful_count }
           : item
       );
+      // Save this vote to prevent future votes
+      this.saveUserVote(review.id);
     } catch (error) {
       console.error("[ReviewsTab] Helpful interaction failed:", error);
       alert(error?.message || "Unable to mark review as helpful.");
@@ -467,13 +525,71 @@ export class ReviewsTabView {
     }
   }
 
-  handleEdit(review) {
-    console.info("Edit review clicked", review);
+  async handleEdit(review) {
+  const modal = document.getElementById("edit-review-modal");
+  const titleInput = document.getElementById("edit-review-title");
+  const contentInput = document.getElementById("edit-review-content");
+  const saveBtn = document.getElementById("save-edit-btn");
+  const cancelBtn = document.getElementById("cancel-edit-btn");
+
+  if (!modal) return alert("Edit modal missing from HTML!");
+
+  // Pre-fill values
+  titleInput.value = review.title;
+  contentInput.value = review.content;
+  modal.dataset.reviewId = review.id;
+
+  modal.classList.remove("hidden");
+
+  // Cancel button closes the modal
+  cancelBtn.onclick = () => {
+    modal.classList.add("hidden");
+  };
+
+  // Save changes
+  saveBtn.onclick = async () => {
+    const payload = {
+      title: titleInput.value.trim(),
+      content: contentInput.value.trim(),
+    };
+
+    const res = await fetch(`${getApiBase()}/api/reviews/${review.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Failed to update review");
+      return;
+    }
+
+    modal.classList.add("hidden");
+    this.loadReviews();
+    this.refreshSummaryData();
+  };
+}
+
+async handleDelete(review) {
+  const confirmed = confirm("Are you sure you want to delete this review?");
+  if (!confirmed) return;
+
+  const res = await fetch(`${getApiBase()}/api/reviews/${review.id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    alert(err.error || "Unable to delete review");
+    return;
   }
 
-  handleDelete(review) {
-    console.info("Delete review clicked", review);
-  }
+  alert("Review deleted!");
+  this.loadReviews();
+}
 
   showError(message) {
     this.container.innerHTML = `
