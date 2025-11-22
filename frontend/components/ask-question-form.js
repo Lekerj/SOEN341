@@ -77,7 +77,7 @@ class AskQuestionForm {
                     </div>
 
                     <div class="form-group">
-                        <label class="review-form__label" for="question-content">Question Details<span>*</span></label>
+                        <label class="review-form__label" for="question-content" style="margin-bottom: 5px; display: inline-block;">Question Details<span>*</span></label>
                         <textarea 
                             id="question-content" 
                             name="content" 

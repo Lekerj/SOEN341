@@ -7,18 +7,52 @@
   <title>Browse Events - ConEvents</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-   /* Q&A inside modal – make it match the review cards */
+   /* Q&A inside modal - make it match the review cards */
 #eventDetailsModal #modal-qna {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
+}
+
+#eventDetailsModal #modal-qna .modal-qna__panel,
+#eventDetailsModal #modal-qna .modal-qna__list-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  padding: 16px;
 }
 
 /* Q&A header like Reviews section */
+#eventDetailsModal #modal-qna .modal-qna__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+#eventDetailsModal #modal-qna .modal-qna__muted {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+#eventDetailsModal #modal-qna .modal-qna__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#eventDetailsModal #modal-qna #askQuestionBtnModal {
+  margin: 0;
+}
+
 #eventDetailsModal #modal-qna h3 {
   font-size: 1.25rem;
   font-weight: 700;
-  margin-bottom: 10px;
+  margin: 4px 0 0;
   color: #333;
 }
 
@@ -30,10 +64,21 @@
   padding: 16px;
   border-radius: 12px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-  margin-bottom: 10px;
+  margin-top: 10px;
+}
+
+/* Q&A meta row */
+#eventDetailsModal #modal-qna .modal-qna__controls {
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin-top: 6px;
 }
 
 /* Each Q&A question card styled like review cards */
+#eventDetailsModal #modal-qna .question-card-container {
+  margin: 0;
+}
+
 #eventDetailsModal #modal-qna .question-card,
 #eventDetailsModal #modal-qna .qna-item,
 #eventDetailsModal #modal-qna .qna-card {
@@ -41,15 +86,25 @@
   border-radius: 12px;
   padding: 16px;
   border: 1px solid #e5e7eb;
-  margin-bottom: 15px;
+  margin: 0;
   box-shadow: 0 2px 6px rgba(0,0,0,0.06);
 }
 
 /* Optional: tighten spacing between parts */
-#eventDetailsModal #modal-qna #modal-qna-list {
+#eventDetailsModal #modal-qna #modal-qna-list,
+#eventDetailsModal #modal-qna .questions-list {
   display: flex;
   flex-direction: column;
   gap: 15px;
+}
+
+/* Answers block follows card spacing */
+#eventDetailsModal #modal-qna .answers-container {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
 }
 
 /* Ensure reviews summary is fully visible and styled properly in modal */
@@ -1611,14 +1666,25 @@
     const { AnswerForm } = await import('./components/answer-form.js' + cacheBuster);
 
     qnaContainer.innerHTML = `
-      <h3>Questions & Answers</h3>
-      <button id="askQuestionBtnModal" class="btn btn-primary" style="margin-bottom:1rem;">Ask a Question</button>
+      <section class="reviews-tab__list modal-qna__panel">
+        <header class="reviews-tab__list-header modal-qna__header">
+          <div>
+            <p class="reviews-tab__eyebrow">Questions</p>
+            <h3>Questions & Answers</h3>
+            <p class="modal-qna__muted">Ask organizers or help attendees with quick answers.</p>
+          </div>
+          <div class="modal-qna__actions">
+            <button id="askQuestionBtnModal" class="btn btn-primary">Ask a Question</button>
+          </div>
+        </header>
+        <div id="modal-qna-controls" class="modal-qna__controls"></div>
+        <div id="modal-ask-form" class="modal-qna__form"></div>
+        <div id="modal-answer-form" class="modal-qna__form"></div>
+      </section>
 
-      <div id="modal-ask-form"></div>
-      <div id="modal-answer-form"></div>
-
-      <div id="modal-qna-controls"></div>
-      <div id="modal-qna-list"></div>
+      <section class="reviews-tab__submission modal-qna__list-card">
+        <div id="modal-qna-list" class="modal-qna__list"></div>
+      </section>
     `;
 
     // Ask form
